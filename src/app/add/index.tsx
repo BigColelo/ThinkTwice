@@ -11,6 +11,7 @@ import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { SectionHeader } from '@/components/ui/SectionHeader';
 import { Thumbnail } from '@/components/ui/Thumbnail';
 import { getPurchaseCategory } from '@/constants/categories';
+import { useGoBack } from '@/features/navigation/useGoBack';
 import { useRecentPurchases } from '@/features/purchases/hooks/usePurchases';
 import { useWishlistPreview } from '@/features/wishlist/hooks/useWishlist';
 import { useTheme } from '@/theme';
@@ -23,6 +24,7 @@ import { useTheme } from '@/theme';
 export default function AddItemScreen(): React.ReactElement {
   const theme = useTheme();
   const router = useRouter();
+  const goBack = useGoBack('/');
 
   const wishlist = useWishlistPreview(2);
   const purchases = useRecentPurchases(2);
@@ -50,10 +52,7 @@ export default function AddItemScreen(): React.ReactElement {
 
   return (
     <>
-      <ScreenHeader
-        title="Add item"
-        textAction={{ label: 'Close', onPress: () => router.back() }}
-      />
+      <ScreenHeader title="Add item" textAction={{ label: 'Close', onPress: goBack }} />
 
       <Screen scroll>
         <AppText variant="title" style={{ marginBottom: theme.spacing.md }}>

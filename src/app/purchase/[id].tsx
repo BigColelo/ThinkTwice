@@ -1,5 +1,5 @@
 import { Image } from 'expo-image';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 import { Plus, Trash2 } from 'lucide-react-native';
 import React, { useState } from 'react';
 import { View } from 'react-native';
@@ -18,6 +18,7 @@ import { ErrorState, LoadingState } from '@/components/ui/StateViews';
 import { getPurchaseCategory } from '@/constants/categories';
 import { usageFrequencyShortLabel } from '@/constants/usagePresets';
 import { useRepositories } from '@/db/DatabaseProvider';
+import { useGoBack } from '@/features/navigation/useGoBack';
 import { AddExpenseSheet } from '@/features/purchases/components/AddExpenseSheet';
 import { RealCostBreakdown } from '@/features/purchases/components/RealCostBreakdown';
 import { UsageActionCard } from '@/features/purchases/components/UsageActionCard';
@@ -39,12 +40,14 @@ import { formatDate } from '@/utils/dates';
  */
 export default function PurchaseDetailScreen(): React.ReactElement {
   const theme = useTheme();
-  const router = useRouter();
   const repositories = useRepositories();
   const { id } = useLocalSearchParams<{ id: string }>();
 
   const { data, isLoading, error, refetch } = usePurchaseDetail(id);
   const [isExpenseSheetOpen, setIsExpenseSheetOpen] = useState(false);
+  // Opened from a link with no history behind it, "back" means the list this
+  // purchase belongs to.
+  const goBack = useGoBack('/purchases');
 
   const handleDelete = async (): Promise<void> => {
     if (!data) return;
@@ -57,13 +60,13 @@ export default function PurchaseDetailScreen(): React.ReactElement {
     if (!confirmed) return;
 
     await deletePurchase(repositories, data.purchase);
-    router.back();
+    goBack();
   };
 
   if (isLoading) {
     return (
       <>
-        <ScreenHeader onBack={() => router.back()} />
+        <ScreenHeader onBack={goBack} />
         <Screen>
           <LoadingState />
         </Screen>
@@ -74,7 +77,7 @@ export default function PurchaseDetailScreen(): React.ReactElement {
   if (error || !data) {
     return (
       <>
-        <ScreenHeader onBack={() => router.back()} />
+        <ScreenHeader onBack={goBack} />
         <Screen>
           <ErrorState
             title="Purchase not found"
@@ -93,7 +96,7 @@ export default function PurchaseDetailScreen(): React.ReactElement {
     <>
       <ScreenHeader
         title={purchase.name}
-        onBack={() => router.back()}
+        onBack={goBack}
         action={{ icon: Trash2, accessibilityLabel: 'Delete purchase', onPress: handleDelete }}
       />
 

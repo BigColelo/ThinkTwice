@@ -28,6 +28,7 @@ import { invalidate } from '@/db/dataRevisions';
 import { isDevSeedAvailable, seedDevelopmentData } from '@/db/devSeed';
 import { LATEST_SCHEMA_VERSION } from '@/db/migrations';
 import { deleteAllItemImages } from '@/features/images/itemImages';
+import { useGoBack } from '@/features/navigation/useGoBack';
 import { useSettings } from '@/features/settings/SettingsProvider';
 import {
   areLocalNotificationsSupported,
@@ -55,6 +56,7 @@ export default function SettingsScreen(): React.ReactElement {
   const [notificationMessage, setNotificationMessage] = useState<string | null>(null);
   const [isResetting, setIsResetting] = useState(false);
   const [isSeeding, setIsSeeding] = useState(false);
+  const goBack = useGoBack('/');
 
   // The switch is disabled where local scheduling does not exist; without a
   // reason next to it, a dead control is just confusing.
@@ -140,7 +142,7 @@ export default function SettingsScreen(): React.ReactElement {
 
   return (
     <>
-      <ScreenHeader title="Settings" onBack={() => router.back()} />
+      <ScreenHeader title="Settings" onBack={goBack} />
 
       <Screen scroll>
         <SectionHeader title="Appearance" />

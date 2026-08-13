@@ -88,6 +88,11 @@ Routes live in **`src/app`**, not `app/`. A new screen must also be registered a
 (`experiments.typedRoutes`) regenerate `.expo/types` while the dev server runs. First-run redirect
 to `/onboarding` is a redirect, not a separate navigator, so every route stays URL-addressable.
 
+Because every route is URL-addressable, any screen can be the first history entry (deep link, web
+URL, tapped reminder). Never call `router.back()` directly in a screen — use `useGoBack(fallback)`
+from `@/features/navigation/useGoBack`, which falls back to a real destination when there is nothing
+to pop. Passing the parent route as the fallback (`useGoBack('/purchases')`) is the norm.
+
 ### Persistence rules
 
 - **Migrations are append-only.** Add an entry to `MIGRATIONS` in `src/db/migrations/index.ts` with

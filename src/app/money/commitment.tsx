@@ -1,5 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { Controller, useForm, useWatch } from 'react-hook-form';
 import { View } from 'react-native';
@@ -17,6 +17,7 @@ import { COMMITMENT_CATEGORIES, DEFAULT_COMMITMENT_CATEGORY_ID } from '@/constan
 import { COMMITMENT_FREQUENCIES, DEFAULT_COMMITMENT_FREQUENCY } from '@/constants/frequencies';
 import { useRepositories } from '@/db/DatabaseProvider';
 import { invalidate } from '@/db/dataRevisions';
+import { useGoBack } from '@/features/navigation/useGoBack';
 import {
   calculateAnnualCommitmentEquivalent,
   calculateMonthlyCommitmentEquivalent,
@@ -37,9 +38,9 @@ import { confirm } from '@/utils/confirm';
  */
 export default function CommitmentFormScreen(): React.ReactElement {
   const theme = useTheme();
-  const router = useRouter();
   const repositories = useRepositories();
   const { id } = useLocalSearchParams<{ id?: string }>();
+  const goBack = useGoBack('/money');
 
   const isEditing = Boolean(id);
   const [isLoading, setIsLoading] = useState(isEditing);
@@ -93,7 +94,7 @@ export default function CommitmentFormScreen(): React.ReactElement {
         await repositories.commitments.create(formValues);
       }
       invalidate('commitments');
-      router.back();
+      goBack();
     } catch {
       setSaveError('This commitment could not be saved. Please try again.');
       setIsSaving(false);
@@ -112,7 +113,7 @@ export default function CommitmentFormScreen(): React.ReactElement {
 
     await repositories.commitments.remove(id);
     invalidate('commitments');
-    router.back();
+    goBack();
   };
 
   const amountCents = values.amountCents ?? 0;
@@ -124,7 +125,7 @@ export default function CommitmentFormScreen(): React.ReactElement {
     <>
       <ScreenHeader
         title={isEditing ? 'Edit commitment' : 'Add commitment'}
-        textAction={{ label: 'Cancel', onPress: () => router.back() }}
+        textAction={{ label: 'Cancel', onPress: goBack }}
       />
 
       <Screen

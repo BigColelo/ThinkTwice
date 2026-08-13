@@ -1,4 +1,5 @@
 import { isRunningInExpoGo } from 'expo';
+import type { NotificationResponse } from 'expo-notifications';
 import { Platform } from 'react-native';
 
 import type { WishlistItem } from '@/types/domain';
@@ -92,6 +93,63 @@ export function configureNotificationHandling(): void {
         .catch(() => undefined);
     }
   });
+}
+
+/** The item a tapped reminder refers to. */
+export type CooldownReminderTarget = { wishlistItemId: string };
+
+function reminderTargetOf(
+  response: NotificationResponse | null | undefined,
+): CooldownReminderTarget | null {
+  // The payload comes back from the OS, so it is treated like any other
+  // untrusted input rather than assumed to be what was scheduled.
+  const id = response?.notification.request.content.data?.wishlistItemId;
+  return typeof id === 'string' && id !== '' ? { wishlistItemId: id } : null;
+}
+
+/**
+ * Calls `onOpen` when the user taps a reflection reminder, and returns an
+ * unsubscribe function.
+ *
+ * A tap that cold-starts the app is not delivered to the listener, so the most
+ * recent response is read once as well — otherwise opening the app *from* a
+ * reminder, which is the entire point of the reminder, would land on Home.
+ * Responses are de-duplicated because the two paths can report the same tap.
+ */
+export function subscribeToCooldownReminderTaps(
+  onOpen: (target: CooldownReminderTarget) => void,
+): () => void {
+  let subscription: { remove: () => void } | null = null;
+  let cancelled = false;
+  let handled: string | null = null;
+
+  const deliver = (response: NotificationResponse | null | undefined): void => {
+    const target = reminderTargetOf(response);
+    if (!target || cancelled || !response) return;
+
+    const key = `${response.notification.request.identifier}:${response.notification.date}`;
+    if (key === handled) return;
+    handled = key;
+
+    onOpen(target);
+  };
+
+  void loadNotifications().then((notifications) => {
+    if (!notifications || cancelled) return;
+
+    subscription = notifications.addNotificationResponseReceivedListener(deliver);
+    if (cancelled) {
+      subscription.remove();
+      return;
+    }
+
+    deliver(notifications.getLastNotificationResponse());
+  });
+
+  return () => {
+    cancelled = true;
+    subscription?.remove();
+  };
 }
 
 export type PermissionOutcome = 'granted' | 'denied' | 'unsupported';

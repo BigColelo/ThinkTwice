@@ -9,7 +9,10 @@ import { AppText } from '@/components/ui/AppText';
 import { ErrorState, LoadingState } from '@/components/ui/StateViews';
 import { DatabaseProvider, useDatabaseState, useRetryDatabase } from '@/db/DatabaseProvider';
 import { SettingsProvider, useSettings } from '@/features/settings/SettingsProvider';
-import { configureNotificationHandling } from '@/notifications/cooldownNotifications';
+import {
+  configureNotificationHandling,
+  subscribeToCooldownReminderTaps,
+} from '@/notifications/cooldownNotifications';
 import { ThemeProvider, useTheme } from '@/theme';
 
 /**
@@ -105,6 +108,7 @@ function AppChrome({
   const theme = useTheme();
 
   useOnboardingRedirect(isSettingsLoading, onboardingCompleted);
+  useReminderRouting();
 
   return (
     <>
@@ -134,6 +138,27 @@ function AppChrome({
         <Stack.Screen name="settings/index" />
       </Stack>
     </>
+  );
+}
+
+/**
+ * Opens the item a reminder is about when its notification is tapped, including
+ * the tap that launched the app.
+ *
+ * A reminder exists to bring the user back to a decision; leaving them on Home
+ * to find the item themselves would waste the only interruption the app allows
+ * itself. Where reminders do not exist — web, Expo Go on Android — the
+ * subscription is a no-op.
+ */
+function useReminderRouting(): void {
+  const router = useRouter();
+
+  useEffect(
+    () =>
+      subscribeToCooldownReminderTaps(({ wishlistItemId }) => {
+        router.push(`/wishlist/${wishlistItemId}`);
+      }),
+    [router],
   );
 }
 

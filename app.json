@@ -7,7 +7,6 @@
     "icon": "./assets/images/icon.png",
     "scheme": "thinktwice",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.thinktwice.app",
@@ -17,7 +16,6 @@
     },
     "android": {
       "package": "com.thinktwice.app",
-      "edgeToEdgeEnabled": true,
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#6D3FF3"

@@ -8,6 +8,7 @@ import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { SectionHeader } from '@/components/ui/SectionHeader';
 import { ErrorState, LoadingState } from '@/components/ui/StateViews';
+import { useGoBack } from '@/features/navigation/useGoBack';
 import { WishlistCard } from '@/features/wishlist/components/WishlistCard';
 import { useWishlist } from '@/features/wishlist/hooks/useWishlist';
 import { useTheme } from '@/theme';
@@ -21,12 +22,13 @@ export default function WishlistScreen(): React.ReactElement {
   const theme = useTheme();
   const router = useRouter();
   const { thinking, readyToDecide, isLoading, error, refetch } = useWishlist();
+  const goBack = useGoBack();
 
   const isEmpty = thinking.length === 0 && readyToDecide.length === 0;
 
   return (
     <>
-      <ScreenHeader title="Thinking about" onBack={() => router.back()} />
+      <ScreenHeader title="Thinking about" onBack={goBack} />
 
       <Screen scroll>
         {error ? (

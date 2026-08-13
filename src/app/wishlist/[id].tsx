@@ -23,6 +23,7 @@ import {
   calculateEstimatedUses,
   calculatePurchaseImpact,
 } from '@/domain';
+import { useGoBack } from '@/features/navigation/useGoBack';
 import { useMonthlyFinances } from '@/features/money/hooks/useMonthlyFinances';
 import { CooldownCard } from '@/features/wishlist/components/CooldownCard';
 import { PurchaseImpactCard } from '@/features/wishlist/components/PurchaseImpactCard';
@@ -49,6 +50,7 @@ export default function WishlistDetailScreen(): React.ReactElement {
   const router = useRouter();
   const repositories = useRepositories();
   const { id } = useLocalSearchParams<{ id: string }>();
+  const goBack = useGoBack('/wishlist');
 
   const { data: item, isLoading, error, refetch } = useWishlistItem(id);
   const { finances } = useMonthlyFinances();
@@ -106,7 +108,7 @@ export default function WishlistDetailScreen(): React.ReactElement {
     setActionError(null);
     try {
       await dismissWishlistItem(repositories, item.id);
-      router.back();
+      goBack();
     } catch {
       setActionError('This could not be saved. Please try again.');
       setPendingAction(null);
@@ -124,13 +126,13 @@ export default function WishlistDetailScreen(): React.ReactElement {
     if (!confirmed) return;
 
     await deleteWishlistItem(repositories, item);
-    router.back();
+    goBack();
   };
 
   if (isLoading) {
     return (
       <>
-        <ScreenHeader onBack={() => router.back()} />
+        <ScreenHeader onBack={goBack} />
         <Screen>
           <LoadingState />
         </Screen>
@@ -141,7 +143,7 @@ export default function WishlistDetailScreen(): React.ReactElement {
   if (error || !item) {
     return (
       <>
-        <ScreenHeader onBack={() => router.back()} />
+        <ScreenHeader onBack={goBack} />
         <Screen>
           <ErrorState
             title="Item not found"
@@ -160,7 +162,7 @@ export default function WishlistDetailScreen(): React.ReactElement {
     <>
       <ScreenHeader
         title={item.name}
-        onBack={() => router.back()}
+        onBack={goBack}
         action={{ icon: Trash2, accessibilityLabel: 'Delete item', onPress: handleDelete }}
       />
 

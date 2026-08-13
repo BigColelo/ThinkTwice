@@ -236,6 +236,12 @@ Notifications are the important one. They are **never** requested at launch — 
 for the first time the user enables reminders, at the moment it is useful. A denied permission costs
 nothing, because the countdown was never derived from a notification.
 
+A tapped reminder **opens the item it is about**, including the tap that cold-starts the app
+(`subscribeToCooldownReminderTaps`, wired up in the root layout). The cold-start tap is not delivered
+to the listener, so the most recent response is read once as well, and the two paths are
+de-duplicated by notification identifier. Landing the user on Home would waste the only interruption
+the app allows itself.
+
 `expo-notifications` is also **imported lazily**, not at module scope. Expo Go dropped the Android
 notification service in SDK 53 and the package throws while its own module initialises there, so a
 static import inside a module the root layout depends on would crash the app before the first screen

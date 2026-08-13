@@ -21,6 +21,7 @@ import { useRepositories } from '@/db/DatabaseProvider';
 import { COOLDOWN_DAY_OPTIONS, calculatePurchaseImpact, suggestCooldownDays } from '@/domain';
 import { ImagePickerField } from '@/features/images/ImagePickerField';
 import { useMonthlyFinances } from '@/features/money/hooks/useMonthlyFinances';
+import { useGoBack } from '@/features/navigation/useGoBack';
 import { useSettings } from '@/features/settings/SettingsProvider';
 import { EstimatePreview } from '@/features/wishlist/components/EstimatePreview';
 import { PurchaseImpactCard } from '@/features/wishlist/components/PurchaseImpactCard';
@@ -43,6 +44,7 @@ import { pluralize } from '@/utils/dates';
 export default function AddWishlistItemScreen(): React.ReactElement {
   const theme = useTheme();
   const router = useRouter();
+  const goBack = useGoBack('/');
   const repositories = useRepositories();
   const { settings } = useSettings();
   const { finances } = useMonthlyFinances();
@@ -116,7 +118,7 @@ export default function AddWishlistItemScreen(): React.ReactElement {
 
   return (
     <>
-      <ScreenHeader title="Something I want to buy" onBack={() => router.back()} />
+      <ScreenHeader title="Something I want to buy" onBack={goBack} />
 
       <Screen
         scroll

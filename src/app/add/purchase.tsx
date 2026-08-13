@@ -19,6 +19,7 @@ import {
   ownedPurchaseSchema,
   type OwnedPurchaseFormValues,
 } from '@/features/purchases/schemas/purchaseSchema';
+import { useGoBack } from '@/features/navigation/useGoBack';
 import { createOwnedPurchase } from '@/features/purchases/services/purchaseActions';
 import { useTheme } from '@/theme';
 import { todayIsoDate } from '@/utils/dates';
@@ -33,6 +34,7 @@ import { todayIsoDate } from '@/utils/dates';
 export default function AddOwnedPurchaseScreen(): React.ReactElement {
   const theme = useTheme();
   const router = useRouter();
+  const goBack = useGoBack('/');
   const repositories = useRepositories();
 
   const [isSaving, setIsSaving] = useState(false);
@@ -74,7 +76,7 @@ export default function AddOwnedPurchaseScreen(): React.ReactElement {
 
   return (
     <>
-      <ScreenHeader title="Something I already own" onBack={() => router.back()} />
+      <ScreenHeader title="Something I already own" onBack={goBack} />
 
       <Screen
         scroll
