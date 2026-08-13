@@ -215,6 +215,34 @@ describe('convertWishlistItemToPurchase', () => {
     expect(second.id).toBe(first.id);
   });
 
+  it('finishes a conversion that was interrupted after the purchase was written', async () => {
+    // The two writes are not one transaction, so the app can die between them.
+    // The item is then still open while its purchase exists: without a repair it
+    // would sit in the wishlist and in Purchases forever, and every later
+    // "I bought it" would silently do nothing.
+    const item = baseItem();
+    const { repositories, items, purchases } = createHarness([item]);
+
+    await repositories.purchases.create({
+      name: item.name,
+      purchasePriceCents: item.priceCents,
+      purchaseDate: '2026-08-13',
+      categoryId: item.categoryId,
+      imageUri: null,
+      currentResaleValueCents: null,
+      wishlistItemId: item.id,
+    });
+    expect(items.get('w1')?.status).toBe('thinking');
+
+    const purchase = await convertWishlistItemToPurchase(repositories, item);
+
+    expect(purchases).toHaveLength(1);
+    expect(purchase.wishlistItemId).toBe('w1');
+    expect(items.get('w1')?.status).toBe('purchased');
+    expect(items.get('w1')?.decidedAt).not.toBeNull();
+    expect(cancelCooldownReminder).toHaveBeenCalledWith('w1');
+  });
+
   it('accepts a price different from the one on the wishlist', async () => {
     const item = baseItem();
     const { repositories } = createHarness([item]);

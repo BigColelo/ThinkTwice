@@ -28,36 +28,6 @@ export class PurchaseExpenseRepository {
     return rows.map(mapPurchaseExpense);
   }
 
-  /**
-   * Expenses grouped by type, which is how the "Real cost" breakdown is shown
-   * (one row per type rather than one row per receipt).
-   */
-  async sumByTypeForPurchase(purchaseId: string): Promise<Record<ExpenseType, Cents>> {
-    const rows = await this.db.getAllAsync<{ expense_type: string; total: number }>(
-      `SELECT expense_type, SUM(amount_cents) AS total
-         FROM purchase_expenses WHERE purchase_id = ? GROUP BY expense_type`,
-      purchaseId,
-    );
-
-    const totals: Record<ExpenseType, Cents> = {
-      accessory: 0,
-      maintenance: 0,
-      repair: 0,
-      upgrade: 0,
-      other: 0,
-    };
-
-    for (const row of rows) {
-      if (row.expense_type in totals) {
-        totals[row.expense_type as ExpenseType] = Math.round(row.total);
-      } else {
-        totals.other += Math.round(row.total);
-      }
-    }
-
-    return totals;
-  }
-
   async findById(id: string): Promise<PurchaseExpense | null> {
     const row = await this.db.getFirstAsync<PurchaseExpenseRow>(`${SELECT} WHERE id = ?`, id);
     return row ? mapPurchaseExpense(row) : null;

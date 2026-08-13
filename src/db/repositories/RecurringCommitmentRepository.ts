@@ -27,13 +27,6 @@ export class RecurringCommitmentRepository {
     return rows.map(mapRecurringCommitment);
   }
 
-  async listAll(): Promise<RecurringCommitment[]> {
-    const rows = await this.db.getAllAsync<RecurringCommitmentRow>(
-      `${SELECT} ORDER BY is_active DESC, amount_cents DESC, name COLLATE NOCASE ASC`,
-    );
-    return rows.map(mapRecurringCommitment);
-  }
-
   async findById(id: string): Promise<RecurringCommitment | null> {
     const row = await this.db.getFirstAsync<RecurringCommitmentRow>(`${SELECT} WHERE id = ?`, id);
     return row ? mapRecurringCommitment(row) : null;

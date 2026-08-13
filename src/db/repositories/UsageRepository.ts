@@ -62,14 +62,6 @@ export class UsageRepository {
     return rows.map(mapUsageEvent);
   }
 
-  async countForPurchase(purchaseId: string): Promise<number> {
-    const row = await this.db.getFirstAsync<{ total: number | null }>(
-      'SELECT SUM(count) AS total FROM usage_events WHERE purchase_id = ?',
-      purchaseId,
-    );
-    return row?.total ?? 0;
-  }
-
   async remove(id: string): Promise<void> {
     await this.db.runAsync('DELETE FROM usage_events WHERE id = ?', id);
   }

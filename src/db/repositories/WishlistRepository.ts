@@ -51,19 +51,6 @@ export class WishlistRepository {
     return rows.map(mapWishlistItem);
   }
 
-  async listByStatus(status: WishlistStatus): Promise<WishlistItem[]> {
-    const rows = await this.db.getAllAsync<WishlistItemRow>(
-      `${SELECT} WHERE status = ? ORDER BY updated_at DESC`,
-      status,
-    );
-    return rows.map(mapWishlistItem);
-  }
-
-  async listAll(): Promise<WishlistItem[]> {
-    const rows = await this.db.getAllAsync<WishlistItemRow>(`${SELECT} ORDER BY created_at DESC`);
-    return rows.map(mapWishlistItem);
-  }
-
   /** The few items the Home screen shows under "Thinking about". */
   async listOpenPreview(limit: number): Promise<WishlistItem[]> {
     const rows = await this.db.getAllAsync<WishlistItemRow>(
@@ -71,13 +58,6 @@ export class WishlistRepository {
       limit,
     );
     return rows.map(mapWishlistItem);
-  }
-
-  async countOpen(): Promise<number> {
-    const row = await this.db.getFirstAsync<{ total: number }>(
-      `SELECT COUNT(*) AS total FROM wishlist_items WHERE status IN ${OPEN_STATUSES}`,
-    );
-    return row?.total ?? 0;
   }
 
   async findById(id: string): Promise<WishlistItem | null> {

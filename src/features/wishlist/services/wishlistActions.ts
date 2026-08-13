@@ -78,7 +78,19 @@ export async function convertWishlistItemToPurchase(
 ): Promise<PurchaseWithStats> {
   const existing = await repositories.purchases.findByWishlistItemId(item.id);
   if (existing) {
-    // Guards against a double tap creating two purchases from one item.
+    // Two things land here: a double tap, and a retry after the app died between
+    // the two writes below — they are not in one transaction because a service
+    // holds repositories, not the database handle.
+    //
+    // In the second case the item is still open, and returning early would leave
+    // it in the wishlist *and* in Purchases permanently, with every later "I
+    // bought it" doing nothing. So the decision is re-applied rather than
+    // assumed to have been recorded.
+    if (item.status !== 'purchased') {
+      await repositories.wishlist.markDecided(item.id, 'purchased', nowIso());
+      await cancelCooldownReminder(item.id);
+      invalidate('wishlist');
+    }
     return existing;
   }
 

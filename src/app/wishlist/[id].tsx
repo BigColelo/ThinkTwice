@@ -23,8 +23,8 @@ import {
   calculateEstimatedUses,
   calculatePurchaseImpact,
 } from '@/domain';
-import { useGoBack } from '@/features/navigation/useGoBack';
 import { useMonthlyFinances } from '@/features/money/hooks/useMonthlyFinances';
+import { useGoBack } from '@/features/navigation/useGoBack';
 import { CooldownCard } from '@/features/wishlist/components/CooldownCard';
 import { PurchaseImpactCard } from '@/features/wishlist/components/PurchaseImpactCard';
 import { useWishlistItem } from '@/features/wishlist/hooks/useWishlist';

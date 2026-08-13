@@ -108,13 +108,6 @@ export class PurchaseRepository {
     return row ? mapPurchaseWithStats(row) : null;
   }
 
-  async count(): Promise<number> {
-    const row = await this.db.getFirstAsync<{ total: number }>(
-      'SELECT COUNT(*) AS total FROM purchases',
-    );
-    return row?.total ?? 0;
-  }
-
   async create(input: NewPurchase): Promise<PurchaseWithStats> {
     const id = createId();
     const now = nowIso();

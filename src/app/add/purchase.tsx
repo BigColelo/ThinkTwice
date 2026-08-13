@@ -15,11 +15,11 @@ import { TextField } from '@/components/ui/TextField';
 import { DEFAULT_PURCHASE_CATEGORY_ID, PURCHASE_CATEGORIES } from '@/constants/categories';
 import { useRepositories } from '@/db/DatabaseProvider';
 import { ImagePickerField } from '@/features/images/ImagePickerField';
+import { useGoBack } from '@/features/navigation/useGoBack';
 import {
   ownedPurchaseSchema,
   type OwnedPurchaseFormValues,
 } from '@/features/purchases/schemas/purchaseSchema';
-import { useGoBack } from '@/features/navigation/useGoBack';
 import { createOwnedPurchase } from '@/features/purchases/services/purchaseActions';
 import { useTheme } from '@/theme';
 import { todayIsoDate } from '@/utils/dates';

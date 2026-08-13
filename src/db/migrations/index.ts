@@ -120,7 +120,30 @@ const initial: Migration = {
   },
 };
 
-export const MIGRATIONS: readonly Migration[] = [initial];
+/**
+ * Index corrections. Both were measured with `EXPLAIN QUERY PLAN` against the
+ * schema above rather than guessed at.
+ */
+const purchaseLookupIndexes: Migration = {
+  version: 2,
+  name: 'purchase_lookup_indexes',
+  up: async (db) => {
+    await db.execAsync(`
+      -- Finding the purchase an item was converted into is what stops a double
+      -- tap creating two purchases, and it was a full table scan. The column is
+      -- also the child key of an ON DELETE SET NULL foreign key, which SQLite
+      -- resolves by scanning this table when it is unindexed.
+      CREATE INDEX IF NOT EXISTS idx_purchases_wishlist_item ON purchases (wishlist_item_id);
+
+      -- Nothing filters or groups by category in SQL: the insights breakdown is
+      -- computed in the domain layer from rows that are already loaded. This
+      -- index only ever cost writes.
+      DROP INDEX IF EXISTS idx_purchases_category;
+    `);
+  },
+};
+
+export const MIGRATIONS: readonly Migration[] = [initial, purchaseLookupIndexes];
 
 export const LATEST_SCHEMA_VERSION = MIGRATIONS.reduce(
   (highest, migration) => Math.max(highest, migration.version),

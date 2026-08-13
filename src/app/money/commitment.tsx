@@ -17,7 +17,6 @@ import { COMMITMENT_CATEGORIES, DEFAULT_COMMITMENT_CATEGORY_ID } from '@/constan
 import { COMMITMENT_FREQUENCIES, DEFAULT_COMMITMENT_FREQUENCY } from '@/constants/frequencies';
 import { useRepositories } from '@/db/DatabaseProvider';
 import { invalidate } from '@/db/dataRevisions';
-import { useGoBack } from '@/features/navigation/useGoBack';
 import {
   calculateAnnualCommitmentEquivalent,
   calculateMonthlyCommitmentEquivalent,
@@ -26,6 +25,7 @@ import {
   commitmentSchema,
   type CommitmentFormValues,
 } from '@/features/money/schemas/commitmentSchema';
+import { useGoBack } from '@/features/navigation/useGoBack';
 import { useTheme } from '@/theme';
 import { confirm } from '@/utils/confirm';
 
