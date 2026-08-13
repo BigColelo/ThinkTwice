@@ -1,0 +1,90 @@
+import type { SQLiteDatabase } from 'expo-sqlite';
+
+import type { Cents, ExpenseType, PurchaseExpense } from '@/types/domain';
+import { nowIso, todayIsoDate } from '@/utils/dates';
+import { createId } from '@/utils/ids';
+
+import { mapPurchaseExpense, type PurchaseExpenseRow } from '../mappers';
+
+export type NewPurchaseExpense = {
+  purchaseId: string;
+  name: string;
+  amountCents: Cents;
+  expenseType: ExpenseType;
+  date?: string;
+};
+
+const SELECT = `SELECT id, purchase_id, name, amount_cents, expense_type, date, created_at
+                  FROM purchase_expenses`;
+
+export class PurchaseExpenseRepository {
+  constructor(private readonly db: SQLiteDatabase) {}
+
+  async listForPurchase(purchaseId: string): Promise<PurchaseExpense[]> {
+    const rows = await this.db.getAllAsync<PurchaseExpenseRow>(
+      `${SELECT} WHERE purchase_id = ? ORDER BY date DESC, created_at DESC`,
+      purchaseId,
+    );
+    return rows.map(mapPurchaseExpense);
+  }
+
+  /**
+   * Expenses grouped by type, which is how the "Real cost" breakdown is shown
+   * (one row per type rather than one row per receipt).
+   */
+  async sumByTypeForPurchase(purchaseId: string): Promise<Record<ExpenseType, Cents>> {
+    const rows = await this.db.getAllAsync<{ expense_type: string; total: number }>(
+      `SELECT expense_type, SUM(amount_cents) AS total
+         FROM purchase_expenses WHERE purchase_id = ? GROUP BY expense_type`,
+      purchaseId,
+    );
+
+    const totals: Record<ExpenseType, Cents> = {
+      accessory: 0,
+      maintenance: 0,
+      repair: 0,
+      upgrade: 0,
+      other: 0,
+    };
+
+    for (const row of rows) {
+      if (row.expense_type in totals) {
+        totals[row.expense_type as ExpenseType] = Math.round(row.total);
+      } else {
+        totals.other += Math.round(row.total);
+      }
+    }
+
+    return totals;
+  }
+
+  async findById(id: string): Promise<PurchaseExpense | null> {
+    const row = await this.db.getFirstAsync<PurchaseExpenseRow>(`${SELECT} WHERE id = ?`, id);
+    return row ? mapPurchaseExpense(row) : null;
+  }
+
+  async create(input: NewPurchaseExpense): Promise<PurchaseExpense> {
+    const id = createId();
+    const now = nowIso();
+
+    await this.db.runAsync(
+      `INSERT INTO purchase_expenses (id, purchase_id, name, amount_cents, expense_type, date, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      id,
+      input.purchaseId,
+      input.name.trim(),
+      Math.round(input.amountCents),
+      input.expenseType,
+      input.date ?? todayIsoDate(),
+      now,
+    );
+
+    const created = await this.findById(id);
+    if (!created) throw new Error('Expense could not be created.');
+    return created;
+  }
+
+  async remove(id: string): Promise<void> {
+    await this.db.runAsync('DELETE FROM purchase_expenses WHERE id = ?', id);
+  }
+}

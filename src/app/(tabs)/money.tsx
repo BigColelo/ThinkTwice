@@ -1,0 +1,265 @@
+import { useRouter } from 'expo-router';
+import { Plus, Receipt, Settings } from 'lucide-react-native';
+import React, { useState } from 'react';
+import { View } from 'react-native';
+
+import { AppText } from '@/components/ui/AppText';
+import { Button } from '@/components/ui/Button';
+import { Card, PressableCard } from '@/components/ui/Card';
+import { MoneyField } from '@/components/ui/MoneyField';
+import { MoneyValue } from '@/components/ui/MoneyValue';
+import { Screen } from '@/components/ui/Screen';
+import { ScreenHeader } from '@/components/ui/ScreenHeader';
+import { SectionHeader } from '@/components/ui/SectionHeader';
+import { ErrorState, LoadingState } from '@/components/ui/StateViews';
+import { calculateTotalAnnualCommitments } from '@/domain';
+import { CommitmentRow } from '@/features/money/components/CommitmentRow';
+import { MonthlyOverviewCard } from '@/features/money/components/MonthlyOverviewCard';
+import { useMonthlyFinances } from '@/features/money/hooks/useMonthlyFinances';
+import { useSettings } from '@/features/settings/SettingsProvider';
+import { useTheme } from '@/theme';
+import type { Cents } from '@/types/domain';
+
+/**
+ * Money describes the user's predictable financial structure — not their daily
+ * spending. Income in, recurring commitments out, and what that leaves.
+ */
+export default function MoneyScreen(): React.ReactElement {
+  const theme = useTheme();
+  const router = useRouter();
+  const { finances, commitments, isLoading, error, refetch } = useMonthlyFinances();
+
+  const annualCommitments = calculateTotalAnnualCommitments(commitments);
+
+  return (
+    <>
+      <ScreenHeader
+        title="Money"
+        action={{
+          icon: Settings,
+          accessibilityLabel: 'Settings',
+          onPress: () => router.push('/settings'),
+        }}
+      />
+
+      <Screen scroll edgeBottom={false}>
+        {error ? (
+          <ErrorState
+            description="Your financial setup could not be read from this device."
+            onRetry={refetch}
+          />
+        ) : isLoading ? (
+          <LoadingState />
+        ) : (
+          <>
+            <MonthlyOverviewCard finances={finances} />
+
+            <View style={{ height: theme.spacing.xl }} />
+
+            <IncomeEditor />
+
+            <View style={{ height: theme.spacing.xl }} />
+
+            <SectionHeader
+              title="Recurring commitments"
+              subtitle={
+                commitments.length > 0
+                  ? `${commitments.length} active`
+                  : 'Rent, utilities, subscriptions, insurance'
+              }
+            />
+
+            {commitments.length > 0 ? (
+              <Card padding={theme.spacing.md}>
+                {commitments.map((commitment, index) => (
+                  <View key={commitment.id}>
+                    {index > 0 ? (
+                      <View
+                        style={{
+                          height: theme.sizes.hairline,
+                          backgroundColor: theme.colors.divider,
+                          marginVertical: theme.spacing.xxs,
+                        }}
+                      />
+                    ) : null}
+                    <CommitmentRow
+                      commitment={commitment}
+                      onPress={() => router.push(`/money/commitment?id=${commitment.id}`)}
+                    />
+                  </View>
+                ))}
+
+                <View
+                  style={{
+                    height: theme.sizes.hairline,
+                    backgroundColor: theme.colors.divider,
+                    marginVertical: theme.spacing.sm,
+                  }}
+                />
+
+                <View
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                  }}
+                >
+                  <AppText variant="caption" color="secondary">
+                    Total
+                  </AppText>
+                  <View style={{ alignItems: 'flex-end' }}>
+                    <MoneyValue
+                      cents={finances.commitmentsCents}
+                      variant="bodyStrong"
+                      suffix=" / month"
+                    />
+                    <MoneyValue
+                      cents={annualCommitments}
+                      variant="caption"
+                      color="secondary"
+                      suffix=" / year"
+                    />
+                  </View>
+                </View>
+              </Card>
+            ) : (
+              <Card>
+                <View style={{ alignItems: 'center', gap: theme.spacing.xs }}>
+                  <Receipt
+                    size={theme.sizes.icon.xl}
+                    color={theme.colors.text.tertiary}
+                    strokeWidth={theme.sizes.iconStrokeWidth}
+                  />
+                  <AppText variant="subheading" align="center">
+                    No commitments yet
+                  </AppText>
+                  <AppText variant="caption" color="secondary" align="center">
+                    Add the bills you pay on a regular schedule to see what stays available.
+                  </AppText>
+                </View>
+              </Card>
+            )}
+
+            <View style={{ height: theme.spacing.sm }} />
+
+            <PressableCard
+              variant="outline"
+              onPress={() => router.push('/money/commitment')}
+              accessibilityLabel="Add commitment"
+              accessibilityHint="Opens the form to add a recurring commitment"
+              padding={theme.spacing.sm}
+            >
+              <View
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: theme.spacing.xs,
+                  minHeight: theme.sizes.control.sm,
+                }}
+              >
+                <Plus
+                  size={theme.sizes.icon.md}
+                  color={theme.colors.accent.base}
+                  strokeWidth={theme.sizes.iconStrokeWidth}
+                />
+                <AppText variant="button" color="accent">
+                  Add commitment
+                </AppText>
+              </View>
+            </PressableCard>
+          </>
+        )}
+      </Screen>
+    </>
+  );
+}
+
+/**
+ * Inline editing for income and the savings target.
+ *
+ * Both are single numbers, so a dedicated form screen would add a navigation
+ * step for no benefit. Changes are saved explicitly rather than on every
+ * keystroke, so a half-typed figure never becomes the stored one.
+ */
+function IncomeEditor(): React.ReactElement {
+  const theme = useTheme();
+  const { settings, updateSettings } = useSettings();
+
+  const [incomeCents, setIncomeCents] = useState<Cents | null>(settings.monthlyNetIncomeCents);
+  const [savingsCents, setSavingsCents] = useState<Cents | null>(
+    settings.monthlySavingsTargetCents,
+  );
+  const [adopted, setAdopted] = useState({
+    income: settings.monthlyNetIncomeCents,
+    savings: settings.monthlySavingsTargetCents,
+  });
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+
+  // This screen stays mounted while the tabs are alive, so settings changed
+  // elsewhere (onboarding, a data reset, the dev seed) have to be adopted here
+  // or the fields would keep showing figures the app no longer holds. Adjusting
+  // during render, rather than in an effect, avoids a frame of stale values.
+  if (
+    adopted.income !== settings.monthlyNetIncomeCents ||
+    adopted.savings !== settings.monthlySavingsTargetCents
+  ) {
+    setAdopted({
+      income: settings.monthlyNetIncomeCents,
+      savings: settings.monthlySavingsTargetCents,
+    });
+    setIncomeCents(settings.monthlyNetIncomeCents);
+    setSavingsCents(settings.monthlySavingsTargetCents);
+  }
+
+  const hasChanges =
+    incomeCents !== settings.monthlyNetIncomeCents ||
+    savingsCents !== settings.monthlySavingsTargetCents;
+
+  const save = async (): Promise<void> => {
+    setIsSaving(true);
+    setSaveError(null);
+    try {
+      await updateSettings({
+        monthlyNetIncomeCents: incomeCents ?? 0,
+        monthlySavingsTargetCents: savingsCents,
+      });
+    } catch {
+      setSaveError('Your changes could not be saved. Please try again.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  return (
+    <Card padding={theme.spacing.md}>
+      <AppText variant="heading">Your monthly setup</AppText>
+
+      <View style={{ marginTop: theme.spacing.md, gap: theme.spacing.md }}>
+        <MoneyField
+          label="Monthly net income"
+          hint="What actually reaches your account each month."
+          valueCents={incomeCents}
+          onChangeCents={setIncomeCents}
+        />
+        <MoneyField
+          label="Monthly savings target"
+          hint="Optional. Kept separate from your commitments."
+          valueCents={savingsCents}
+          onChangeCents={setSavingsCents}
+        />
+
+        {saveError ? (
+          <AppText variant="caption" color="danger" accessibilityRole="alert">
+            {saveError}
+          </AppText>
+        ) : null}
+
+        {hasChanges ? (
+          <Button label="Save changes" onPress={save} loading={isSaving} size="md" />
+        ) : null}
+      </View>
+    </Card>
+  );
+}

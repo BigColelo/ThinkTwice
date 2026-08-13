@@ -1,0 +1,321 @@
+import { Image } from 'expo-image';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { Calendar, Repeat, Trash2 } from 'lucide-react-native';
+import React, { useMemo, useState } from 'react';
+import { View } from 'react-native';
+
+import { AppText } from '@/components/ui/AppText';
+import { Button } from '@/components/ui/Button';
+import { Card } from '@/components/ui/Card';
+import { Chip } from '@/components/ui/Chip';
+import { MoneyValue } from '@/components/ui/MoneyValue';
+import { Screen } from '@/components/ui/Screen';
+import { ScreenHeader } from '@/components/ui/ScreenHeader';
+import { SectionHeader } from '@/components/ui/SectionHeader';
+import { MetricCell, MetricDivider } from '@/components/ui/StatCard';
+import { ErrorState, LoadingState } from '@/components/ui/StateViews';
+import { getPurchaseCategory } from '@/constants/categories';
+import { usageFrequencyShortLabel } from '@/constants/usagePresets';
+import { useRepositories } from '@/db/DatabaseProvider';
+import {
+  calculateCooldownState,
+  calculateEstimatedCostPerUse,
+  calculateEstimatedUses,
+  calculatePurchaseImpact,
+} from '@/domain';
+import { useMonthlyFinances } from '@/features/money/hooks/useMonthlyFinances';
+import { CooldownCard } from '@/features/wishlist/components/CooldownCard';
+import { PurchaseImpactCard } from '@/features/wishlist/components/PurchaseImpactCard';
+import { useWishlistItem } from '@/features/wishlist/hooks/useWishlist';
+import {
+  convertWishlistItemToPurchase,
+  deleteWishlistItem,
+  dismissWishlistItem,
+} from '@/features/wishlist/services/wishlistActions';
+import { useTheme } from '@/theme';
+import { confirm } from '@/utils/confirm';
+import { formatNumber } from '@/utils/currency';
+import { formatMonthsAsDuration } from '@/utils/dates';
+
+/**
+ * The reflection screen — the heart of ThinkTwice.
+ *
+ * It presents the price in the user's own terms and then steps out of the way.
+ * Both decisions are given equal visual weight; nothing on this screen argues
+ * for either one.
+ */
+export default function WishlistDetailScreen(): React.ReactElement {
+  const theme = useTheme();
+  const router = useRouter();
+  const repositories = useRepositories();
+  const { id } = useLocalSearchParams<{ id: string }>();
+
+  const { data: item, isLoading, error, refetch } = useWishlistItem(id);
+  const { finances } = useMonthlyFinances();
+
+  const [pendingAction, setPendingAction] = useState<'buy' | 'dismiss' | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
+
+  const cooldown = useMemo(() => (item ? calculateCooldownState(item) : null), [item]);
+  const impact = useMemo(
+    () => (item ? calculatePurchaseImpact(item.priceCents, finances) : null),
+    [item, finances],
+  );
+
+  const estimatedUses = item
+    ? calculateEstimatedUses({
+        frequency: item.expectedUsageFrequency,
+        customUsesPerMonth: item.customUsesPerMonth,
+        expectedOwnershipMonths: item.expectedOwnershipMonths,
+      })
+    : null;
+  const estimatedCostPerUse = item
+    ? calculateEstimatedCostPerUse(item.priceCents, estimatedUses)
+    : null;
+
+  const handleBought = async (): Promise<void> => {
+    if (!item) return;
+    const confirmed = await confirm({
+      title: 'Add to your purchases?',
+      message: `${item.name} will move to your purchases so you can track how much you use it.`,
+      confirmLabel: 'I bought it',
+    });
+    if (!confirmed) return;
+
+    setPendingAction('buy');
+    setActionError(null);
+    try {
+      const purchase = await convertWishlistItemToPurchase(repositories, item);
+      router.replace(`/purchase/${purchase.id}`);
+    } catch {
+      setActionError('This could not be saved. Please try again.');
+      setPendingAction(null);
+    }
+  };
+
+  const handleDismissed = async (): Promise<void> => {
+    if (!item) return;
+    const confirmed = await confirm({
+      title: 'Remove from what you are considering?',
+      message: 'The item stays in your history, and the reminder is cancelled.',
+      confirmLabel: "I don't want it",
+    });
+    if (!confirmed) return;
+
+    setPendingAction('dismiss');
+    setActionError(null);
+    try {
+      await dismissWishlistItem(repositories, item.id);
+      router.back();
+    } catch {
+      setActionError('This could not be saved. Please try again.');
+      setPendingAction(null);
+    }
+  };
+
+  const handleDelete = async (): Promise<void> => {
+    if (!item) return;
+    const confirmed = await confirm({
+      title: 'Delete this item?',
+      message: 'It will be removed from ThinkTwice completely. This cannot be undone.',
+      confirmLabel: 'Delete',
+      destructive: true,
+    });
+    if (!confirmed) return;
+
+    await deleteWishlistItem(repositories, item);
+    router.back();
+  };
+
+  if (isLoading) {
+    return (
+      <>
+        <ScreenHeader onBack={() => router.back()} />
+        <Screen>
+          <LoadingState />
+        </Screen>
+      </>
+    );
+  }
+
+  if (error || !item) {
+    return (
+      <>
+        <ScreenHeader onBack={() => router.back()} />
+        <Screen>
+          <ErrorState
+            title="Item not found"
+            description="This item may have been deleted."
+            onRetry={refetch}
+          />
+        </Screen>
+      </>
+    );
+  }
+
+  const category = getPurchaseCategory(item.categoryId);
+  const isDecided = item.status === 'purchased' || item.status === 'dismissed';
+
+  return (
+    <>
+      <ScreenHeader
+        title={item.name}
+        onBack={() => router.back()}
+        action={{ icon: Trash2, accessibilityLabel: 'Delete item', onPress: handleDelete }}
+      />
+
+      <Screen
+        scroll
+        footer={
+          isDecided ? undefined : (
+            <View style={{ flexDirection: 'row', gap: theme.spacing.sm }}>
+              <Button
+                label="I don't want it anymore"
+                variant="secondary"
+                onPress={handleDismissed}
+                loading={pendingAction === 'dismiss'}
+                disabled={pendingAction !== null}
+                style={{ flex: 1 }}
+              />
+              <Button
+                label="I bought it"
+                onPress={handleBought}
+                loading={pendingAction === 'buy'}
+                disabled={pendingAction !== null}
+                style={{ flex: 1 }}
+              />
+            </View>
+          )
+        }
+      >
+        {item.imageUri ? (
+          <View
+            style={{
+              height: 220,
+              borderRadius: theme.radius.xl,
+              backgroundColor: theme.colors.surfaceSunken,
+              overflow: 'hidden',
+              marginBottom: theme.spacing.md,
+            }}
+          >
+            <Image
+              source={{ uri: item.imageUri }}
+              style={{ width: '100%', height: '100%' }}
+              contentFit="contain"
+              accessibilityIgnoresInvertColors
+            />
+          </View>
+        ) : null}
+
+        <AppText variant="title">{item.name}</AppText>
+        <MoneyValue
+          cents={item.priceCents}
+          variant="metric"
+          style={{ marginTop: theme.spacing.xxs }}
+        />
+        <View style={{ flexDirection: 'row', marginTop: theme.spacing.xs }}>
+          <Chip label={category.label} icon={category.icon} tint={category.tint} />
+        </View>
+
+        {isDecided ? (
+          <View style={{ marginTop: theme.spacing.md }}>
+            <Chip
+              label={item.status === 'purchased' ? 'You bought this' : 'You decided against this'}
+              tone={item.status === 'purchased' ? 'positive' : 'neutral'}
+            />
+          </View>
+        ) : cooldown ? (
+          <View style={{ marginTop: theme.spacing.md }}>
+            <CooldownCard state={cooldown} cooldownDays={item.cooldownDays} />
+          </View>
+        ) : null}
+
+        <View style={{ height: theme.spacing.xl }} />
+        <SectionHeader title="Purchase impact" />
+        {impact ? <PurchaseImpactCard impact={impact} /> : null}
+
+        <View style={{ height: theme.spacing.xl }} />
+        <SectionHeader title="Expected usage" />
+
+        <Card padding={theme.spacing.md}>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: theme.spacing.xs }}>
+            <Chip
+              icon={Repeat}
+              label={usageFrequencyShortLabel(item.expectedUsageFrequency, item.customUsesPerMonth)}
+            />
+            <Chip icon={Calendar} label={formatMonthsAsDuration(item.expectedOwnershipMonths)} />
+          </View>
+
+          <View
+            style={{
+              height: theme.sizes.hairline,
+              backgroundColor: theme.colors.divider,
+              marginVertical: theme.spacing.md,
+            }}
+          />
+
+          <View style={{ flexDirection: 'row', alignItems: 'stretch' }}>
+            <MetricCell
+              label="estimated uses"
+              value={estimatedUses == null ? '—' : formatNumber(estimatedUses)}
+            />
+            <MetricDivider />
+            <MetricCell
+              label="estimated cost / use"
+              value={
+                estimatedCostPerUse == null ? (
+                  <AppText variant="metricSmall" color="tertiary">
+                    —
+                  </AppText>
+                ) : (
+                  <MoneyValue
+                    cents={estimatedCostPerUse}
+                    variant="metricSmall"
+                    decimals="always"
+                    adjustsFontSizeToFit
+                    numberOfLines={1}
+                  />
+                )
+              }
+            />
+          </View>
+        </Card>
+
+        {item.reasonTags.length > 0 ? (
+          <>
+            <View style={{ height: theme.spacing.xl }} />
+            <SectionHeader title="Why you want it" />
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: theme.spacing.xs }}>
+              {item.reasonTags.map((tag) => (
+                <Chip key={tag} label={tag} tone="accent" />
+              ))}
+            </View>
+          </>
+        ) : null}
+
+        {item.notes ? (
+          <>
+            <View style={{ height: theme.spacing.xl }} />
+            <SectionHeader title="Notes" />
+            <Card padding={theme.spacing.md}>
+              <AppText variant="body" color="secondary">
+                {item.notes}
+              </AppText>
+            </Card>
+          </>
+        ) : null}
+
+        {actionError ? (
+          <AppText
+            variant="caption"
+            color="danger"
+            accessibilityRole="alert"
+            style={{ marginTop: theme.spacing.md }}
+          >
+            {actionError}
+          </AppText>
+        ) : null}
+      </Screen>
+    </>
+  );
+}
