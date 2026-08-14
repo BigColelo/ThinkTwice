@@ -159,7 +159,11 @@ pattern.
   dates are stable. Expect `€1,799` / `17.99` formatting in expectations.
 - Component tests use `renderWithProviders` from `@/test/renderWithProviders` — **await it** — which
   supplies theme, settings and safe-area context but _no database_. Pass `settings` to vary currency
-  or income.
+  or income. `fireEvent.press` / `.scroll` are async too in RNTL 14: not awaiting them asserts before
+  React has flushed, which surfaces as "overlapping act() calls" rather than a clear failure.
+- Never put a `*.test.tsx` under `src/app`. Expo Router's route context (`_ctx.*.js`) matches every
+  `.tsx` in the app directory, test files included, so it would ship as a real route — keep the
+  component in `src/features/<area>/` and test it there.
 - Service/workflow tests build an in-memory object satisfying `Repositories` and `jest.mock` the
   notification and image adapters; call `resetRevisionsForTesting()` to keep the invalidation bus
   from leaking between cases.
