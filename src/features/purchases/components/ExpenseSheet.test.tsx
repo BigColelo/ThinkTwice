@@ -4,9 +4,8 @@ import { renderWithProviders } from '@/test/renderWithProviders';
 import type { PurchaseExpense } from '@/types/domain';
 import { todayIsoDate } from '@/utils/dates';
 
-import type { PurchaseExpenseFormValues } from '../schemas/purchaseSchema';
-
 import { ExpenseSheet } from './ExpenseSheet';
+import type { PurchaseExpenseFormValues } from '../schemas/purchaseSchema';
 
 /**
  * Adding and correcting money spent after buying.

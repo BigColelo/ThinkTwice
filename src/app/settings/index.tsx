@@ -1,15 +1,5 @@
 import { useRouter } from 'expo-router';
-import {
-  Bell,
-  Database,
-  Euro,
-  Lock,
-  Moon,
-  RotateCcw,
-  ShieldCheck,
-  Sun,
-  SunMoon,
-} from 'lucide-react-native';
+import { Bell, Database, Euro, Lock, Moon, RotateCcw, Sun, SunMoon } from 'lucide-react-native';
 import React, { useState } from 'react';
 import { Switch, View } from 'react-native';
 
@@ -29,6 +19,8 @@ import { isDevSeedAvailable, seedDevelopmentData } from '@/db/devSeed';
 import { LATEST_SCHEMA_VERSION } from '@/db/migrations';
 import { deleteAllItemImages } from '@/features/images/itemImages';
 import { useGoBack } from '@/features/navigation/useGoBack';
+import { appVersion } from '@/features/settings/appVersion';
+import { AboutCard } from '@/features/settings/components/AboutCard';
 import { useSettings } from '@/features/settings/SettingsProvider';
 import {
   areLocalNotificationsSupported,
@@ -325,19 +317,9 @@ export default function SettingsScreen(): React.ReactElement {
 
         <View style={{ height: theme.spacing.xl }} />
         <SectionHeader title="About" />
-        <Card padding={theme.spacing.md}>
-          <View style={{ flexDirection: 'row', gap: theme.spacing.sm }}>
-            <IconTile icon={ShieldCheck} tint="teal" />
-            <View style={{ flex: 1 }}>
-              <AppText variant="bodyStrong">ThinkTwice</AppText>
-              <AppText variant="caption" color="secondary" style={{ marginTop: 2 }}>
-                An independent personal project. It helps you understand the impact of a purchase
-                before you make it, and what it really costs afterwards. It never tells you what to
-                buy.
-              </AppText>
-            </View>
-          </View>
-        </Card>
+        {/* The app version lives here; the schema version stays under Data, because
+            they are different numbers about different things. */}
+        <AboutCard version={appVersion()} />
       </Screen>
     </>
   );

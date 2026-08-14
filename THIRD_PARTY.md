@@ -22,6 +22,9 @@ Supporting Expo Router: `react-native-safe-area-context`, `react-native-screens`
 `expo-constants`, `expo-status-bar`, `expo-system-ui`. These are its documented peer requirements
 rather than independent choices.
 
+`expo-constants` is also read directly, in exactly one place: the app version shown in Settings
+comes from the manifest through it (`src/features/settings/appVersion.ts`).
+
 **Platforms:** iOS, Android, web.
 
 ---
