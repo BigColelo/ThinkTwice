@@ -1,5 +1,10 @@
 import { invalidate } from '@/db/dataRevisions';
-import type { NewPurchase, NewPurchaseExpense, Repositories } from '@/db/repositories';
+import type {
+  NewPurchase,
+  NewPurchaseExpense,
+  PurchaseExpenseUpdate,
+  Repositories,
+} from '@/db/repositories';
 import { deleteItemImage, persistItemImage } from '@/features/images/itemImages';
 import type {
   Cents,
@@ -69,6 +74,19 @@ export async function addPurchaseExpense(
   const expense = await repositories.expenses.create(input);
   invalidate('expenses', 'purchases');
   return expense;
+}
+
+/** Corrects an expense in place, so a mistyped amount does not have to be re-entered. */
+export async function updatePurchaseExpense(
+  repositories: Repositories,
+  expenseId: string,
+  update: PurchaseExpenseUpdate,
+): Promise<PurchaseExpense> {
+  const updated = await repositories.expenses.update(expenseId, update);
+  if (!updated) throw new Error('This expense could no longer be found.');
+
+  invalidate('expenses', 'purchases');
+  return updated;
 }
 
 export async function removePurchaseExpense(

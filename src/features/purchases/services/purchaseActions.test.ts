@@ -13,6 +13,7 @@ import {
   setResaleValue,
   undoLastUse,
   updatePurchase,
+  updatePurchaseExpense,
 } from './purchaseActions';
 
 // The real bus is kept — only the entry point is observed, so the invalidation
@@ -178,6 +179,14 @@ function createHarness(
         expenses.push(expense);
         return expense;
       }),
+      update: jest.fn(async (id: string, update: Partial<PurchaseExpense>) => {
+        const index = expenses.findIndex((expense) => expense.id === id);
+        const existing = expenses[index];
+        if (index < 0 || !existing) return null;
+        const next = { ...existing, ...update };
+        expenses.splice(index, 1, next);
+        return next;
+      }),
       remove: jest.fn(async (id: string) => {
         const index = expenses.findIndex((expense) => expense.id === id);
         if (index >= 0) expenses.splice(index, 1);
@@ -319,6 +328,35 @@ describe('addPurchaseExpense', () => {
 
     expect(expenses).toHaveLength(1);
     expect(invalidateMock).toHaveBeenCalledWith('expenses', 'purchases');
+  });
+});
+
+describe('updatePurchaseExpense', () => {
+  it('corrects an amount in place, without re-entering the expense', async () => {
+    const { repositories, expenses } = createHarness([basePurchase()]);
+    const expense = await addPurchaseExpense(repositories, {
+      purchaseId: 'p1',
+      name: 'Descaler',
+      amountCents: 1_200,
+      expenseType: 'maintenance',
+    });
+    invalidateMock.mockClear();
+
+    const updated = await updatePurchaseExpense(repositories, expense.id, { amountCents: 1_450 });
+
+    expect(updated.amountCents).toBe(1_450);
+    expect(updated.name).toBe('Descaler');
+    expect(expenses).toHaveLength(1);
+    // The real cost includes expenses, so both have to re-read.
+    expect(invalidateMock).toHaveBeenCalledWith('expenses', 'purchases');
+  });
+
+  it('refuses to report success for an expense that is no longer there', async () => {
+    const { repositories } = createHarness([basePurchase()]);
+
+    await expect(updatePurchaseExpense(repositories, 'gone', { amountCents: 100 })).rejects.toThrow(
+      /no longer be found/i,
+    );
   });
 });
 

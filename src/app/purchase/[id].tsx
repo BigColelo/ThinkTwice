@@ -19,19 +19,24 @@ import { getPurchaseCategory } from '@/constants/categories';
 import { usageFrequencyShortLabel } from '@/constants/usagePresets';
 import { useRepositories } from '@/db/DatabaseProvider';
 import { useGoBack } from '@/features/navigation/useGoBack';
-import { AddExpenseSheet } from '@/features/purchases/components/AddExpenseSheet';
+import { ExpenseSheet } from '@/features/purchases/components/ExpenseSheet';
 import { RealCostBreakdown } from '@/features/purchases/components/RealCostBreakdown';
 import { UsageActionCard } from '@/features/purchases/components/UsageActionCard';
 import { RECENT_USES_LIMIT, usePurchaseDetail } from '@/features/purchases/hooks/usePurchases';
-import { EXPENSE_TYPE_LABELS } from '@/features/purchases/schemas/purchaseSchema';
 import {
+  EXPENSE_TYPE_LABELS,
+  type PurchaseExpenseFormValues,
+} from '@/features/purchases/schemas/purchaseSchema';
+import {
+  addPurchaseExpense,
   deletePurchase,
   removePurchaseExpense,
   removeUse,
   setResaleValue,
+  updatePurchaseExpense,
 } from '@/features/purchases/services/purchaseActions';
 import { useTheme } from '@/theme';
-import type { Cents } from '@/types/domain';
+import type { Cents, PurchaseExpense } from '@/types/domain';
 import { confirm } from '@/utils/confirm';
 import { formatDate, formatDateTime, formatMonthsAsDuration, pluralize } from '@/utils/dates';
 
@@ -46,10 +51,33 @@ export default function PurchaseDetailScreen(): React.ReactElement {
   const { id } = useLocalSearchParams<{ id: string }>();
 
   const { data, isLoading, error, refetch } = usePurchaseDetail(id);
-  const [isExpenseSheetOpen, setIsExpenseSheetOpen] = useState(false);
+  // `null` while closed; an empty object while adding; the expense while correcting.
+  const [expenseSheet, setExpenseSheet] = useState<{ expense?: PurchaseExpense } | null>(null);
   // Opened from a link with no history behind it, "back" means the list this
   // purchase belongs to.
   const goBack = useGoBack('/purchases');
+
+  const editingExpense = expenseSheet?.expense;
+
+  const handleExpenseSubmit = async (values: PurchaseExpenseFormValues): Promise<void> => {
+    if (editingExpense) await updatePurchaseExpense(repositories, editingExpense.id, values);
+    else if (data)
+      await addPurchaseExpense(repositories, { purchaseId: data.purchase.id, ...values });
+    setExpenseSheet(null);
+  };
+
+  const handleExpenseDelete = async (expense: PurchaseExpense): Promise<void> => {
+    const confirmed = await confirm({
+      title: 'Remove this expense?',
+      message: `${expense.name} will no longer count towards the real cost.`,
+      confirmLabel: 'Remove',
+      destructive: true,
+    });
+    if (!confirmed) return;
+
+    await removePurchaseExpense(repositories, expense.id);
+    setExpenseSheet(null);
+  };
 
   const handleDelete = async (): Promise<void> => {
     if (!data) return;
@@ -154,7 +182,7 @@ export default function PurchaseDetailScreen(): React.ReactElement {
           label="Add expense"
           icon={Plus}
           variant="secondary"
-          onPress={() => setIsExpenseSheetOpen(true)}
+          onPress={() => setExpenseSheet({})}
         />
 
         <View style={{ height: theme.spacing.xl }} />
@@ -181,16 +209,10 @@ export default function PurchaseDetailScreen(): React.ReactElement {
                     title={expense.name}
                     subtitle={`${EXPENSE_TYPE_LABELS[expense.expenseType]} · ${formatDate(expense.date)}`}
                     trailing={<MoneyValue cents={expense.amountCents} variant="bodyStrong" />}
-                    onPress={async () => {
-                      const confirmed = await confirm({
-                        title: 'Remove this expense?',
-                        message: `${expense.name} will no longer count towards the real cost.`,
-                        confirmLabel: 'Remove',
-                        destructive: true,
-                      });
-                      if (confirmed) await removePurchaseExpense(repositories, expense.id);
-                    }}
-                    accessibilityHint="Removes this expense"
+                    // A tap opens it: a row that looks openable should not delete
+                    // itself. Removing is a stated action inside the sheet.
+                    onPress={() => setExpenseSheet({ expense })}
+                    accessibilityHint="Opens this expense to edit or remove it"
                   />
                 </View>
               ))}
@@ -288,10 +310,15 @@ export default function PurchaseDetailScreen(): React.ReactElement {
         />
       </Screen>
 
-      <AddExpenseSheet
-        purchaseId={purchase.id}
-        visible={isExpenseSheetOpen}
-        onClose={() => setIsExpenseSheetOpen(false)}
+      <ExpenseSheet
+        // Remounted per expense, so opening it for another one starts prefilled
+        // with that one rather than with whatever was open before.
+        key={editingExpense?.id ?? 'new'}
+        expense={editingExpense}
+        visible={expenseSheet != null}
+        onClose={() => setExpenseSheet(null)}
+        onSubmit={handleExpenseSubmit}
+        onDelete={editingExpense ? () => handleExpenseDelete(editingExpense) : undefined}
       />
     </>
   );

@@ -34,7 +34,11 @@ export function createRepositories(db: SQLiteDatabase): Repositories {
   };
 }
 
-export { PurchaseExpenseRepository, type NewPurchaseExpense } from './PurchaseExpenseRepository';
+export {
+  PurchaseExpenseRepository,
+  type NewPurchaseExpense,
+  type PurchaseExpenseUpdate,
+} from './PurchaseExpenseRepository';
 export {
   PurchaseRepository,
   PURCHASE_SORTS,

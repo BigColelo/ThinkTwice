@@ -14,6 +14,9 @@ export type NewPurchaseExpense = {
   date?: string;
 };
 
+/** Which purchase an expense belongs to is not editable: that would be a new expense. */
+export type PurchaseExpenseUpdate = Partial<Omit<NewPurchaseExpense, 'purchaseId'>>;
+
 const SELECT = `SELECT id, purchase_id, name, amount_cents, expense_type, date, created_at
                   FROM purchase_expenses`;
 
@@ -52,6 +55,31 @@ export class PurchaseExpenseRepository {
     const created = await this.findById(id);
     if (!created) throw new Error('Expense could not be created.');
     return created;
+  }
+
+  async update(id: string, update: PurchaseExpenseUpdate): Promise<PurchaseExpense | null> {
+    const assignments: string[] = [];
+    const values: (string | number)[] = [];
+
+    const set = (column: string, value: string | number): void => {
+      assignments.push(`${column} = ?`);
+      values.push(value);
+    };
+
+    if (update.name !== undefined) set('name', update.name.trim());
+    if (update.amountCents !== undefined) set('amount_cents', Math.round(update.amountCents));
+    if (update.expenseType !== undefined) set('expense_type', update.expenseType);
+    if (update.date !== undefined) set('date', update.date);
+
+    if (assignments.length === 0) return this.findById(id);
+
+    await this.db.runAsync(
+      `UPDATE purchase_expenses SET ${assignments.join(', ')} WHERE id = ?`,
+      ...values,
+      id,
+    );
+
+    return this.findById(id);
   }
 
   async remove(id: string): Promise<void> {

@@ -10,9 +10,8 @@ import { ChipSelect } from '@/components/ui/ChipSelect';
 import { DateField } from '@/components/ui/DateField';
 import { MoneyField } from '@/components/ui/MoneyField';
 import { TextField } from '@/components/ui/TextField';
-import { useRepositories } from '@/db/DatabaseProvider';
-import { addPurchaseExpense } from '@/features/purchases/services/purchaseActions';
 import { useTheme } from '@/theme';
+import type { PurchaseExpense } from '@/types/domain';
 import { todayIsoDate } from '@/utils/dates';
 
 import {
@@ -22,38 +21,52 @@ import {
 } from '../schemas/purchaseSchema';
 
 /**
- * Adding money spent on an item after buying it.
+ * Money spent on an item after buying it — added, or corrected.
  *
- * A bottom sheet built on React Native's own `Modal` — the form is four fields
- * and needs no gesture-driven sheet library to be pleasant.
+ * A bottom sheet built on React Native's own `Modal`: the form is four fields and
+ * needs no gesture-driven sheet library to be pleasant.
+ *
+ * Editing exists because these amounts feed the real cost, and a mistyped one
+ * should be fixable rather than deleted and re-entered. Deleting is offered here
+ * too, so that tapping a row opens it — which is what a row that looks tappable
+ * ought to do — instead of destroying it.
  */
 
-export function AddExpenseSheet({
-  purchaseId,
+export function ExpenseSheet({
+  expense,
   visible,
   onClose,
+  onSubmit,
+  onDelete,
 }: {
-  purchaseId: string;
+  /** The expense being corrected. Absent when adding one. */
+  expense?: PurchaseExpense;
   visible: boolean;
   onClose: () => void;
+  /** Rejecting shows the sheet's own error; resolving is the caller's to act on. */
+  onSubmit: (values: PurchaseExpenseFormValues) => Promise<void>;
+  /** Offered only when correcting an existing expense. */
+  onDelete?: () => Promise<void>;
 }): React.ReactElement {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
-  const repositories = useRepositories();
 
   const [isSaving, setIsSaving] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
 
   const { control, handleSubmit, reset } = useForm<PurchaseExpenseFormValues>({
     resolver: zodResolver(purchaseExpenseSchema),
     mode: 'onTouched',
     defaultValues: {
-      name: '',
-      amountCents: 0,
-      expenseType: 'accessory',
-      date: todayIsoDate(),
+      name: expense?.name ?? '',
+      amountCents: expense?.amountCents ?? 0,
+      expenseType: expense?.expenseType ?? 'accessory',
+      date: expense?.date ?? todayIsoDate(),
     },
   });
+
+  const isBusy = isSaving || isDeleting;
 
   const close = (): void => {
     reset();
@@ -61,18 +74,30 @@ export function AddExpenseSheet({
     onClose();
   };
 
-  const onSubmit = handleSubmit(async (values) => {
+  const submit = handleSubmit(async (values) => {
     setIsSaving(true);
     setSaveError(null);
     try {
-      await addPurchaseExpense(repositories, { purchaseId, ...values });
-      close();
+      await onSubmit(values);
     } catch {
       setSaveError('This expense could not be saved. Please try again.');
     } finally {
       setIsSaving(false);
     }
   });
+
+  const remove = async (): Promise<void> => {
+    if (!onDelete) return;
+    setIsDeleting(true);
+    setSaveError(null);
+    try {
+      await onDelete();
+    } catch {
+      setSaveError('This expense could not be removed. Please try again.');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
   return (
     <Modal
@@ -119,8 +144,10 @@ export function AddExpenseSheet({
             }}
             keyboardShouldPersistTaps="handled"
           >
+            {/* The heading names the thing, the button names the action — saying
+                "Add expense" twice would leave the button doing no work. */}
             <AppText variant="title" accessibilityRole="header">
-              Add expense
+              {expense ? 'Edit expense' : 'New expense'}
             </AppText>
             <AppText variant="caption" color="secondary">
               Accessories, maintenance, repairs — anything you spent on this item after buying it.
@@ -199,15 +226,27 @@ export function AddExpenseSheet({
                 variant="secondary"
                 onPress={close}
                 style={{ flex: 1 }}
-                disabled={isSaving}
+                disabled={isBusy}
               />
               <Button
-                label="Add expense"
-                onPress={onSubmit}
+                label={expense ? 'Save changes' : 'Add expense'}
+                onPress={submit}
                 loading={isSaving}
+                disabled={isBusy}
                 style={{ flex: 1 }}
               />
             </View>
+
+            {onDelete ? (
+              <Button
+                label="Remove expense"
+                variant="destructive"
+                size="md"
+                onPress={remove}
+                loading={isDeleting}
+                disabled={isBusy}
+              />
+            ) : null}
           </ScrollView>
         </View>
       </View>
