@@ -16,6 +16,7 @@ import { calculateTotalAnnualCommitments } from '@/domain';
 import { CommitmentRow } from '@/features/money/components/CommitmentRow';
 import { MonthlyOverviewCard } from '@/features/money/components/MonthlyOverviewCard';
 import { useMonthlyFinances } from '@/features/money/hooks/useMonthlyFinances';
+import { monthlyIncomeSchema } from '@/features/money/schemas/commitmentSchema';
 import { useSettings } from '@/features/settings/SettingsProvider';
 import { useTheme } from '@/theme';
 import type { Cents } from '@/types/domain';
@@ -27,9 +28,11 @@ import type { Cents } from '@/types/domain';
 export default function MoneyScreen(): React.ReactElement {
   const theme = useTheme();
   const router = useRouter();
-  const { finances, commitments, isLoading, error, refetch } = useMonthlyFinances();
+  const { finances, commitments, pausedCommitments, isLoading, error, refetch } =
+    useMonthlyFinances();
 
   const annualCommitments = calculateTotalAnnualCommitments(commitments);
+  const hasAnyCommitment = commitments.length > 0 || pausedCommitments.length > 0;
 
   return (
     <>
@@ -63,8 +66,10 @@ export default function MoneyScreen(): React.ReactElement {
             <SectionHeader
               title="Recurring commitments"
               subtitle={
-                commitments.length > 0
-                  ? `${commitments.length} active`
+                hasAnyCommitment
+                  ? `${commitments.length} active${
+                      pausedCommitments.length > 0 ? `, ${pausedCommitments.length} paused` : ''
+                    }`
                   : 'Rent, utilities, subscriptions, insurance'
               }
             />
@@ -122,7 +127,9 @@ export default function MoneyScreen(): React.ReactElement {
                   </View>
                 </View>
               </Card>
-            ) : (
+            ) : null}
+
+            {!hasAnyCommitment ? (
               <Card>
                 <View style={{ alignItems: 'center', gap: theme.spacing.xs }}>
                   <Receipt
@@ -138,7 +145,36 @@ export default function MoneyScreen(): React.ReactElement {
                   </AppText>
                 </View>
               </Card>
-            )}
+            ) : null}
+
+            {pausedCommitments.length > 0 ? (
+              <>
+                <View style={{ height: theme.spacing.lg }} />
+                <SectionHeader
+                  title="Paused"
+                  subtitle="Kept in your list, left out of every total"
+                />
+                <Card padding={theme.spacing.md}>
+                  {pausedCommitments.map((commitment, index) => (
+                    <View key={commitment.id}>
+                      {index > 0 ? (
+                        <View
+                          style={{
+                            height: theme.sizes.hairline,
+                            backgroundColor: theme.colors.divider,
+                            marginVertical: theme.spacing.xxs,
+                          }}
+                        />
+                      ) : null}
+                      <CommitmentRow
+                        commitment={commitment}
+                        onPress={() => router.push(`/money/commitment?id=${commitment.id}`)}
+                      />
+                    </View>
+                  ))}
+                </Card>
+              </>
+            ) : null}
 
             <View style={{ height: theme.spacing.sm }} />
 
@@ -196,6 +232,7 @@ function IncomeEditor(): React.ReactElement {
   });
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<{ income?: string; savings?: string }>({});
 
   // This screen stays mounted while the tabs are alive, so settings changed
   // elsewhere (onboarding, a data reset, the dev seed) have to be adopted here
@@ -218,13 +255,29 @@ function IncomeEditor(): React.ReactElement {
     savingsCents !== settings.monthlySavingsTargetCents;
 
   const save = async (): Promise<void> => {
+    // The parser guarantees integer cents or nothing, but not that the figure
+    // makes sense: a pasted minus sign or an extra zero would otherwise be
+    // stored and quietly distort every derived number.
+    const parsed = monthlyIncomeSchema.safeParse({
+      monthlyNetIncomeCents: incomeCents ?? 0,
+      monthlySavingsTargetCents: savingsCents,
+    });
+
+    if (!parsed.success) {
+      const errors: { income?: string; savings?: string } = {};
+      for (const issue of parsed.error.issues) {
+        if (issue.path[0] === 'monthlyNetIncomeCents') errors.income ??= issue.message;
+        if (issue.path[0] === 'monthlySavingsTargetCents') errors.savings ??= issue.message;
+      }
+      setFieldErrors(errors);
+      return;
+    }
+
+    setFieldErrors({});
     setIsSaving(true);
     setSaveError(null);
     try {
-      await updateSettings({
-        monthlyNetIncomeCents: incomeCents ?? 0,
-        monthlySavingsTargetCents: savingsCents,
-      });
+      await updateSettings(parsed.data);
     } catch {
       setSaveError('Your changes could not be saved. Please try again.');
     } finally {
@@ -242,12 +295,14 @@ function IncomeEditor(): React.ReactElement {
           hint="What actually reaches your account each month."
           valueCents={incomeCents}
           onChangeCents={setIncomeCents}
+          error={fieldErrors.income}
         />
         <MoneyField
           label="Monthly savings target"
           hint="Optional. Kept separate from your commitments."
           valueCents={savingsCents}
           onChangeCents={setSavingsCents}
+          error={fieldErrors.savings}
         />
 
         {saveError ? (

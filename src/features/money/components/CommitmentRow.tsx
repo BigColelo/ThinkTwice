@@ -26,15 +26,26 @@ export function CommitmentRow({
   const category = getCommitmentCategory(commitment.categoryId);
   const frequency = getFrequency(commitment.frequency);
   const isMonthly = commitment.frequency === 'monthly';
+  const isPaused = !commitment.isActive;
+
+  const details = isMonthly ? category.label : `${frequency.label} · ${category.label}`;
 
   return (
     <ListRow
       leading={<IconTile icon={category.icon} tint={category.tint} />}
       title={commitment.name}
-      subtitle={isMonthly ? category.label : `${frequency.label} · ${category.label}`}
-      trailing={<MoneyValue cents={commitment.amountCents} variant="bodyStrong" />}
+      // Paused is said in words rather than shown by dimming the row: a figure
+      // the user has to read should not lose contrast to carry a state.
+      subtitle={isPaused ? `Paused · ${details}` : details}
+      trailing={
+        <MoneyValue
+          cents={commitment.amountCents}
+          variant="bodyStrong"
+          color={isPaused ? 'secondary' : 'primary'}
+        />
+      }
       trailingSubtitle={
-        isMonthly ? undefined : (
+        isMonthly || isPaused ? undefined : (
           <MoneyValue
             cents={calculateMonthlyCommitmentEquivalent(commitment)}
             variant="caption"
@@ -44,7 +55,9 @@ export function CommitmentRow({
         )
       }
       onPress={onPress}
-      accessibilityLabel={`${commitment.name}, ${category.label}, ${frequency.label}`}
+      accessibilityLabel={`${commitment.name}, ${category.label}, ${frequency.label}${
+        isPaused ? ', paused' : ''
+      }`}
       accessibilityHint={onPress ? 'Opens this commitment for editing' : undefined}
     />
   );

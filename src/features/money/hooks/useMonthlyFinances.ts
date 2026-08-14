@@ -14,7 +14,10 @@ import type { RecurringCommitment } from '@/types/domain';
 
 export type UseMonthlyFinancesResult = {
   finances: MonthlyFinances;
+  /** Commitments counting towards the month. */
   commitments: RecurringCommitment[];
+  /** Paused commitments: kept in the list, excluded from every total. */
+  pausedCommitments: RecurringCommitment[];
   isLoading: boolean;
   error: Error | null;
   refetch: () => void;
@@ -23,24 +26,39 @@ export type UseMonthlyFinancesResult = {
 export function useMonthlyFinances(): UseMonthlyFinancesResult {
   const { settings, isLoading: isLoadingSettings } = useSettings();
 
+  // Paused commitments are read too, so the Money screen can show them. The
+  // totals are unaffected: the domain excludes them itself.
   const { data, error, isLoading, refetch } = useDatabaseQuery(['commitments'], (repositories) =>
-    repositories.commitments.listActive(),
+    repositories.commitments.listAll(),
   );
 
-  const commitments = useMemo(() => data ?? [], [data]);
+  const all = useMemo(() => data ?? [], [data]);
+
+  const { commitments, pausedCommitments } = useMemo(() => {
+    const active: RecurringCommitment[] = [];
+    const paused: RecurringCommitment[] = [];
+
+    for (const commitment of all) {
+      if (commitment.isActive) active.push(commitment);
+      else paused.push(commitment);
+    }
+
+    return { commitments: active, pausedCommitments: paused };
+  }, [all]);
 
   const finances = useMemo<MonthlyFinances>(() => {
     if (isLoadingSettings) return EMPTY_MONTHLY_FINANCES;
     return calculateMonthlyFinances({
       monthlyNetIncomeCents: settings.monthlyNetIncomeCents,
       monthlySavingsTargetCents: settings.monthlySavingsTargetCents,
-      commitments,
+      commitments: all,
     });
-  }, [settings, commitments, isLoadingSettings]);
+  }, [settings, all, isLoadingSettings]);
 
   return {
     finances,
     commitments,
+    pausedCommitments,
     isLoading: isLoading || isLoadingSettings,
     error,
     refetch,

@@ -33,6 +33,8 @@ export const commitmentSchema = z.object({
     .max(MAX_AMOUNT_CENTS, 'That amount looks too large.'),
   frequency: z.enum(FREQUENCIES),
   categoryId: z.string().min(1, 'Choose a category.'),
+  /** Paused commitments stay in the list but stop counting towards the month. */
+  isActive: z.boolean(),
 });
 
 export type CommitmentFormValues = z.infer<typeof commitmentSchema>;

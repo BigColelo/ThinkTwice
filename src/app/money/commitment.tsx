@@ -2,7 +2,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useLocalSearchParams } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { Controller, useForm, useWatch } from 'react-hook-form';
-import { View } from 'react-native';
+import { Switch, View } from 'react-native';
 
 import { AppText } from '@/components/ui/AppText';
 import { Button } from '@/components/ui/Button';
@@ -55,6 +55,7 @@ export default function CommitmentFormScreen(): React.ReactElement {
       amountCents: 0,
       frequency: DEFAULT_COMMITMENT_FREQUENCY,
       categoryId: DEFAULT_COMMITMENT_CATEGORY_ID,
+      isActive: true,
     },
   });
 
@@ -73,6 +74,7 @@ export default function CommitmentFormScreen(): React.ReactElement {
           amountCents: commitment.amountCents,
           frequency: commitment.frequency,
           categoryId: commitment.categoryId,
+          isActive: commitment.isActive,
         });
       }
       setIsLoading(false);
@@ -207,6 +209,41 @@ export default function CommitmentFormScreen(): React.ReactElement {
               />
             )}
           />
+
+          {isEditing ? (
+            <Controller
+              control={control}
+              name="isActive"
+              render={({ field }) => (
+                <Card variant="muted" padding={theme.spacing.md}>
+                  <View
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      gap: theme.spacing.sm,
+                    }}
+                  >
+                    <View style={{ flex: 1 }}>
+                      <AppText variant="bodyStrong">Counts towards your month</AppText>
+                      <AppText variant="caption" color="secondary" style={{ marginTop: 2 }}>
+                        Turn this off to pause the commitment. It stays in your list and keeps its
+                        history, but stops being subtracted from your income.
+                      </AppText>
+                    </View>
+                    <Switch
+                      accessibilityLabel="Counts towards your month"
+                      value={field.value}
+                      onValueChange={field.onChange}
+                      trackColor={{
+                        true: theme.colors.accent.base,
+                        false: theme.colors.borderStrong,
+                      }}
+                    />
+                  </View>
+                </Card>
+              )}
+            />
+          ) : null}
 
           {frequency !== 'monthly' && amountCents > 0 ? (
             <Card variant="muted" padding={theme.spacing.md}>
