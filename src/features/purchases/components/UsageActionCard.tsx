@@ -43,16 +43,22 @@ export function UsageActionCard({
   const handleUse = async (): Promise<void> => {
     setIsBusy(true);
     setActionError(null);
+
+    let recorded = false;
     try {
       await recordUse(repositories, purchaseId);
+      recorded = true;
       setCanUndo(true);
-      if (Platform.OS !== 'web') {
-        void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => undefined);
-      }
     } catch {
       setActionError('That use could not be recorded. Please try again.');
     } finally {
       setIsBusy(false);
+    }
+
+    // Outside the try: a device that cannot buzz has nothing to do with whether
+    // the use was recorded, and reporting a failed tap for it would be a lie.
+    if (recorded && Platform.OS !== 'web') {
+      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => undefined);
     }
   };
 

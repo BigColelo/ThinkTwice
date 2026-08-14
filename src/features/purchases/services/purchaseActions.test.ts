@@ -9,6 +9,7 @@ import {
   deletePurchase,
   recordUse,
   removePurchaseExpense,
+  removeUse,
   setResaleValue,
   undoLastUse,
   updatePurchase,
@@ -153,9 +154,18 @@ function createHarness(
         }
         return null;
       }),
-      listForPurchase: jest.fn(async (purchaseId: string) =>
-        usage.filter((event) => event.purchaseId === purchaseId),
+      // The real one applies the limit and orders newest first; the fake does the
+      // same so a caller cannot be misled about how much it gets back.
+      listForPurchase: jest.fn(async (purchaseId: string, limit = 50) =>
+        usage
+          .filter((event) => event.purchaseId === purchaseId)
+          .sort((a, b) => Date.parse(b.occurredAt) - Date.parse(a.occurredAt))
+          .slice(0, limit),
       ),
+      remove: jest.fn(async (id: string) => {
+        const index = usage.findIndex((event) => event.id === id);
+        if (index >= 0) usage.splice(index, 1);
+      }),
     },
     expenses: {
       create: jest.fn(async (input: Omit<PurchaseExpense, 'id' | 'date' | 'createdAt'>) => {
@@ -278,6 +288,21 @@ describe('undoLastUse', () => {
     expect(removed).toBeNull();
     // Invalidating here would make every open screen re-read for no change.
     expect(invalidateMock).not.toHaveBeenCalled();
+  });
+});
+
+describe('removeUse', () => {
+  it('removes one recorded use by id and leaves the rest alone', async () => {
+    // The correction for a tap noticed hours later, when the card's undo is gone.
+    const { repositories, usage } = createHarness([basePurchase()]);
+    const first = await recordUse(repositories, 'p1');
+    const second = await recordUse(repositories, 'p1');
+    invalidateMock.mockClear();
+
+    await removeUse(repositories, first.id);
+
+    expect(usage.map((event) => event.id)).toEqual([second.id]);
+    expect(invalidateMock).toHaveBeenCalledWith('usage', 'purchases');
   });
 });
 

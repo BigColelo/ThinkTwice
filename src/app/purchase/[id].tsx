@@ -22,17 +22,18 @@ import { useGoBack } from '@/features/navigation/useGoBack';
 import { AddExpenseSheet } from '@/features/purchases/components/AddExpenseSheet';
 import { RealCostBreakdown } from '@/features/purchases/components/RealCostBreakdown';
 import { UsageActionCard } from '@/features/purchases/components/UsageActionCard';
-import { usePurchaseDetail } from '@/features/purchases/hooks/usePurchases';
+import { RECENT_USES_LIMIT, usePurchaseDetail } from '@/features/purchases/hooks/usePurchases';
 import { EXPENSE_TYPE_LABELS } from '@/features/purchases/schemas/purchaseSchema';
 import {
   deletePurchase,
   removePurchaseExpense,
+  removeUse,
   setResaleValue,
 } from '@/features/purchases/services/purchaseActions';
 import { useTheme } from '@/theme';
 import type { Cents } from '@/types/domain';
 import { confirm } from '@/utils/confirm';
-import { formatDate, formatMonthsAsDuration } from '@/utils/dates';
+import { formatDate, formatDateTime, formatMonthsAsDuration, pluralize } from '@/utils/dates';
 
 /**
  * What an owned item has actually cost, and the one-tap action that keeps that
@@ -90,7 +91,7 @@ export default function PurchaseDetailScreen(): React.ReactElement {
     );
   }
 
-  const { purchase, expenses, metrics } = data;
+  const { purchase, expenses, recentUses, metrics } = data;
   const category = getPurchaseCategory(purchase.categoryId);
 
   return (
@@ -190,6 +191,52 @@ export default function PurchaseDetailScreen(): React.ReactElement {
                       if (confirmed) await removePurchaseExpense(repositories, expense.id);
                     }}
                     accessibilityHint="Removes this expense"
+                  />
+                </View>
+              ))}
+            </Card>
+          </>
+        ) : null}
+
+        {recentUses.length > 0 ? (
+          <>
+            <View style={{ height: theme.spacing.xl }} />
+            <SectionHeader
+              title="Recent uses"
+              // The card's undo covers the tap just made; this covers the one
+              // noticed hours later, which is the only way a count kept for years
+              // stays worth keeping.
+              subtitle={
+                recentUses.length === RECENT_USES_LIMIT
+                  ? `The last ${RECENT_USES_LIMIT}. Tap one to remove it.`
+                  : 'Tap one to remove it.'
+              }
+            />
+            <Card padding={theme.spacing.md}>
+              {recentUses.map((use, index) => (
+                <View key={use.id}>
+                  {index > 0 ? (
+                    <View
+                      style={{
+                        height: theme.sizes.hairline,
+                        backgroundColor: theme.colors.divider,
+                        marginVertical: theme.spacing.xxs,
+                      }}
+                    />
+                  ) : null}
+                  <ListRow
+                    title={formatDateTime(use.occurredAt)}
+                    subtitle={use.count > 1 ? pluralize(use.count, 'use') : undefined}
+                    onPress={async () => {
+                      const confirmed = await confirm({
+                        title: 'Remove this use?',
+                        message: 'The cost per use is worked out again without it.',
+                        confirmLabel: 'Remove',
+                        destructive: true,
+                      });
+                      if (confirmed) await removeUse(repositories, use.id);
+                    }}
+                    accessibilityHint="Removes this recorded use"
                   />
                 </View>
               ))}

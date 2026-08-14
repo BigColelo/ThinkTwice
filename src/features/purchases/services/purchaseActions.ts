@@ -50,6 +50,18 @@ export async function undoLastUse(
   return removed;
 }
 
+/**
+ * Removes one recorded use by id.
+ *
+ * `undoLastUse` covers the tap the user has just made; this covers the one they
+ * notice hours later, from the list on the detail screen. A count kept for years
+ * has to be correctable long after the mistake, or it stops being worth keeping.
+ */
+export async function removeUse(repositories: Repositories, usageEventId: string): Promise<void> {
+  await repositories.usage.remove(usageEventId);
+  invalidate('usage', 'purchases');
+}
+
 export async function addPurchaseExpense(
   repositories: Repositories,
   input: NewPurchaseExpense,
