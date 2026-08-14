@@ -25,10 +25,14 @@ export const wishlistItemSchema = z
       .trim()
       .min(1, 'Give this item a name.')
       .max(80, 'Keep the name under 80 characters.'),
+    // A price of zero is refused rather than accepted as "unknown": it would
+    // travel through the impact calculation as a real figure and label an item
+    // whose price was never entered as low impact, 0% of income. In this app
+    // what cannot be computed is `null`, never zero.
     priceCents: z
       .number({ error: 'Enter a price.' })
       .int()
-      .min(0, 'The price cannot be negative.')
+      .positive('Enter a price greater than zero.')
       .max(MAX_PRICE_CENTS, 'That price looks too large.'),
     categoryId: z.string().min(1, 'Choose a category.'),
     imageUri: z.string().nullable(),

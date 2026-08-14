@@ -1,6 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'expo-router';
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Controller, useForm, useWatch } from 'react-hook-form';
 import { View } from 'react-native';
 
@@ -18,7 +18,12 @@ import { DEFAULT_PURCHASE_CATEGORY_ID, PURCHASE_CATEGORIES } from '@/constants/c
 import { DEFAULT_OWNERSHIP_MONTHS, OWNERSHIP_PRESETS } from '@/constants/ownership';
 import { DEFAULT_USAGE_FREQUENCY, USAGE_PRESETS } from '@/constants/usagePresets';
 import { useRepositories } from '@/db/DatabaseProvider';
-import { COOLDOWN_DAY_OPTIONS, calculatePurchaseImpact, suggestCooldownDays } from '@/domain';
+import {
+  COOLDOWN_DAY_OPTIONS,
+  DEFAULT_COOLDOWN_DAYS,
+  calculatePurchaseImpact,
+  suggestCooldownDays,
+} from '@/domain';
 import { ImagePickerField } from '@/features/images/ImagePickerField';
 import { useMonthlyFinances } from '@/features/money/hooks/useMonthlyFinances';
 import { useGoBack } from '@/features/navigation/useGoBack';
@@ -64,7 +69,7 @@ export default function AddWishlistItemScreen(): React.ReactElement {
       expectedUsageFrequency: DEFAULT_USAGE_FREQUENCY,
       customUsesPerMonth: null,
       expectedOwnershipMonths: DEFAULT_OWNERSHIP_MONTHS,
-      cooldownDays: 7,
+      cooldownDays: DEFAULT_COOLDOWN_DAYS,
       reasonTags: [],
       notes: null,
     },
@@ -83,7 +88,15 @@ export default function AddWishlistItemScreen(): React.ReactElement {
   );
 
   // The suggested period follows the price until the user picks one themselves.
-  const cooldownDays = hasEditedCooldown ? (values.cooldownDays ?? 7) : suggestion.days;
+  const cooldownDays = hasEditedCooldown
+    ? (values.cooldownDays ?? DEFAULT_COOLDOWN_DAYS)
+    : suggestion.days;
+
+  // The suggestion is kept in the form's own state, so the period that gets
+  // saved is the one the schema validated — not a number computed beside it.
+  useEffect(() => {
+    if (!hasEditedCooldown) setValue('cooldownDays', suggestion.days);
+  }, [hasEditedCooldown, suggestion.days, setValue]);
 
   const onSubmit = handleSubmit(async (formValues) => {
     setIsSaving(true);
@@ -99,7 +112,7 @@ export default function AddWishlistItemScreen(): React.ReactElement {
           expectedUsageFrequency: formValues.expectedUsageFrequency,
           customUsesPerMonth: formValues.customUsesPerMonth,
           expectedOwnershipMonths: formValues.expectedOwnershipMonths,
-          cooldownDays,
+          cooldownDays: formValues.cooldownDays,
           reasonTags: formValues.reasonTags,
           notes: formValues.notes,
         },
@@ -158,7 +171,10 @@ export default function AddWishlistItemScreen(): React.ReactElement {
               <MoneyField
                 label="Price"
                 required
-                valueCents={field.value}
+                // Zero is what an empty field parses to, and it is not a valid
+                // price — so it shows as empty rather than as a figure the user
+                // never typed.
+                valueCents={field.value === 0 ? null : field.value}
                 onChangeCents={(cents) => field.onChange(cents ?? 0)}
                 error={fieldState.error?.message}
               />
