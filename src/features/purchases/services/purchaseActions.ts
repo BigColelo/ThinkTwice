@@ -77,13 +77,35 @@ export async function setResaleValue(
   invalidate('purchases');
 }
 
+/**
+ * Applies an edit to an owned item.
+ *
+ * Nothing needs recomputing: the real cost, the cost per use and the ownership
+ * duration are all derived on read from price, expenses, uses and date. The only
+ * care needed is the photo — the new one has to reach app storage, and the one it
+ * replaced has to go, unless the wishlist item this purchase came from is still
+ * showing the same file.
+ */
 export async function updatePurchase(
   repositories: Repositories,
-  purchaseId: string,
-  update: Partial<NewPurchase>,
-): Promise<void> {
-  await repositories.purchases.update(purchaseId, update);
+  purchase: Pick<Purchase, 'id' | 'imageUri' | 'wishlistItemId'>,
+  input: NewPurchase,
+): Promise<PurchaseWithStats> {
+  // Idempotent for a URI already in app storage, so an untouched photo is not
+  // copied a second time.
+  const imageUri = await persistItemImage(input.imageUri);
+
+  const updated = await repositories.purchases.update(purchase.id, { ...input, imageUri });
+  if (!updated) throw new Error('This purchase could no longer be found.');
+
   invalidate('purchases');
+
+  // Only once the new one is safely stored, and only if it was really replaced.
+  if (purchase.imageUri !== imageUri) {
+    await deleteImageUnlessShared(repositories, purchase.imageUri, purchase.wishlistItemId);
+  }
+
+  return updated;
 }
 
 /** Usage events and expenses are removed by the schema's cascade. */
@@ -91,15 +113,25 @@ export async function deletePurchase(
   repositories: Repositories,
   purchase: Pick<Purchase, 'id' | 'imageUri' | 'wishlistItemId'>,
 ): Promise<void> {
-  // A purchase made from a wishlist item shares that item's photo — the same
-  // file, referenced twice — so it is only deleted here if the item it came from
-  // is gone or has since moved to a different one.
-  const origin = purchase.wishlistItemId
-    ? await repositories.wishlist.findById(purchase.wishlistItemId)
-    : null;
-  const isImageShared = purchase.imageUri != null && origin?.imageUri === purchase.imageUri;
-
   await repositories.purchases.remove(purchase.id);
-  if (!isImageShared) await deleteItemImage(purchase.imageUri);
+  await deleteImageUnlessShared(repositories, purchase.imageUri, purchase.wishlistItemId);
   invalidate('purchases', 'usage', 'expenses');
+}
+
+/**
+ * Removes a stored photo unless the wishlist item a purchase came from still
+ * points at the same file: conversion copies the URI, not the picture, so two
+ * rows can share one file and whichever leaves first must not take it with them.
+ */
+async function deleteImageUnlessShared(
+  repositories: Repositories,
+  imageUri: string | null,
+  wishlistItemId: string | null,
+): Promise<void> {
+  if (imageUri == null) return;
+
+  const origin = wishlistItemId ? await repositories.wishlist.findById(wishlistItemId) : null;
+  if (origin?.imageUri === imageUri) return;
+
+  await deleteItemImage(imageUri);
 }

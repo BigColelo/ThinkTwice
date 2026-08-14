@@ -1,5 +1,5 @@
-import { useLocalSearchParams } from 'expo-router';
-import { Calendar, Plus, Repeat, Trash2 } from 'lucide-react-native';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { Calendar, Pencil, Plus, Repeat, Trash2 } from 'lucide-react-native';
 import React, { useState } from 'react';
 import { View } from 'react-native';
 
@@ -40,6 +40,7 @@ import { formatDate, formatMonthsAsDuration } from '@/utils/dates';
  */
 export default function PurchaseDetailScreen(): React.ReactElement {
   const theme = useTheme();
+  const router = useRouter();
   const repositories = useRepositories();
   const { id } = useLocalSearchParams<{ id: string }>();
 
@@ -97,7 +98,14 @@ export default function PurchaseDetailScreen(): React.ReactElement {
       <ScreenHeader
         title={purchase.name}
         onBack={goBack}
-        action={{ icon: Trash2, accessibilityLabel: 'Delete purchase', onPress: handleDelete }}
+        // Editing is the trailing action; deleting sits at the end of the screen,
+        // where an irreversible choice is harder to tap by accident — the same
+        // arrangement as a wishlist item.
+        action={{
+          icon: Pencil,
+          accessibilityLabel: 'Edit purchase',
+          onPress: () => router.push(`/purchase/edit/${purchase.id}`),
+        }}
       />
 
       <Screen scroll>
@@ -223,6 +231,14 @@ export default function PurchaseDetailScreen(): React.ReactElement {
             </Card>
           </>
         ) : null}
+
+        <View style={{ height: theme.spacing.xl }} />
+        <Button
+          label="Delete this purchase"
+          variant="destructive"
+          icon={Trash2}
+          onPress={handleDelete}
+        />
       </Screen>
 
       <AddExpenseSheet

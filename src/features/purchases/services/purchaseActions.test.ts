@@ -11,6 +11,7 @@ import {
   removePurchaseExpense,
   setResaleValue,
   undoLastUse,
+  updatePurchase,
 } from './purchaseActions';
 
 // The real bus is kept — only the entry point is observed, so the invalidation
@@ -23,8 +24,12 @@ jest.mock('@/db/dataRevisions', () => {
 jest.mock('@/features/images/itemImages', () => ({
   deleteItemImage: jest.fn(async () => undefined),
   // The real implementation copies the picked file into app storage and returns
-  // the new location; the prefix here makes that substitution visible.
-  persistItemImage: jest.fn(async (uri: string | null) => (uri == null ? null : `stored:${uri}`)),
+  // the new location; the prefix here makes that substitution visible. It is also
+  // idempotent for a URI already in storage — without that, an edit that does not
+  // touch the photo would look like one that replaced it.
+  persistItemImage: jest.fn(async (uri: string | null) =>
+    uri == null || uri.startsWith('stored:') ? uri : `stored:${uri}`,
+  ),
 }));
 
 /**
@@ -324,6 +329,99 @@ describe('setResaleValue', () => {
     expect(purchases.get('p1')?.currentResaleValueCents).toBeNull();
 
     expect(invalidateMock).toHaveBeenCalledWith('purchases');
+  });
+});
+
+describe('updatePurchase', () => {
+  const PHOTO = 'stored:file:///tmp/old.jpg';
+
+  const edited = (overrides: Partial<NewPurchase> = {}): NewPurchase => ({
+    ...OWNED_INPUT,
+    name: 'Espresso machine, refurbished',
+    purchasePriceCents: 59_900,
+    ...overrides,
+  });
+
+  it('writes the whole item and refreshes the lists', async () => {
+    const { repositories, purchases } = createHarness([basePurchase()]);
+
+    const updated = await updatePurchase(
+      repositories,
+      { id: 'p1', imageUri: null, wishlistItemId: null },
+      edited({ expectedOwnershipMonths: 24 }),
+    );
+
+    expect(updated.name).toBe('Espresso machine, refurbished');
+    expect(purchases.get('p1')?.purchasePriceCents).toBe(59_900);
+    expect(purchases.get('p1')?.expectedOwnershipMonths).toBe(24);
+    expect(invalidateMock).toHaveBeenCalledWith('purchases');
+  });
+
+  it('leaves recorded uses and expenses alone', async () => {
+    // They belong to the item, not to the figures being corrected — and the real
+    // cost is recomputed from both on the next read.
+    const { repositories, purchases } = createHarness([
+      basePurchase({ totalUses: 42, additionalExpensesCents: 3_500 }),
+    ]);
+
+    await updatePurchase(
+      repositories,
+      { id: 'p1', imageUri: null, wishlistItemId: null },
+      edited(),
+    );
+
+    expect(purchases.get('p1')?.totalUses).toBe(42);
+    expect(purchases.get('p1')?.additionalExpensesCents).toBe(3_500);
+  });
+
+  it('stores a newly picked photo and removes the one it replaced', async () => {
+    const { repositories } = createHarness([basePurchase({ imageUri: PHOTO })]);
+
+    await updatePurchase(
+      repositories,
+      { id: 'p1', imageUri: PHOTO, wishlistItemId: null },
+      edited({ imageUri: 'file:///tmp/new.jpg' }),
+    );
+
+    expect(persistItemImage).toHaveBeenCalledWith('file:///tmp/new.jpg');
+    expect(deleteItemImage).toHaveBeenCalledWith(PHOTO);
+  });
+
+  it('keeps an untouched photo exactly where it is', async () => {
+    const { repositories } = createHarness([basePurchase({ imageUri: PHOTO })]);
+
+    await updatePurchase(
+      repositories,
+      { id: 'p1', imageUri: PHOTO, wishlistItemId: null },
+      edited({ imageUri: PHOTO }),
+    );
+
+    expect(deleteItemImage).not.toHaveBeenCalled();
+  });
+
+  it('keeps a replaced photo that the originating wishlist item still shows', async () => {
+    // The same file, referenced twice: deleting it here would empty the frame on
+    // the item this purchase came from.
+    const { repositories } = createHarness(
+      [basePurchase({ imageUri: PHOTO, wishlistItemId: 'w1' })],
+      [{ id: 'w1', imageUri: PHOTO }],
+    );
+
+    await updatePurchase(
+      repositories,
+      { id: 'p1', imageUri: PHOTO, wishlistItemId: 'w1' },
+      edited({ imageUri: 'file:///tmp/new.jpg' }),
+    );
+
+    expect(deleteItemImage).not.toHaveBeenCalledWith(PHOTO);
+  });
+
+  it('refuses to report success for a purchase that is no longer there', async () => {
+    const { repositories } = createHarness();
+
+    await expect(
+      updatePurchase(repositories, { id: 'gone', imageUri: null, wishlistItemId: null }, edited()),
+    ).rejects.toThrow(/no longer be found/i);
   });
 });
 

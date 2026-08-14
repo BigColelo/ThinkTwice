@@ -132,6 +132,7 @@ function AppChrome({
         <Stack.Screen name="wishlist/[id]" />
         <Stack.Screen name="wishlist/edit/[id]" />
         <Stack.Screen name="purchase/[id]" />
+        <Stack.Screen name="purchase/edit/[id]" />
         <Stack.Screen
           name="money/commitment"
           options={{ presentation: 'modal', animation: 'slide_from_bottom' }}
