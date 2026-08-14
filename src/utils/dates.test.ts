@@ -123,4 +123,14 @@ describe('pluralize', () => {
     expect(pluralize(0, 'use')).toBe('0 uses');
     expect(pluralize(58, 'use')).toBe('58 uses');
   });
+
+  it('groups a large count like every other number in the app', () => {
+    // Daily use over five years. "1820 uses" would be the only ungrouped
+    // thousands figure on screen.
+    expect(pluralize(1_820, 'use')).toBe('1,820 uses');
+  });
+
+  it('renders a dash rather than NaN for a count it cannot use', () => {
+    expect(pluralize(Number.NaN, 'use')).toBe('— uses');
+  });
 });

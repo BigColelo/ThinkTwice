@@ -10,7 +10,7 @@ import {
 
 import type { IsoDate, IsoTimestamp } from '@/types/domain';
 
-import { getLocale } from './currency';
+import { formatNumber, getLocale } from './currency';
 
 /**
  * All date arithmetic and formatting for ThinkTwice.
@@ -172,5 +172,8 @@ export function formatMonthsAsDuration(totalMonths: number): string {
 
 export function pluralize(count: number, noun: string): string {
   const rounded = Math.round(count);
-  return `${rounded} ${noun}${rounded === 1 ? '' : 's'}`;
+  // Through `formatNumber` so a count is grouped like every other number in the
+  // app — an item used daily for five years reads "1,820 uses", not "1820 uses" —
+  // and so a non-finite count renders as a dash instead of `NaN`.
+  return `${formatNumber(rounded)} ${noun}${rounded === 1 ? '' : 's'}`;
 }
