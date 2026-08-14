@@ -35,6 +35,18 @@ export const ownedPurchaseSchema = z.object({
 
 export type OwnedPurchaseFormValues = z.infer<typeof ownedPurchaseSchema>;
 
+/**
+ * The two things a wishlist item cannot know when it becomes a purchase: when it
+ * was bought and what was actually paid. Picked from the schema above so both
+ * flows validate a price and a date by exactly the same rules.
+ */
+export const confirmedPurchaseSchema = ownedPurchaseSchema.pick({
+  purchaseDate: true,
+  purchasePriceCents: true,
+});
+
+export type ConfirmedPurchaseFormValues = z.infer<typeof confirmedPurchaseSchema>;
+
 const EXPENSE_TYPES = [
   'accessory',
   'maintenance',

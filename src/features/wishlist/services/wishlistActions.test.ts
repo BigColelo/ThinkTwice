@@ -291,6 +291,33 @@ describe('deleteWishlistItem', () => {
     // Otherwise the file would outlive every reference to it.
     expect(deleteItemImage).toHaveBeenCalledWith('file:///images/camera.jpg');
   });
+
+  it('keeps the photo when the purchase this item became still shows it', async () => {
+    // Conversion copies the URI, not the file. Deleting the item's history here
+    // would otherwise leave the purchase pointing at a file that is gone.
+    const item = baseItem({ imageUri: 'file:///images/camera.jpg' });
+    const { repositories } = createHarness([item]);
+    await convertWishlistItemToPurchase(repositories, item);
+    jest.clearAllMocks();
+
+    await deleteWishlistItem(repositories, item);
+
+    expect(deleteItemImage).not.toHaveBeenCalledWith('file:///images/camera.jpg');
+  });
+
+  it('deletes the photo when the purchase made from it shows a different one', async () => {
+    const item = baseItem({ imageUri: 'file:///images/camera.jpg' });
+    const { repositories, purchases } = createHarness([item]);
+    await convertWishlistItemToPurchase(repositories, item);
+    // As if the purchase's photo had since been replaced.
+    const purchase = purchases[0];
+    if (purchase) purchase.imageUri = 'file:///images/other.jpg';
+    jest.clearAllMocks();
+
+    await deleteWishlistItem(repositories, item);
+
+    expect(deleteItemImage).toHaveBeenCalledWith('file:///images/camera.jpg');
+  });
 });
 
 describe('updateWishlistItem', () => {

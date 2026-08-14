@@ -76,8 +76,13 @@ type Harness = {
   expenses: PurchaseExpense[];
 };
 
-function createHarness(initialPurchases: PurchaseWithStats[] = []): Harness {
+function createHarness(
+  initialPurchases: PurchaseWithStats[] = [],
+  /** Only the fields `deletePurchase` reads of an originating wishlist item. */
+  initialWishlistItems: { id: string; imageUri: string | null }[] = [],
+): Harness {
   const purchases = new Map(initialPurchases.map((purchase) => [purchase.id, purchase]));
+  const wishlistItems = new Map(initialWishlistItems.map((item) => [item.id, item]));
   const usage: UsageEvent[] = [];
   const expenses: PurchaseExpense[] = [];
   let nextId = 1;
@@ -88,6 +93,9 @@ function createHarness(initialPurchases: PurchaseWithStats[] = []): Harness {
   const tick = (): string => new Date((millis += 1_000)).toISOString();
 
   const repositories = {
+    wishlist: {
+      findById: jest.fn(async (id: string) => wishlistItems.get(id) ?? null),
+    },
     purchases: {
       create: jest.fn(async (draft: Record<string, unknown>) => {
         const purchase = basePurchase({
@@ -320,17 +328,52 @@ describe('setResaleValue', () => {
 });
 
 describe('deletePurchase', () => {
-  it('removes the row, its stored photo and everything derived from it', async () => {
-    const { repositories, purchases } = createHarness([
-      basePurchase({ imageUri: 'stored:file:///tmp/picked.jpg' }),
-    ]);
+  const PHOTO = 'stored:file:///tmp/picked.jpg';
 
-    await deletePurchase(repositories, { id: 'p1', imageUri: 'stored:file:///tmp/picked.jpg' });
+  it('removes the row, its stored photo and everything derived from it', async () => {
+    const { repositories, purchases } = createHarness([basePurchase({ imageUri: PHOTO })]);
+
+    await deletePurchase(repositories, { id: 'p1', imageUri: PHOTO, wishlistItemId: null });
 
     expect(purchases.has('p1')).toBe(false);
-    expect(deleteItemImage).toHaveBeenCalledWith('stored:file:///tmp/picked.jpg');
+    expect(deleteItemImage).toHaveBeenCalledWith(PHOTO);
     // Usage events and expenses go with the row through the schema's cascade,
     // so the queries watching them have to re-read too.
     expect(invalidateMock).toHaveBeenCalledWith('purchases', 'usage', 'expenses');
+  });
+
+  it('keeps the photo when the wishlist item it came from still shows it', async () => {
+    // Conversion copies the URI, not the file: deleting it here would leave the
+    // item this purchase came from displaying a picture that no longer exists.
+    const { repositories, purchases } = createHarness(
+      [basePurchase({ imageUri: PHOTO, wishlistItemId: 'w1' })],
+      [{ id: 'w1', imageUri: PHOTO }],
+    );
+
+    await deletePurchase(repositories, { id: 'p1', imageUri: PHOTO, wishlistItemId: 'w1' });
+
+    expect(purchases.has('p1')).toBe(false);
+    expect(deleteItemImage).not.toHaveBeenCalledWith(PHOTO);
+  });
+
+  it('deletes the photo when the item it came from is already gone', async () => {
+    const { repositories } = createHarness([
+      basePurchase({ imageUri: PHOTO, wishlistItemId: 'w1' }),
+    ]);
+
+    await deletePurchase(repositories, { id: 'p1', imageUri: PHOTO, wishlistItemId: 'w1' });
+
+    expect(deleteItemImage).toHaveBeenCalledWith(PHOTO);
+  });
+
+  it('deletes its own photo when the originating item now shows a different one', async () => {
+    const { repositories } = createHarness(
+      [basePurchase({ imageUri: PHOTO, wishlistItemId: 'w1' })],
+      [{ id: 'w1', imageUri: 'stored:file:///tmp/other.jpg' }],
+    );
+
+    await deletePurchase(repositories, { id: 'p1', imageUri: PHOTO, wishlistItemId: 'w1' });
+
+    expect(deleteItemImage).toHaveBeenCalledWith(PHOTO);
   });
 });

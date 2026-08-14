@@ -229,8 +229,15 @@ export async function deleteWishlistItem(
   repositories: Repositories,
   item: Pick<WishlistItem, 'id' | 'imageUri'>,
 ): Promise<void> {
+  // Becoming a purchase copies the image *URI*, not the file, so the two rows
+  // can share one photo. Whoever is deleted first must leave it alone if the
+  // other still points at it. Read before the delete: the purchase's
+  // `wishlist_item_id` is `ON DELETE SET NULL`, so afterwards the link is gone.
+  const purchase = await repositories.purchases.findByWishlistItemId(item.id);
+  const isImageShared = item.imageUri != null && purchase?.imageUri === item.imageUri;
+
   await repositories.wishlist.remove(item.id);
   await cancelCooldownReminder(item.id);
-  await deleteItemImage(item.imageUri);
+  if (!isImageShared) await deleteItemImage(item.imageUri);
   invalidate('wishlist');
 }

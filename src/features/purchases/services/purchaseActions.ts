@@ -89,9 +89,17 @@ export async function updatePurchase(
 /** Usage events and expenses are removed by the schema's cascade. */
 export async function deletePurchase(
   repositories: Repositories,
-  purchase: Pick<Purchase, 'id' | 'imageUri'>,
+  purchase: Pick<Purchase, 'id' | 'imageUri' | 'wishlistItemId'>,
 ): Promise<void> {
+  // A purchase made from a wishlist item shares that item's photo — the same
+  // file, referenced twice — so it is only deleted here if the item it came from
+  // is gone or has since moved to a different one.
+  const origin = purchase.wishlistItemId
+    ? await repositories.wishlist.findById(purchase.wishlistItemId)
+    : null;
+  const isImageShared = purchase.imageUri != null && origin?.imageUri === purchase.imageUri;
+
   await repositories.purchases.remove(purchase.id);
-  await deleteItemImage(purchase.imageUri);
+  if (!isImageShared) await deleteItemImage(purchase.imageUri);
   invalidate('purchases', 'usage', 'expenses');
 }

@@ -25,6 +25,7 @@ import {
 } from '@/domain';
 import { useMonthlyFinances } from '@/features/money/hooks/useMonthlyFinances';
 import { useGoBack } from '@/features/navigation/useGoBack';
+import { ConfirmPurchaseSheet } from '@/features/wishlist/components/ConfirmPurchaseSheet';
 import { CooldownCard } from '@/features/wishlist/components/CooldownCard';
 import { PurchaseImpactCard } from '@/features/wishlist/components/PurchaseImpactCard';
 import { useWishlistItem } from '@/features/wishlist/hooks/useWishlist';
@@ -32,6 +33,7 @@ import {
   convertWishlistItemToPurchase,
   deleteWishlistItem,
   dismissWishlistItem,
+  type ConvertToPurchaseOptions,
 } from '@/features/wishlist/services/wishlistActions';
 import { useTheme } from '@/theme';
 import { confirm } from '@/utils/confirm';
@@ -55,7 +57,8 @@ export default function WishlistDetailScreen(): React.ReactElement {
   const { data: item, isLoading, error, refetch } = useWishlistItem(id);
   const { finances } = useMonthlyFinances();
 
-  const [pendingAction, setPendingAction] = useState<'buy' | 'dismiss' | null>(null);
+  const [isConfirmingPurchase, setIsConfirmingPurchase] = useState(false);
+  const [isDismissing, setIsDismissing] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
 
   const cooldown = useMemo(() => (item ? calculateCooldownState(item) : null), [item]);
@@ -75,24 +78,15 @@ export default function WishlistDetailScreen(): React.ReactElement {
     ? calculateEstimatedCostPerUse(item.priceCents, estimatedUses)
     : null;
 
-  const handleBought = async (): Promise<void> => {
+  // The sheet collects the two facts the wishlist item cannot know — what was
+  // paid and when — and surfaces its own failure, so this only navigates.
+  const handlePurchaseConfirmed = async (
+    options: Required<ConvertToPurchaseOptions>,
+  ): Promise<void> => {
     if (!item) return;
-    const confirmed = await confirm({
-      title: 'Add to your purchases?',
-      message: `${item.name} will move to your purchases so you can track how much you use it.`,
-      confirmLabel: 'I bought it',
-    });
-    if (!confirmed) return;
-
-    setPendingAction('buy');
-    setActionError(null);
-    try {
-      const purchase = await convertWishlistItemToPurchase(repositories, item);
-      router.replace(`/purchase/${purchase.id}`);
-    } catch {
-      setActionError('This could not be saved. Please try again.');
-      setPendingAction(null);
-    }
+    const purchase = await convertWishlistItemToPurchase(repositories, item, options);
+    setIsConfirmingPurchase(false);
+    router.replace(`/purchase/${purchase.id}`);
   };
 
   const handleDismissed = async (): Promise<void> => {
@@ -104,14 +98,14 @@ export default function WishlistDetailScreen(): React.ReactElement {
     });
     if (!confirmed) return;
 
-    setPendingAction('dismiss');
+    setIsDismissing(true);
     setActionError(null);
     try {
       await dismissWishlistItem(repositories, item.id);
       goBack();
     } catch {
       setActionError('This could not be saved. Please try again.');
-      setPendingAction(null);
+      setIsDismissing(false);
     }
   };
 
@@ -185,15 +179,13 @@ export default function WishlistDetailScreen(): React.ReactElement {
                 label="I don't want it anymore"
                 variant="secondary"
                 onPress={handleDismissed}
-                loading={pendingAction === 'dismiss'}
-                disabled={pendingAction !== null}
+                loading={isDismissing}
                 style={{ flex: 1 }}
               />
               <Button
                 label="I bought it"
-                onPress={handleBought}
-                loading={pendingAction === 'buy'}
-                disabled={pendingAction !== null}
+                onPress={() => setIsConfirmingPurchase(true)}
+                disabled={isDismissing}
                 style={{ flex: 1 }}
               />
             </View>
@@ -336,6 +328,13 @@ export default function WishlistDetailScreen(): React.ReactElement {
           onPress={handleDelete}
         />
       </Screen>
+
+      <ConfirmPurchaseSheet
+        item={item}
+        visible={isConfirmingPurchase}
+        onClose={() => setIsConfirmingPurchase(false)}
+        onConfirm={handlePurchaseConfirmed}
+      />
     </>
   );
 }
