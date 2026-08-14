@@ -37,6 +37,11 @@ export function SegmentedControl<T extends string>({
   const theme = useTheme();
   const height = size === 'sm' ? theme.sizes.control.sm : theme.sizes.control.md;
 
+  // Segments are inset by the track's padding, so the visible one is shorter than
+  // the control. The slop is vertical only: horizontally the segments touch, and
+  // widening them there would hand taps to the neighbour.
+  const verticalSlop = Math.max(0, (theme.sizes.minTouchTarget - (height - 6)) / 2);
+
   return (
     <View
       accessibilityRole="radiogroup"
@@ -61,6 +66,7 @@ export function SegmentedControl<T extends string>({
             accessibilityLabel={option.label}
             accessibilityState={{ selected: isSelected, checked: isSelected }}
             onPress={() => onChange(option.value)}
+            hitSlop={{ top: verticalSlop, bottom: verticalSlop }}
             style={({ pressed }) => [
               {
                 flex: 1,

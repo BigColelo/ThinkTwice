@@ -49,6 +49,7 @@ export function Chip({
     : (tintColors?.base ?? toneColors.foreground);
 
   const iconSize = size === 'sm' ? theme.sizes.icon.xs : theme.sizes.icon.sm;
+  const isInteractive = onPress != null;
 
   const content = (
     <View
@@ -56,10 +57,17 @@ export function Chip({
         {
           flexDirection: 'row',
           alignItems: 'center',
+          justifyContent: 'center',
           gap: theme.spacing.xxs + 2,
           alignSelf: 'flex-start',
           paddingHorizontal: size === 'sm' ? theme.spacing.xs : theme.spacing.sm,
           paddingVertical: size === 'sm' ? 4 : 6,
+          // A chip that can be pressed is a touch target and grows to reach the
+          // app's minimum with its `hitSlop`; one that only labels something stays
+          // compact, because nothing is aiming at it. Real height rather than a
+          // larger invisible halo: with 8pt between chips, slops that big would
+          // overlap and hand a tap to the neighbour.
+          minHeight: isInteractive ? theme.sizes.control.sm : undefined,
           borderRadius: theme.radius.full,
           backgroundColor: background,
         },
@@ -83,7 +91,8 @@ export function Chip({
       accessibilityLabel={label}
       accessibilityState={{ selected: Boolean(selected) }}
       onPress={onPress}
-      hitSlop={theme.spacing.xxs}
+      // Closes the gap between the chip's own height and `minTouchTarget`.
+      hitSlop={Math.max(0, (theme.sizes.minTouchTarget - theme.sizes.control.sm) / 2)}
       style={({ pressed }) => (pressed ? { opacity: 0.7 } : null)}
     >
       {content}

@@ -1,5 +1,5 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { Calendar, Pencil, Plus, Repeat, Trash2 } from 'lucide-react-native';
+import { Calendar, Pencil, Plus, Receipt, Repeat, Trash2 } from 'lucide-react-native';
 import React, { useState } from 'react';
 import { View } from 'react-native';
 
@@ -7,6 +7,7 @@ import { AppText } from '@/components/ui/AppText';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Chip } from '@/components/ui/Chip';
+import { EmptyState } from '@/components/ui/EmptyState';
 import { ItemImage } from '@/components/ui/ItemImage';
 import { ListRow } from '@/components/ui/ListRow';
 import { MoneyField } from '@/components/ui/MoneyField';
@@ -189,10 +190,25 @@ export default function PurchaseDetailScreen(): React.ReactElement {
         <SectionHeader title="Current resale value" />
         <ResaleValueEditor purchaseId={purchase.id} valueCents={purchase.currentResaleValueCents} />
 
+        <View style={{ height: theme.spacing.xl }} />
+        <SectionHeader
+          title="Expenses"
+          subtitle={expenses.length > 0 ? `${expenses.length} recorded` : undefined}
+        />
+
+        {expenses.length === 0 ? (
+          <Card padded={false}>
+            <EmptyState
+              compact
+              icon={Receipt}
+              title="Nothing spent on this yet"
+              description="Accessories, repairs and servicing count towards what this item really costs, so adding them keeps the cost per use honest as it ages."
+            />
+          </Card>
+        ) : null}
+
         {expenses.length > 0 ? (
           <>
-            <View style={{ height: theme.spacing.xl }} />
-            <SectionHeader title="Expenses" subtitle={`${expenses.length} recorded`} />
             <Card padding={theme.spacing.md}>
               {expenses.map((expense, index) => (
                 <View key={expense.id}>

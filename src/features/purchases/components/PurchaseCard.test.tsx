@@ -77,4 +77,16 @@ describe('PurchaseCard', () => {
 
     expect(screen.getByLabelText('Espresso machine, Home, 12 uses')).toBeTruthy();
   });
+
+  it('truncates a long name to one line rather than pushing the figures out', async () => {
+    // 80 characters is the longest name the form accepts.
+    const longName = 'A'.repeat(80);
+    await renderWithProviders(
+      <PurchaseCard purchase={purchase({ name: longName, totalUses: 12 })} onPress={jest.fn()} />,
+    );
+
+    expect(screen.getByText(longName).props.numberOfLines).toBe(1);
+    expect(screen.getByText('€650')).toBeTruthy();
+    expect(screen.getByText('€54.17 / use')).toBeTruthy();
+  });
 });
