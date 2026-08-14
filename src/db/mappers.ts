@@ -1,7 +1,6 @@
 import type {
   AppSettings,
   CommitmentFrequency,
-  CurrencyCode,
   ExpenseType,
   Purchase,
   PurchaseExpense,
@@ -13,6 +12,7 @@ import type {
   WishlistItem,
   WishlistStatus,
 } from '@/types/domain';
+import { SUPPORTED_CURRENCIES } from '@/utils/currency';
 
 /**
  * SQLite rows ↔ domain entities.
@@ -110,7 +110,6 @@ export type PurchaseExpenseRow = {
 // -- Validation helpers ------------------------------------------------------
 
 const THEME_MODES: readonly ThemeMode[] = ['system', 'light', 'dark'];
-const CURRENCIES: readonly CurrencyCode[] = ['EUR', 'USD', 'GBP', 'CHF'];
 const FREQUENCIES: readonly CommitmentFrequency[] = [
   'monthly',
   'every_two_months',
@@ -190,7 +189,10 @@ export function serializeReasonTags(tags: readonly string[]): string {
 
 export function mapAppSettings(row: AppSettingsRow): AppSettings {
   return {
-    currencyCode: oneOf(CURRENCIES, row.currency_code, 'EUR'),
+    // Validated against what the app currently offers, not against every code
+    // the type allows: a currency stored by another build would otherwise leave
+    // the user looking at a symbol they have no way to change back.
+    currencyCode: oneOf(SUPPORTED_CURRENCIES, row.currency_code, 'EUR'),
     themeMode: oneOf(THEME_MODES, row.theme_mode, 'system'),
     monthlyNetIncomeCents: toInteger(row.monthly_net_income_cents),
     monthlySavingsTargetCents: toNullableInteger(row.monthly_savings_target_cents),

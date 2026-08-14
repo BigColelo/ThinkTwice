@@ -187,16 +187,33 @@ export default function SettingsScreen(): React.ReactElement {
         <View style={{ height: theme.spacing.xl }} />
         <SectionHeader title="Currency" />
         <Card padding={theme.spacing.md}>
-          <SegmentedControl<CurrencyCode>
-            accessibilityLabel="Currency"
-            options={SUPPORTED_CURRENCIES.map((code) => ({ value: code, label: code }))}
-            value={settings.currencyCode}
-            onChange={(code) => void updateSettings({ currencyCode: code })}
-            size="sm"
-          />
-          <AppText variant="caption" color="tertiary" style={{ marginTop: theme.spacing.sm }}>
-            {`${CURRENCY_LABELS[settings.currencyCode]}. Amounts already entered are not converted — only how they are displayed changes.`}
-          </AppText>
+          {/* A choice is offered only when there is one to make. Widening
+              SUPPORTED_CURRENCIES brings the control back on its own. */}
+          {SUPPORTED_CURRENCIES.length > 1 ? (
+            <>
+              <SegmentedControl<CurrencyCode>
+                accessibilityLabel="Currency"
+                options={SUPPORTED_CURRENCIES.map((code) => ({ value: code, label: code }))}
+                value={settings.currencyCode}
+                onChange={(code) => void updateSettings({ currencyCode: code })}
+                size="sm"
+              />
+              <AppText variant="caption" color="tertiary" style={{ marginTop: theme.spacing.sm }}>
+                {`${CURRENCY_LABELS[settings.currencyCode]}. Amounts already entered are not converted — only how they are displayed changes.`}
+              </AppText>
+            </>
+          ) : (
+            <>
+              <AppText variant="bodyStrong">{CURRENCY_LABELS[settings.currencyCode]}</AppText>
+              <AppText variant="caption" color="secondary" style={{ marginTop: 2 }}>
+                The only currency in this version.
+              </AppText>
+              <AppText variant="caption" color="tertiary" style={{ marginTop: theme.spacing.sm }}>
+                Amounts are stored exactly as you enter them and are never converted, so another
+                currency would relabel your figures rather than translate them.
+              </AppText>
+            </>
+          )}
         </Card>
 
         <View style={{ height: theme.spacing.xl }} />

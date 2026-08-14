@@ -100,5 +100,13 @@ function toColumnValue(
     return fromBoolean(Boolean(value));
   }
   if (value == null) return null;
-  return typeof value === 'boolean' ? fromBoolean(value) : value;
+  if (typeof value === 'boolean') return fromBoolean(value);
+
+  // The only numeric settings are money, and money reaches the database as
+  // integer minor units — every other repository rounds on the way in, and the
+  // columns are INTEGER. A fractional value would otherwise be stored as REAL,
+  // and a non-finite one would poison every figure derived from income.
+  if (typeof value === 'number') return Number.isFinite(value) ? Math.round(value) : 0;
+
+  return value;
 }

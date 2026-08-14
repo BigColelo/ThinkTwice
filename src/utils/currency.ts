@@ -12,8 +12,20 @@ import type { Cents, CurrencyCode } from '@/types/domain';
 
 const MINOR_UNITS_PER_MAJOR = 100;
 
-/** Currencies whose minor unit is not 1/100 would need an entry here first. */
-export const SUPPORTED_CURRENCIES: readonly CurrencyCode[] = ['EUR', 'USD', 'GBP', 'CHF'];
+/**
+ * The currencies the user can actually choose between.
+ *
+ * V1 offers EUR only, and deliberately: amounts are stored as minor units and
+ * are **never converted**, so a second currency would silently re-label every
+ * figure the user has already entered rather than translate it. Offering one
+ * means first deciding what happens to that existing money.
+ *
+ * Everything else in the app already carries a currency code, so widening this
+ * list is most of the work — but a currency whose minor unit is not 1/100 (the
+ * yen) would additionally require `MINOR_UNITS_PER_MAJOR` to stop being a
+ * constant.
+ */
+export const SUPPORTED_CURRENCIES: readonly CurrencyCode[] = ['EUR'];
 
 export const CURRENCY_LABELS: Record<CurrencyCode, string> = {
   EUR: 'Euro (€)',
