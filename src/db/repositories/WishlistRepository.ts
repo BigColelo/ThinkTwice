@@ -60,6 +60,20 @@ export class WishlistRepository {
     return rows.map(mapWishlistItem);
   }
 
+  /**
+   * Items the user decided against, most recent decision first.
+   *
+   * Dismissing keeps the row rather than deleting it, and this is what reads it
+   * back: insights report what was not bought. Aggregation happens in the domain,
+   * as it does for purchases, so the arithmetic stays in one tested place.
+   */
+  async listDismissed(): Promise<WishlistItem[]> {
+    const rows = await this.db.getAllAsync<WishlistItemRow>(
+      `${SELECT} WHERE status = 'dismissed' ORDER BY decided_at DESC`,
+    );
+    return rows.map(mapWishlistItem);
+  }
+
   async findById(id: string): Promise<WishlistItem | null> {
     const row = await this.db.getFirstAsync<WishlistItemRow>(`${SELECT} WHERE id = ?`, id);
     return row ? mapWishlistItem(row) : null;

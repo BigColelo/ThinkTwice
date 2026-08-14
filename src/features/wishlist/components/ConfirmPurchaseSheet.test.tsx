@@ -1,7 +1,7 @@
 import { screen, fireEvent } from '@testing-library/react-native';
 
-import { renderWithProviders } from '@/test/renderWithProviders';
 import type { ConvertToPurchaseOptions } from '@/features/wishlist/services/wishlistActions';
+import { renderWithProviders } from '@/test/renderWithProviders';
 import { todayIsoDate } from '@/utils/dates';
 
 import { ConfirmPurchaseSheet } from './ConfirmPurchaseSheet';

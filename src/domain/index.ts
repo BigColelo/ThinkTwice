@@ -67,9 +67,11 @@ export {
 
 export {
   calculateInsights,
+  filterDismissedByRange,
   filterPurchasesByRange,
   INSIGHTS_RANGES,
   type CategoryBreakdownEntry,
+  type DismissedItem,
   type InsightsRange,
   type InsightsSummary,
   type ValueHighlight,

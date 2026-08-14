@@ -90,6 +90,16 @@ from the system clock on every read. Consequences, all of them wanted:
 (`promoteElapsedCooldowns`) so lists and counts agree, but nothing depends on that write having
 happened. `purchased` and `dismissed` are terminal and are never recomputed.
 
+**A decision against is a record, not a deletion.** Dismissing keeps the row — price, category,
+`decidedAt` — and `WishlistRepository.listDismissed()` reads it back so Insights can report what was
+_not_ bought, as a count and a total. That figure is never called money saved: the app cannot know
+whether the money stayed put or went somewhere else, and claiming a saving would be exactly the kind
+of conclusion it refuses to draw elsewhere. Deleting such an item stays possible — the data is the
+user's — but the confirmation states what goes with it, which differs by status
+(`wishlistDeleteConfirmation`): an open item loses the reflection already spent, a dismissed one
+disappears from what was avoided, and a purchased one leaves its purchase behind with no estimate
+left to compare against.
+
 **Calendar days, not 24-hour blocks.** `addDays` from date-fns preserves wall-clock time, so a
 7-day period started at 09:00 ends at 09:00 — even across a daylight-saving change, where the
 elapsed UTC time is 167 or 169 hours rather than 168. Remaining days are `ceil(remaining / 1 day)`,
@@ -249,6 +259,12 @@ renders — reported, unhelpfully, as `Cannot read property 'ErrorBoundary' of u
 expo-router. `localNotificationsUnavailableReason()` names the runtime that cannot schedule (`web`
 platform or Expo Go on Android) and the module is loaded only when it can work, which is also what
 lets Settings explain a disabled switch instead of showing a dead control.
+
+The lazy load is a `require` inside a promise rather than a dynamic `import()`. Metro compiles both
+to the same deferred require, but Jest runs in a CommonJS VM where a native `import()` throws — and
+because the adapter swallows a failed load, that turned every function here into a silent no-op under
+test, in the one module whose failure modes most need checking. Modernising it back to `import()`
+would take the whole adapter out of its own test suite without failing anything.
 
 ---
 

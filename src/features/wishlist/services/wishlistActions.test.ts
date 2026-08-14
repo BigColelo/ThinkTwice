@@ -87,7 +87,14 @@ function createHarness(initialItems: WishlistItem[] = []): Harness {
         return next;
       }),
       markDecided: jest.fn(
-        async (id: string, status: WishlistItem['status'], decidedAt: string) => {
+        // The real repository defaults `decidedAt` to now, so a two-argument call
+        // must still record one here — that timestamp is what makes the status
+        // terminal, and a fake that dropped it would hide the difference.
+        async (
+          id: string,
+          status: WishlistItem['status'],
+          decidedAt: string = '2026-08-13T10:00:00.000Z',
+        ) => {
           const existing = items.get(id);
           if (existing) items.set(id, { ...existing, status, decidedAt });
         },
@@ -275,7 +282,24 @@ describe('dismissWishlistItem', () => {
     await dismissWishlistItem(repositories, 'w1');
 
     expect(items.get('w1')?.status).toBe('dismissed');
+    expect(items.get('w1')?.decidedAt).not.toBeNull();
     expect(cancelCooldownReminder).toHaveBeenCalledWith('w1');
+  });
+
+  it('keeps the item as history rather than deleting it', async () => {
+    // A purchase you decided against is a record of a decision, and the only
+    // material a future "what you did not buy" figure could ever be built from.
+    const item = baseItem({ imageUri: 'file:///images/camera.jpg' });
+    const { repositories, items } = createHarness([item]);
+
+    await dismissWishlistItem(repositories, 'w1');
+
+    const stored = items.get('w1');
+    expect(stored).toBeDefined();
+    expect(stored?.priceCents).toBe(179_900);
+    expect(stored?.imageUri).toBe('file:///images/camera.jpg');
+    expect(deleteItemImage).not.toHaveBeenCalled();
+    expect(repositories.wishlist.remove).not.toHaveBeenCalled();
   });
 });
 

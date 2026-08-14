@@ -1,5 +1,11 @@
-import type { Cents, CategoryId, PurchaseWithStats, RecurringCommitment } from '@/types/domain';
-import { parseIsoDate } from '@/utils/dates';
+import type {
+  Cents,
+  CategoryId,
+  PurchaseWithStats,
+  RecurringCommitment,
+  WishlistItem,
+} from '@/types/domain';
+import { parseIso, parseIsoDate } from '@/utils/dates';
 import { safeDivide } from '@/utils/numbers';
 
 import { calculatePurchaseMetrics } from '../purchase/calculations';
@@ -39,6 +45,15 @@ export type ValueHighlight = {
   totalUses: number;
 };
 
+/**
+ * What these aggregates read of an item the user decided against.
+ *
+ * Narrow on purpose: a dismissed row keeps everything it had — category, notes,
+ * the reasons the user wanted it — and none of the rest is summarised yet. The
+ * type grows when a figure needs it, so it always states what is actually read.
+ */
+export type DismissedItem = Pick<WishlistItem, 'priceCents' | 'decidedAt'>;
+
 export type InsightsSummary = {
   range: InsightsRange;
   purchaseCount: number;
@@ -68,18 +83,41 @@ export type InsightsSummary = {
   /** Sorted by total, descending. */
   spendingByCategory: CategoryBreakdownEntry[];
 
-  /** True when there is nothing to summarise, so the screen shows an empty state. */
+  /**
+   * Items the user decided against in range, and what they would have cost.
+   *
+   * A count and a sum, never presented as money saved: the app cannot know
+   * whether that money stayed where it was or went somewhere else, and calling
+   * it a saving would be exactly the kind of conclusion it does not draw.
+   */
+  avoidedPurchaseCount: number;
+  avoidedPurchaseValueCents: Cents;
+
+  /**
+   * True when nothing at all was recorded in range — no purchase and no decision
+   * against one — so the screen shows an empty state rather than a page of
+   * zeroes. Each section below hides itself on its own data: reporting what the
+   * user did not buy is the point of the app as much as reporting what they did,
+   * so a wishlist full of decisions is not an empty screen.
+   */
   isEmpty: boolean;
 };
 
 export type InsightsInput = {
   purchases: readonly PurchaseWithStats[];
   commitments: readonly RecurringCommitment[];
+  /**
+   * Wishlist items the user decided against. Required rather than optional so a
+   * caller that forgets them cannot report "nothing avoided", which would read
+   * as a fact rather than as missing data.
+   */
+  dismissedItems: readonly DismissedItem[];
   range: InsightsRange;
 };
 
 export function calculateInsights(input: InsightsInput, now: Date = new Date()): InsightsSummary {
   const purchases = filterPurchasesByRange(input.purchases, input.range, now);
+  const dismissed = filterDismissedByRange(input.dismissedItems, input.range, now);
 
   let totalTrackedPurchaseValueCents = 0;
   let totalAdditionalExpensesCents = 0;
@@ -152,8 +190,18 @@ export function calculateInsights(input: InsightsInput, now: Date = new Date()):
     monthlyCommitmentsCents: calculateTotalMonthlyCommitments(input.commitments),
     annualCommitmentsCents: calculateTotalAnnualCommitments(input.commitments),
     spendingByCategory,
-    isEmpty: purchases.length === 0,
+    avoidedPurchaseCount: dismissed.length,
+    avoidedPurchaseValueCents: dismissed.reduce((total, item) => total + item.priceCents, 0),
+    isEmpty: purchases.length === 0 && dismissed.length === 0,
   };
+}
+
+/** Start of the window a range covers, or `null` when it has no start. */
+function rangeStart(range: InsightsRange, now: Date): Date | null {
+  if (range === 'all_time') return null;
+  return range === 'this_year'
+    ? new Date(now.getFullYear(), 0, 1)
+    : new Date(now.getFullYear() - 1, now.getMonth(), now.getDate());
 }
 
 export function filterPurchasesByRange(
@@ -161,16 +209,33 @@ export function filterPurchasesByRange(
   range: InsightsRange,
   now: Date = new Date(),
 ): PurchaseWithStats[] {
-  if (range === 'all_time') return [...purchases];
-
-  const threshold =
-    range === 'this_year'
-      ? new Date(now.getFullYear(), 0, 1)
-      : new Date(now.getFullYear() - 1, now.getMonth(), now.getDate());
+  const start = rangeStart(range, now);
+  if (!start) return [...purchases];
 
   return purchases.filter((purchase) => {
     const date = parseIsoDate(purchase.purchaseDate);
     // A purchase with an unreadable date is kept rather than silently dropped.
-    return date == null || date.getTime() >= threshold.getTime();
+    return date == null || date.getTime() >= start.getTime();
+  });
+}
+
+/**
+ * Dismissals in range, placed by *when the decision was made* rather than when
+ * the item was added: the decision is the event being counted, and an item can
+ * be reflected on across the boundary of a range.
+ */
+export function filterDismissedByRange(
+  items: readonly DismissedItem[],
+  range: InsightsRange,
+  now: Date = new Date(),
+): DismissedItem[] {
+  const start = rangeStart(range, now);
+  if (!start) return [...items];
+
+  return items.filter((item) => {
+    const decidedAt = parseIso(item.decidedAt);
+    // Kept when there is no readable timestamp, for the same reason as a purchase:
+    // dropping it would quietly understate what the user decided against.
+    return decidedAt == null || decidedAt.getTime() >= start.getTime();
   });
 }

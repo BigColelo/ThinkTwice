@@ -28,6 +28,7 @@ import { useGoBack } from '@/features/navigation/useGoBack';
 import { ConfirmPurchaseSheet } from '@/features/wishlist/components/ConfirmPurchaseSheet';
 import { CooldownCard } from '@/features/wishlist/components/CooldownCard';
 import { PurchaseImpactCard } from '@/features/wishlist/components/PurchaseImpactCard';
+import { wishlistDeleteConfirmation } from '@/features/wishlist/deleteConfirmation';
 import { useWishlistItem } from '@/features/wishlist/hooks/useWishlist';
 import {
   convertWishlistItemToPurchase,
@@ -111,12 +112,8 @@ export default function WishlistDetailScreen(): React.ReactElement {
 
   const handleDelete = async (): Promise<void> => {
     if (!item) return;
-    const confirmed = await confirm({
-      title: 'Delete this item?',
-      message: 'It will be removed from ThinkTwice completely. This cannot be undone.',
-      confirmLabel: 'Delete',
-      destructive: true,
-    });
+    // What is lost depends on where the item is in its life; the copy says which.
+    const confirmed = await confirm(wishlistDeleteConfirmation(item.status));
     if (!confirmed) return;
 
     await deleteWishlistItem(repositories, item);

@@ -17,6 +17,7 @@ import { ErrorState, LoadingState } from '@/components/ui/StateViews';
 import { Thumbnail } from '@/components/ui/Thumbnail';
 import { getPurchaseCategory } from '@/constants/categories';
 import { INSIGHTS_RANGES, type InsightsRange, type ValueHighlight } from '@/domain';
+import { AvoidedPurchasesCard } from '@/features/insights/components/AvoidedPurchasesCard';
 import { useInsights } from '@/features/insights/hooks/useInsights';
 import { useTheme } from '@/theme';
 import { pluralize } from '@/utils/dates';
@@ -62,52 +63,62 @@ export default function InsightsScreen(): React.ReactElement {
           />
         ) : (
           <>
-            <View style={{ flexDirection: 'row', gap: theme.spacing.sm }}>
-              <StatCard
-                label="Tracked purchases"
-                value={
-                  <MoneyValue
-                    cents={summary.totalTrackedPurchaseValueCents}
-                    variant="metric"
-                    adjustsFontSizeToFit
-                    numberOfLines={1}
+            {/* Every block is gated on its own data. A wishlist of decisions and no
+                purchases is not an empty screen, but it is not a €0 average either. */}
+            {summary.purchaseCount > 0 ? (
+              <>
+                <View style={{ flexDirection: 'row', gap: theme.spacing.sm }}>
+                  <StatCard
+                    label="Tracked purchases"
+                    value={
+                      <MoneyValue
+                        cents={summary.totalTrackedPurchaseValueCents}
+                        variant="metric"
+                        adjustsFontSizeToFit
+                        numberOfLines={1}
+                      />
+                    }
+                    caption={pluralize(summary.purchaseCount, 'item')}
+                    style={{ flex: 1 }}
                   />
-                }
-                caption={pluralize(summary.purchaseCount, 'item')}
-                style={{ flex: 1 }}
-              />
-              <StatCard
-                label="Average cost/use"
-                value={
-                  summary.averageCostPerUseCents == null ? (
-                    <AppText variant="metric" color="tertiary">
-                      —
-                    </AppText>
-                  ) : (
-                    <MoneyValue
-                      cents={summary.averageCostPerUseCents}
-                      variant="metric"
-                      decimals="always"
-                      adjustsFontSizeToFit
-                      numberOfLines={1}
-                    />
-                  )
-                }
-                caption={
-                  summary.itemsWithUsage > 0
-                    ? `From ${pluralize(summary.itemsWithUsage, 'item')} with uses`
-                    : 'No uses recorded yet'
-                }
-                style={{ flex: 1 }}
-              />
-            </View>
+                  <StatCard
+                    label="Average cost/use"
+                    value={
+                      summary.averageCostPerUseCents == null ? (
+                        <AppText variant="metric" color="tertiary">
+                          —
+                        </AppText>
+                      ) : (
+                        <MoneyValue
+                          cents={summary.averageCostPerUseCents}
+                          variant="metric"
+                          decimals="always"
+                          adjustsFontSizeToFit
+                          numberOfLines={1}
+                        />
+                      )
+                    }
+                    caption={
+                      summary.itemsWithUsage > 0
+                        ? `From ${pluralize(summary.itemsWithUsage, 'item')} with uses`
+                        : 'No uses recorded yet'
+                    }
+                    style={{ flex: 1 }}
+                  />
+                </View>
 
-            {summary.itemsWithoutUsage > 0 ? (
-              <AppText variant="caption" color="tertiary" style={{ marginTop: theme.spacing.xs }}>
-                {`${pluralize(summary.itemsWithoutUsage, 'item')} without recorded uses ${
-                  summary.itemsWithoutUsage === 1 ? 'is' : 'are'
-                } excluded from the average.`}
-              </AppText>
+                {summary.itemsWithoutUsage > 0 ? (
+                  <AppText
+                    variant="caption"
+                    color="tertiary"
+                    style={{ marginTop: theme.spacing.xs }}
+                  >
+                    {`${pluralize(summary.itemsWithoutUsage, 'item')} without recorded uses ${
+                      summary.itemsWithoutUsage === 1 ? 'is' : 'are'
+                    } excluded from the average.`}
+                  </AppText>
+                ) : null}
+              </>
             ) : null}
 
             {summary.bestValue ? (
@@ -142,6 +153,17 @@ export default function InsightsScreen(): React.ReactElement {
                 <Card padding={theme.spacing.md}>
                   <CategoryBarChart items={summary.spendingByCategory} />
                 </Card>
+              </>
+            ) : null}
+
+            {summary.avoidedPurchaseCount > 0 ? (
+              <>
+                <View style={{ height: theme.spacing.xl }} />
+                <SectionHeader title="Decided against" />
+                <AvoidedPurchasesCard
+                  count={summary.avoidedPurchaseCount}
+                  totalCents={summary.avoidedPurchaseValueCents}
+                />
               </>
             ) : null}
 

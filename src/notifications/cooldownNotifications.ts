@@ -49,6 +49,13 @@ export function areLocalNotificationsSupported(): boolean {
  * router down with it — surfacing as `Cannot read property 'ErrorBoundary' of
  * undefined`. Loading it behind the support check puts Expo Go on exactly the
  * same footing as web: no reminders, everything else untouched.
+ *
+ * The load is a lazy `require` rather than a dynamic `import()`. Metro compiles
+ * both to the same deferred require, but Jest runs in a CommonJS VM where a
+ * native `import()` throws — which would quietly turn every reminder in this file
+ * into a no-op under test, in the one module whose failure modes most need
+ * checking. The `Promise.resolve().then` keeps the module off the current tick,
+ * exactly as the dynamic import did.
  */
 let modulePromise: Promise<NotificationsModule | null> | null = null;
 
@@ -56,7 +63,15 @@ function loadNotifications(): Promise<NotificationsModule | null> {
   if (!areLocalNotificationsSupported()) return Promise.resolve(null);
   // A failure is cached as `null` rather than retried: a runtime that cannot
   // load the module will not start being able to.
-  modulePromise ??= import('expo-notifications').catch(() => null);
+  modulePromise ??= Promise.resolve().then(() => {
+    try {
+      // The deferral is the point — see above; a static import cannot be used here.
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      return require('expo-notifications') as NotificationsModule;
+    } catch {
+      return null;
+    }
+  });
   return modulePromise;
 }
 

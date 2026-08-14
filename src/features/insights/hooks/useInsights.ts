@@ -19,14 +19,17 @@ export type UseInsightsResult = {
 };
 
 export function useInsights(range: InsightsRange): UseInsightsResult {
+  // `wishlist` is watched too: deciding against an item changes what was avoided,
+  // and without it this screen would keep showing the figure from before.
   const query = useDatabaseQuery(
-    ['purchases', 'usage', 'expenses', 'commitments'],
+    ['purchases', 'usage', 'expenses', 'commitments', 'wishlist'],
     async (repositories) => {
-      const [purchases, commitments] = await Promise.all([
+      const [purchases, commitments, dismissedItems] = await Promise.all([
         repositories.purchases.list('recent'),
         repositories.commitments.listActive(),
+        repositories.wishlist.listDismissed(),
       ]);
-      return { purchases, commitments };
+      return { purchases, commitments, dismissedItems };
     },
   );
 
@@ -35,6 +38,7 @@ export function useInsights(range: InsightsRange): UseInsightsResult {
     return calculateInsights({
       purchases: query.data.purchases,
       commitments: query.data.commitments,
+      dismissedItems: query.data.dismissedItems,
       range,
     });
   }, [query.data, range]);
