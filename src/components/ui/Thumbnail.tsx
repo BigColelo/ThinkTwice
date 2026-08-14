@@ -20,6 +20,8 @@ export type ThumbnailProps = {
   size?: number;
   radius?: number;
   style?: StyleProp<ViewStyle>;
+  /** Set on the frame; the photo inside it gets `${testID}-image`. */
+  testID?: string;
 };
 
 export function Thumbnail({
@@ -29,6 +31,7 @@ export function Thumbnail({
   size,
   radius,
   style,
+  testID,
 }: ThumbnailProps): React.ReactElement {
   const theme = useTheme();
   const [hasFailed, setHasFailed] = useState(false);
@@ -50,6 +53,7 @@ export function Thumbnail({
   if (!uri || hasFailed) {
     return (
       <View
+        testID={testID}
         accessibilityElementsHidden
         importantForAccessibility="no-hide-descendants"
         style={[containerStyle, style]}
@@ -64,8 +68,9 @@ export function Thumbnail({
   }
 
   return (
-    <View style={[containerStyle, style]}>
+    <View testID={testID} style={[containerStyle, style]}>
       <Image
+        testID={testID ? `${testID}-image` : undefined}
         source={{ uri }}
         style={{ width: '100%', height: '100%' }}
         contentFit="cover"

@@ -1,4 +1,3 @@
-import { Image } from 'expo-image';
 import { useLocalSearchParams } from 'expo-router';
 import { Calendar, Plus, Repeat, Trash2 } from 'lucide-react-native';
 import React, { useState } from 'react';
@@ -8,6 +7,7 @@ import { AppText } from '@/components/ui/AppText';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Chip } from '@/components/ui/Chip';
+import { ItemImage } from '@/components/ui/ItemImage';
 import { ListRow } from '@/components/ui/ListRow';
 import { MoneyField } from '@/components/ui/MoneyField';
 import { MoneyValue } from '@/components/ui/MoneyValue';
@@ -101,24 +101,11 @@ export default function PurchaseDetailScreen(): React.ReactElement {
       />
 
       <Screen scroll>
-        {purchase.imageUri ? (
-          <View
-            style={{
-              height: 200,
-              borderRadius: theme.radius.xl,
-              backgroundColor: theme.colors.surfaceSunken,
-              overflow: 'hidden',
-              marginBottom: theme.spacing.md,
-            }}
-          >
-            <Image
-              source={{ uri: purchase.imageUri }}
-              style={{ width: '100%', height: '100%' }}
-              contentFit="contain"
-              accessibilityIgnoresInvertColors
-            />
-          </View>
-        ) : null}
+        <ItemImage
+          uri={purchase.imageUri}
+          height={200}
+          style={{ marginBottom: theme.spacing.md }}
+        />
 
         <View style={{ alignItems: 'center', gap: theme.spacing.xs }}>
           <AppText variant="title" align="center">

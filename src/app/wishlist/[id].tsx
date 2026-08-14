@@ -1,4 +1,3 @@
-import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Calendar, Pencil, Repeat, Trash2 } from 'lucide-react-native';
 import React, { useMemo, useState } from 'react';
@@ -8,6 +7,7 @@ import { AppText } from '@/components/ui/AppText';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Chip } from '@/components/ui/Chip';
+import { ItemImage } from '@/components/ui/ItemImage';
 import { MoneyValue } from '@/components/ui/MoneyValue';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
@@ -189,24 +189,7 @@ export default function WishlistDetailScreen(): React.ReactElement {
           )
         }
       >
-        {item.imageUri ? (
-          <View
-            style={{
-              height: 220,
-              borderRadius: theme.radius.xl,
-              backgroundColor: theme.colors.surfaceSunken,
-              overflow: 'hidden',
-              marginBottom: theme.spacing.md,
-            }}
-          >
-            <Image
-              source={{ uri: item.imageUri }}
-              style={{ width: '100%', height: '100%' }}
-              contentFit="contain"
-              accessibilityIgnoresInvertColors
-            />
-          </View>
-        ) : null}
+        <ItemImage uri={item.imageUri} height={220} style={{ marginBottom: theme.spacing.md }} />
 
         <AppText variant="title">{item.name}</AppText>
         <MoneyValue
