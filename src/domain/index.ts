@@ -39,7 +39,10 @@ export {
   formatCooldownRemainingShort,
   MAX_COOLDOWN_DAYS,
   MIN_COOLDOWN_DAYS,
+  reviseCooldownForPrice,
   suggestCooldownDays,
+  type CooldownRevision,
+  type CooldownRevisionInput,
   type CooldownState,
   type CooldownSuggestion,
 } from './wishlist/cooldown';

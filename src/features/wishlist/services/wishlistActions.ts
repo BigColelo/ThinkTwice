@@ -1,13 +1,26 @@
 import { invalidate } from '@/db/dataRevisions';
 import type { NewWishlistItem, Repositories } from '@/db/repositories';
-import { buildPurchaseFromWishlistItem, calculateCooldownEnd } from '@/domain';
+import {
+  buildPurchaseFromWishlistItem,
+  calculateCooldownEnd,
+  resolveWishlistStatus,
+  reviseCooldownForPrice,
+  type MonthlyFinances,
+} from '@/domain';
 import { deleteItemImage, persistItemImage } from '@/features/images/itemImages';
 import {
   cancelCooldownReminder,
   scheduleCooldownReminder,
 } from '@/notifications/cooldownNotifications';
-import type { Cents, IsoDate, PurchaseWithStats, WishlistItem } from '@/types/domain';
-import { nowIso } from '@/utils/dates';
+import type {
+  Cents,
+  IsoDate,
+  IsoTimestamp,
+  PurchaseWithStats,
+  WishlistItem,
+  WishlistStatus,
+} from '@/types/domain';
+import { nowIso, parseIso } from '@/utils/dates';
 
 /**
  * Wishlist write operations.
@@ -50,6 +63,113 @@ export async function createWishlistItem(
   }
 
   return item;
+}
+
+/** An edit supplies exactly what the create form does — the same form, prefilled. */
+export type UpdateWishlistItemInput = CreateWishlistItemInput;
+
+/**
+ * Applies an edit to an item still under reflection.
+ *
+ * The interesting part is the period. Everything except the price and the period
+ * itself is a correction — a better name, the photo that was missing, a revised
+ * guess at how often it will be used — and corrections never touch the
+ * countdown. The price is different: the period was derived from it, so the
+ * domain decides whether it still fits, always measuring from the original start
+ * so time already spent is never taken away.
+ *
+ * A decided item is history and is refused rather than quietly rewritten.
+ */
+export async function updateWishlistItem(
+  repositories: Repositories,
+  item: WishlistItem,
+  input: UpdateWishlistItemInput,
+  options: { scheduleReminder: boolean; finances: MonthlyFinances | null },
+): Promise<WishlistItem> {
+  if (item.status === 'purchased' || item.status === 'dismissed') {
+    throw new Error('A decided item can no longer be edited.');
+  }
+
+  // Idempotent for a URI already in app storage, so an untouched photo is not
+  // copied a second time.
+  const imageUri = await persistItemImage(input.imageUri);
+  const replacedImageUri = item.imageUri !== imageUri ? item.imageUri : null;
+
+  const period = resolveEditedPeriod(item, input, options.finances);
+
+  const updated = await repositories.wishlist.update(item.id, {
+    name: input.name,
+    priceCents: input.priceCents,
+    categoryId: input.categoryId,
+    imageUri,
+    expectedUsageFrequency: input.expectedUsageFrequency,
+    customUsesPerMonth: input.customUsesPerMonth,
+    expectedOwnershipMonths: input.expectedOwnershipMonths,
+    reasonTags: input.reasonTags,
+    notes: input.notes,
+    ...period,
+  });
+
+  if (!updated) throw new Error('This item could no longer be found.');
+
+  // Only once the new one is safely stored, and only if it was really replaced.
+  await deleteItemImage(replacedImageUri);
+
+  invalidate('wishlist');
+
+  // The scheduled reminder carries the item's name and fires at its end date,
+  // so either change makes the pending one wrong.
+  if (period != null || updated.name !== item.name) {
+    await cancelCooldownReminder(item.id);
+    if (options.scheduleReminder) void scheduleCooldownReminder(updated);
+  }
+
+  return updated;
+}
+
+/**
+ * The period fields an edit should write, or `undefined` to leave the countdown
+ * exactly as it is.
+ *
+ * A period the user picked themselves is honoured as picked, measured from the
+ * original start — so choosing "14 days" on day three leaves eleven, not
+ * fourteen. The stored status is rewritten alongside it because it gates the
+ * reminder: an item whose period has been extended is back to `thinking`, and a
+ * reminder can only be scheduled for an item in that state.
+ */
+function resolveEditedPeriod(
+  item: WishlistItem,
+  input: UpdateWishlistItemInput,
+  finances: MonthlyFinances | null,
+): { cooldownDays: number; cooldownEndsAt: IsoTimestamp; status: WishlistStatus } | undefined {
+  const startedAt = parseIso(item.cooldownStartedAt);
+  if (!startedAt) return undefined;
+
+  const chosenDays = Math.round(input.cooldownDays);
+
+  if (chosenDays !== item.cooldownDays) {
+    const { endsAt } = calculateCooldownEnd(chosenDays, startedAt);
+    return { cooldownDays: chosenDays, cooldownEndsAt: endsAt, status: statusFor(endsAt) };
+  }
+
+  const revision = reviseCooldownForPrice({
+    cooldownDays: item.cooldownDays,
+    cooldownStartedAt: item.cooldownStartedAt,
+    previousPriceCents: item.priceCents,
+    newPriceCents: input.priceCents,
+    finances,
+  });
+  if (!revision) return undefined;
+
+  return {
+    cooldownDays: revision.cooldownDays,
+    cooldownEndsAt: revision.cooldownEndsAt,
+    status: statusFor(revision.cooldownEndsAt),
+  };
+}
+
+function statusFor(cooldownEndsAt: IsoTimestamp): WishlistStatus {
+  return resolveWishlistStatus({ status: 'thinking', cooldownEndsAt });
 }
 
 /** "I don't want it anymore." Keeps the record; it is part of the user's history. */

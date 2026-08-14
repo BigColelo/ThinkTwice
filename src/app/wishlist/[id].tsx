@@ -1,6 +1,6 @@
 import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { Calendar, Repeat, Trash2 } from 'lucide-react-native';
+import { Calendar, Pencil, Repeat, Trash2 } from 'lucide-react-native';
 import React, { useMemo, useState } from 'react';
 import { View } from 'react-native';
 
@@ -163,7 +163,17 @@ export default function WishlistDetailScreen(): React.ReactElement {
       <ScreenHeader
         title={item.name}
         onBack={goBack}
-        action={{ icon: Trash2, accessibilityLabel: 'Delete item', onPress: handleDelete }}
+        // Editing is the trailing action; deleting sits at the end of the screen,
+        // where an irreversible choice is harder to tap by accident.
+        action={
+          isDecided
+            ? undefined
+            : {
+                icon: Pencil,
+                accessibilityLabel: 'Edit item',
+                onPress: () => router.push(`/wishlist/edit/${item.id}`),
+              }
+        }
       />
 
       <Screen
@@ -317,6 +327,14 @@ export default function WishlistDetailScreen(): React.ReactElement {
             {actionError}
           </AppText>
         ) : null}
+
+        <View style={{ height: theme.spacing.xl }} />
+        <Button
+          label="Delete this item"
+          variant="destructive"
+          icon={Trash2}
+          onPress={handleDelete}
+        />
       </Screen>
     </>
   );

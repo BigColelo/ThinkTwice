@@ -144,6 +144,74 @@ export function suggestCooldownDays(
   return { days: 30, rationale: 'Based on the price, since no income is set yet.' };
 }
 
+export type CooldownRevision = {
+  /** The period that now applies, in days. */
+  cooldownDays: number;
+  /**
+   * Recomputed from the original start date, never from now — the reflection the
+   * user has already done is not taken away from them.
+   */
+  cooldownEndsAt: IsoTimestamp;
+  /** True when the recomputed period has already elapsed. */
+  isComplete: boolean;
+};
+
+export type CooldownRevisionInput = {
+  /** The period as stored, and when it began. */
+  cooldownDays: number;
+  cooldownStartedAt: IsoTimestamp;
+  /** The price the stored period was derived from, and the one replacing it. */
+  previousPriceCents: Cents;
+  newPriceCents: Cents;
+  finances: MonthlyFinances | null;
+};
+
+/**
+ * The reflection period after the price of an item changed.
+ *
+ * The period is derived from the price, so leaving it untouched after a large
+ * change would let it describe a decision that is no longer the one being made:
+ * an item edited from €50 to €2,000 would keep the single day a €50 item is
+ * given and report itself ready to decide. That is not a loophole to police —
+ * it is the app stating something untrue about a reflection that never happened.
+ *
+ * Two things this deliberately does not do. It never restarts from today: only
+ * the end moves, so time already spent still counts. And it never overrides a
+ * period the user chose themselves, detected by the stored period differing from
+ * what was suggested for the old price.
+ *
+ * Returns `null` whenever the period should stay exactly as it is.
+ */
+export function reviseCooldownForPrice(
+  input: CooldownRevisionInput,
+  now: Date = new Date(),
+): CooldownRevision | null {
+  if (!Number.isFinite(input.previousPriceCents) || !Number.isFinite(input.newPriceCents)) {
+    return null;
+  }
+  if (Math.round(input.newPriceCents) === Math.round(input.previousPriceCents)) return null;
+
+  // Corrupt dates already read as a finished period; deriving a new end from
+  // them would put the item back into a reflection it never had.
+  const startedAt = parseIso(input.cooldownStartedAt);
+  if (!startedAt) return null;
+
+  const storedDays = Math.round(input.cooldownDays);
+  if (storedDays !== suggestCooldownDays(input.previousPriceCents, input.finances).days) {
+    return null;
+  }
+
+  const nextDays = suggestCooldownDays(input.newPriceCents, input.finances).days;
+  if (nextDays === storedDays) return null;
+
+  const { endsAt } = calculateCooldownEnd(nextDays, startedAt);
+  return {
+    cooldownDays: nextDays,
+    cooldownEndsAt: endsAt,
+    isComplete: Date.parse(endsAt) <= now.getTime(),
+  };
+}
+
 /** `6 days remaining` / `4 hours remaining` / `Reflection period complete`. */
 export function formatCooldownRemaining(state: CooldownState): string {
   if (state.isComplete) return 'Reflection period complete';

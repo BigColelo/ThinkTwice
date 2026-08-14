@@ -130,6 +130,7 @@ function AppChrome({
         <Stack.Screen name="add/purchase" />
         <Stack.Screen name="wishlist/index" />
         <Stack.Screen name="wishlist/[id]" />
+        <Stack.Screen name="wishlist/edit/[id]" />
         <Stack.Screen name="purchase/[id]" />
         <Stack.Screen
           name="money/commitment"

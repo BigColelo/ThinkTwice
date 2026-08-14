@@ -7,6 +7,7 @@ import {
   formatCooldownRemainingShort,
   MAX_COOLDOWN_DAYS,
   MIN_COOLDOWN_DAYS,
+  reviseCooldownForPrice,
   suggestCooldownDays,
 } from './cooldown';
 
@@ -229,5 +230,167 @@ describe('suggestCooldownDays', () => {
 
   it('handles a null financial picture', () => {
     expect(suggestCooldownDays(10_000, null).days).toBe(3);
+  });
+});
+
+describe('reviseCooldownForPrice', () => {
+  const now = new Date('2026-08-13T12:00:00.000Z');
+
+  const finances: MonthlyFinances = {
+    netIncomeCents: 165_000,
+    commitmentsCents: 78_300,
+    savingsTargetCents: null,
+    availableAfterCommitmentsCents: 86_700,
+    availableAfterSavingsGoalCents: null,
+    availableToIncomeRatio: 0.52,
+    commitmentsToIncomeRatio: 0.47,
+    isIncomeConfigured: true,
+    commitmentsExceedIncome: false,
+  };
+
+  /** Whole days between the original start and the revised end. */
+  const periodLength = (startedAt: string, endsAt: string): number =>
+    Math.round((Date.parse(endsAt) - Date.parse(startedAt)) / DAY_MS);
+
+  it('extends the period from its original start when the price grows into a longer band', () => {
+    const startedAt = isoDaysFrom(now, -1);
+
+    const revision = reviseCooldownForPrice(
+      {
+        cooldownDays: 3,
+        cooldownStartedAt: startedAt,
+        previousPriceCents: 5_000,
+        newPriceCents: 179_900,
+        finances,
+      },
+      now,
+    );
+
+    expect(revision).not.toBeNull();
+    expect(revision?.cooldownDays).toBe(30);
+    expect(periodLength(startedAt, revision?.cooldownEndsAt ?? '')).toBe(30);
+    expect(revision?.isComplete).toBe(false);
+
+    // The day already spent still counts: 29 left, not a fresh 30.
+    const state = calculateCooldownState(
+      {
+        cooldownDays: revision?.cooldownDays ?? 0,
+        cooldownStartedAt: startedAt,
+        cooldownEndsAt: revision?.cooldownEndsAt ?? '',
+      },
+      now,
+    );
+    expect(state.daysRemaining).toBe(29);
+  });
+
+  it('shortens the period when the price drops, completing it if enough time has passed', () => {
+    const startedAt = isoDaysFrom(now, -5);
+
+    const revision = reviseCooldownForPrice(
+      {
+        cooldownDays: 30,
+        cooldownStartedAt: startedAt,
+        previousPriceCents: 179_900,
+        newPriceCents: 1_000,
+        finances,
+      },
+      now,
+    );
+
+    // A cheaper item does not deserve the longer reflection it was given.
+    expect(revision?.cooldownDays).toBe(1);
+    expect(revision?.isComplete).toBe(true);
+  });
+
+  it('leaves the period alone when the new price falls in the same band', () => {
+    expect(
+      reviseCooldownForPrice(
+        {
+          cooldownDays: 7,
+          cooldownStartedAt: isoDaysFrom(now, -1),
+          previousPriceCents: 40_000,
+          newPriceCents: 45_000,
+          finances,
+        },
+        now,
+      ),
+    ).toBeNull();
+  });
+
+  it('leaves the period alone when the price did not change', () => {
+    expect(
+      reviseCooldownForPrice(
+        {
+          cooldownDays: 7,
+          cooldownStartedAt: isoDaysFrom(now, -1),
+          previousPriceCents: 40_000,
+          newPriceCents: 40_000,
+          finances,
+        },
+        now,
+      ),
+    ).toBeNull();
+  });
+
+  it('never overrides a period the user chose themselves', () => {
+    // 5,000 would have been suggested 3 days; this item carries 14, so the
+    // number came from the user and the price has no say over it.
+    expect(
+      reviseCooldownForPrice(
+        {
+          cooldownDays: 14,
+          cooldownStartedAt: isoDaysFrom(now, -1),
+          previousPriceCents: 5_000,
+          newPriceCents: 179_900,
+          finances,
+        },
+        now,
+      ),
+    ).toBeNull();
+  });
+
+  it('uses the absolute price bands when there is no financial picture', () => {
+    const revision = reviseCooldownForPrice(
+      {
+        cooldownDays: 1,
+        cooldownStartedAt: isoDaysFrom(now, -1),
+        previousPriceCents: 1_000,
+        newPriceCents: 179_900,
+        finances: null,
+      },
+      now,
+    );
+
+    expect(revision?.cooldownDays).toBe(30);
+  });
+
+  it('refuses to invent a period from an unreadable start date', () => {
+    expect(
+      reviseCooldownForPrice(
+        {
+          cooldownDays: 3,
+          cooldownStartedAt: 'not-a-date',
+          previousPriceCents: 5_000,
+          newPriceCents: 179_900,
+          finances,
+        },
+        now,
+      ),
+    ).toBeNull();
+  });
+
+  it('ignores a non-finite price on either side', () => {
+    const base = {
+      cooldownDays: 3,
+      cooldownStartedAt: isoDaysFrom(now, -1),
+      previousPriceCents: 5_000,
+      newPriceCents: 179_900,
+      finances,
+    };
+
+    expect(reviseCooldownForPrice({ ...base, newPriceCents: Number.NaN }, now)).toBeNull();
+    expect(
+      reviseCooldownForPrice({ ...base, previousPriceCents: Number.POSITIVE_INFINITY }, now),
+    ).toBeNull();
   });
 });

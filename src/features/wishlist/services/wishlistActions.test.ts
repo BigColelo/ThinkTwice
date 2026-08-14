@@ -1,5 +1,7 @@
 import { resetRevisionsForTesting } from '@/db/dataRevisions';
 import type { Repositories } from '@/db/repositories';
+import type { MonthlyFinances } from '@/domain';
+import { deleteItemImage } from '@/features/images/itemImages';
 import {
   cancelCooldownReminder,
   scheduleCooldownReminder,
@@ -9,7 +11,10 @@ import type { PurchaseWithStats, WishlistItem } from '@/types/domain';
 import {
   convertWishlistItemToPurchase,
   createWishlistItem,
+  deleteWishlistItem,
   dismissWishlistItem,
+  updateWishlistItem,
+  type CreateWishlistItemInput,
 } from './wishlistActions';
 
 jest.mock('@/notifications/cooldownNotifications', () => ({
@@ -74,6 +79,13 @@ function createHarness(initialItems: WishlistItem[] = []): Harness {
         return item;
       }),
       findById: jest.fn(async (id: string) => items.get(id) ?? null),
+      update: jest.fn(async (id: string, update: Partial<WishlistItem>) => {
+        const existing = items.get(id);
+        if (!existing) return null;
+        const next = { ...existing, ...update, updatedAt: '2026-08-13T10:00:00.000Z' };
+        items.set(id, next);
+        return next;
+      }),
       markDecided: jest.fn(
         async (id: string, status: WishlistItem['status'], decidedAt: string) => {
           const existing = items.get(id);
@@ -264,5 +276,251 @@ describe('dismissWishlistItem', () => {
 
     expect(items.get('w1')?.status).toBe('dismissed');
     expect(cancelCooldownReminder).toHaveBeenCalledWith('w1');
+  });
+});
+
+describe('deleteWishlistItem', () => {
+  it('removes the item, its reminder and the photo the app stored for it', async () => {
+    const item = baseItem({ imageUri: 'file:///images/camera.jpg' });
+    const { repositories, items } = createHarness([item]);
+
+    await deleteWishlistItem(repositories, item);
+
+    expect(items.has('w1')).toBe(false);
+    expect(cancelCooldownReminder).toHaveBeenCalledWith('w1');
+    // Otherwise the file would outlive every reference to it.
+    expect(deleteItemImage).toHaveBeenCalledWith('file:///images/camera.jpg');
+  });
+});
+
+describe('updateWishlistItem', () => {
+  const DAY_MS = 24 * 60 * 60 * 1000;
+
+  const FINANCES: MonthlyFinances = {
+    netIncomeCents: 165_000,
+    commitmentsCents: 78_300,
+    savingsTargetCents: null,
+    availableAfterCommitmentsCents: 86_700,
+    availableAfterSavingsGoalCents: null,
+    availableToIncomeRatio: 86_700 / 165_000,
+    commitmentsToIncomeRatio: 78_300 / 165_000,
+    isIncomeConfigured: true,
+    commitmentsExceedIncome: false,
+  };
+
+  // The service reads the real clock to decide whether a revised period is over,
+  // so these fixtures are built relative to it rather than pinned to a date.
+  const isoDaysFromNow = (days: number): string =>
+    new Date(Date.now() + days * DAY_MS).toISOString();
+
+  const periodLength = (startedAt: string, endsAt: string): number =>
+    Math.round((Date.parse(endsAt) - Date.parse(startedAt)) / DAY_MS);
+
+  function editableItem(overrides: Partial<WishlistItem> = {}): WishlistItem {
+    // €50 with this financial picture is suggested three days, so the stored
+    // period is the app's rather than the user's.
+    return baseItem({
+      priceCents: 5_000,
+      cooldownDays: 3,
+      cooldownStartedAt: isoDaysFromNow(-1),
+      cooldownEndsAt: isoDaysFromNow(2),
+      ...overrides,
+    });
+  }
+
+  function editInput(overrides: Partial<CreateWishlistItemInput> = {}): CreateWishlistItemInput {
+    return {
+      name: 'Camera',
+      priceCents: 5_000,
+      categoryId: 'photography',
+      imageUri: null,
+      expectedUsageFrequency: 'several_times_week',
+      customUsesPerMonth: null,
+      expectedOwnershipMonths: 60,
+      cooldownDays: 3,
+      reasonTags: ['Hobby'],
+      notes: null,
+      ...overrides,
+    };
+  }
+
+  it('leaves the countdown untouched when only a correction changes', async () => {
+    const item = editableItem();
+    const { repositories, items } = createHarness([item]);
+
+    await updateWishlistItem(
+      repositories,
+      item,
+      editInput({ notes: 'Check the second-hand price first.', expectedOwnershipMonths: 24 }),
+      { scheduleReminder: true, finances: FINANCES },
+    );
+
+    const stored = items.get('w1');
+    expect(stored?.notes).toBe('Check the second-hand price first.');
+    expect(stored?.expectedOwnershipMonths).toBe(24);
+    expect(stored?.cooldownEndsAt).toBe(item.cooldownEndsAt);
+    expect(stored?.cooldownDays).toBe(3);
+    // Nothing the reminder depends on changed, so it is left alone.
+    expect(cancelCooldownReminder).not.toHaveBeenCalled();
+    expect(scheduleCooldownReminder).not.toHaveBeenCalled();
+  });
+
+  it('extends the period from its original start when the price grows', async () => {
+    const item = editableItem();
+    const { repositories, items } = createHarness([item]);
+
+    await updateWishlistItem(repositories, item, editInput({ priceCents: 179_900 }), {
+      scheduleReminder: true,
+      finances: FINANCES,
+    });
+
+    const stored = items.get('w1');
+    expect(stored?.cooldownDays).toBe(30);
+    expect(stored?.cooldownStartedAt).toBe(item.cooldownStartedAt);
+    // Measured from the original start: the day already spent still counts.
+    expect(periodLength(item.cooldownStartedAt, stored?.cooldownEndsAt ?? '')).toBe(30);
+  });
+
+  it('honours a period the user picks, also measured from the original start', async () => {
+    const item = editableItem({ cooldownStartedAt: isoDaysFromNow(-3) });
+    const { repositories, items } = createHarness([item]);
+
+    await updateWishlistItem(repositories, item, editInput({ cooldownDays: 14 }), {
+      scheduleReminder: true,
+      finances: FINANCES,
+    });
+
+    const stored = items.get('w1');
+    expect(stored?.cooldownDays).toBe(14);
+    // Fourteen days from when the reflection began, so eleven are left — not a fresh fourteen.
+    expect(periodLength(item.cooldownStartedAt, stored?.cooldownEndsAt ?? '')).toBe(14);
+  });
+
+  it('keeps the user period even when the new price would suggest another', async () => {
+    const item = editableItem({ cooldownDays: 14 });
+    const { repositories, items } = createHarness([item]);
+
+    await updateWishlistItem(
+      repositories,
+      item,
+      editInput({ priceCents: 179_900, cooldownDays: 14 }),
+      { scheduleReminder: true, finances: FINANCES },
+    );
+
+    expect(items.get('w1')?.cooldownDays).toBe(14);
+    expect(items.get('w1')?.cooldownEndsAt).toBe(item.cooldownEndsAt);
+  });
+
+  it('replaces the pending reminder when the period moves', async () => {
+    const item = editableItem();
+    const { repositories } = createHarness([item]);
+
+    await updateWishlistItem(repositories, item, editInput({ priceCents: 179_900 }), {
+      scheduleReminder: true,
+      finances: FINANCES,
+    });
+
+    expect(cancelCooldownReminder).toHaveBeenCalledWith('w1');
+    expect(scheduleCooldownReminder).toHaveBeenCalledTimes(1);
+    // Scheduled against the saved item, so it fires at the new end date.
+    const scheduled = (scheduleCooldownReminder as jest.Mock).mock.calls[0]?.[0] as WishlistItem;
+    expect(scheduled.cooldownEndsAt).not.toBe(item.cooldownEndsAt);
+  });
+
+  it('cancels the stale reminder without scheduling one when reminders are off', async () => {
+    const item = editableItem();
+    const { repositories } = createHarness([item]);
+
+    await updateWishlistItem(repositories, item, editInput({ priceCents: 179_900 }), {
+      scheduleReminder: false,
+      finances: FINANCES,
+    });
+
+    expect(cancelCooldownReminder).toHaveBeenCalledWith('w1');
+    expect(scheduleCooldownReminder).not.toHaveBeenCalled();
+  });
+
+  it('puts an elapsed item back into reflection when its period grows', async () => {
+    // The stored status gates the reminder: an item left as ready to decide
+    // could never be reminded about again, however long its new period is.
+    const item = editableItem({
+      cooldownStartedAt: isoDaysFromNow(-5),
+      cooldownEndsAt: isoDaysFromNow(-2),
+      status: 'ready_to_decide',
+    });
+    const { repositories, items } = createHarness([item]);
+
+    await updateWishlistItem(repositories, item, editInput({ priceCents: 179_900 }), {
+      scheduleReminder: true,
+      finances: FINANCES,
+    });
+
+    expect(items.get('w1')?.status).toBe('thinking');
+    expect(scheduleCooldownReminder).toHaveBeenCalledTimes(1);
+  });
+
+  it('marks the item ready when a shortened period has already elapsed', async () => {
+    const item = editableItem({
+      priceCents: 179_900,
+      cooldownDays: 30,
+      cooldownStartedAt: isoDaysFromNow(-5),
+      cooldownEndsAt: isoDaysFromNow(25),
+    });
+    const { repositories, items } = createHarness([item]);
+
+    // The form prefills the stored period, so an untouched chip sends it back unchanged.
+    await updateWishlistItem(
+      repositories,
+      item,
+      editInput({ priceCents: 1_000, cooldownDays: 30 }),
+      {
+        scheduleReminder: true,
+        finances: FINANCES,
+      },
+    );
+
+    expect(items.get('w1')?.cooldownDays).toBe(1);
+    expect(items.get('w1')?.status).toBe('ready_to_decide');
+  });
+
+  it('deletes the photo it replaced, and keeps one that was not touched', async () => {
+    const item = editableItem({ imageUri: 'file:///images/old.jpg' });
+    const { repositories } = createHarness([item]);
+
+    await updateWishlistItem(
+      repositories,
+      item,
+      editInput({ imageUri: 'file:///images/new.jpg' }),
+      {
+        scheduleReminder: true,
+        finances: FINANCES,
+      },
+    );
+    expect(deleteItemImage).toHaveBeenCalledWith('file:///images/old.jpg');
+
+    jest.clearAllMocks();
+    const untouched = editableItem({ imageUri: 'file:///images/old.jpg' });
+    const second = createHarness([untouched]);
+    await updateWishlistItem(
+      second.repositories,
+      untouched,
+      editInput({ imageUri: 'file:///images/old.jpg' }),
+      { scheduleReminder: true, finances: FINANCES },
+    );
+    expect(deleteItemImage).not.toHaveBeenCalledWith('file:///images/old.jpg');
+  });
+
+  it('refuses to rewrite an item that has already been decided', async () => {
+    const item = editableItem({ status: 'purchased', decidedAt: '2026-08-13T09:00:00.000Z' });
+    const { repositories } = createHarness([item]);
+
+    await expect(
+      updateWishlistItem(repositories, item, editInput({ priceCents: 1_000 }), {
+        scheduleReminder: true,
+        finances: FINANCES,
+      }),
+    ).rejects.toThrow(/decided/i);
+
+    expect(repositories.wishlist.update).not.toHaveBeenCalled();
   });
 });
