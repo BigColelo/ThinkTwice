@@ -26,6 +26,24 @@ export type UsagePreset = {
   usesPerMonth: number | null;
 };
 
+/**
+ * The frequency ids as a tuple, for the form schemas that validate a choice
+ * against them (`z.enum` needs literals, which `USAGE_PRESETS.map` cannot give).
+ *
+ * Kept here, next to the presets it mirrors, so the two forms that offer these
+ * choices share one list. Drift between this and `USAGE_PRESETS` is caught by the
+ * schema and mapper tests, which both iterate the presets.
+ */
+export const USAGE_FREQUENCY_IDS = [
+  'daily',
+  'several_times_week',
+  'weekly',
+  'several_times_month',
+  'monthly',
+  'occasionally',
+  'custom',
+] as const satisfies readonly UsageFrequencyId[];
+
 export const USAGE_PRESETS: readonly UsagePreset[] = [
   {
     id: 'daily',

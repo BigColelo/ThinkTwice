@@ -1,7 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
-import { Controller, useForm } from 'react-hook-form';
+import { Controller, useForm, useWatch } from 'react-hook-form';
 import { View } from 'react-native';
 
 import { AppText } from '@/components/ui/AppText';
@@ -11,8 +11,11 @@ import { DateField } from '@/components/ui/DateField';
 import { MoneyField } from '@/components/ui/MoneyField';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
+import { SectionHeader } from '@/components/ui/SectionHeader';
 import { TextField } from '@/components/ui/TextField';
 import { DEFAULT_PURCHASE_CATEGORY_ID, PURCHASE_CATEGORIES } from '@/constants/categories';
+import { OWNERSHIP_PRESETS } from '@/constants/ownership';
+import { USAGE_PRESETS } from '@/constants/usagePresets';
 import { useRepositories } from '@/db/DatabaseProvider';
 import { ImagePickerField } from '@/features/images/ImagePickerField';
 import { useGoBack } from '@/features/navigation/useGoBack';
@@ -27,9 +30,13 @@ import { todayIsoDate } from '@/utils/dates';
 /**
  * "Something I already own."
  *
- * Deliberately short: name, price, date. Everything else about the item —
- * uses, expenses, resale value — is added later from its detail screen, where
- * it belongs.
+ * Short by design: what it is, what it cost, when it arrived. Uses, expenses and
+ * resale value are added later from its detail screen, where they belong.
+ *
+ * The expectation at the end is optional, and asked for here rather than later on
+ * purpose: it is what the user thought at the time, and a forecast typed in months
+ * after the fact would be a fabricated memory rather than something to compare
+ * against — the app already computes the actual rate of use by itself.
  */
 export default function AddOwnedPurchaseScreen(): React.ReactElement {
   const theme = useTheme();
@@ -40,7 +47,7 @@ export default function AddOwnedPurchaseScreen(): React.ReactElement {
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
 
-  const { control, handleSubmit } = useForm<OwnedPurchaseFormValues>({
+  const { control, handleSubmit, setValue } = useForm<OwnedPurchaseFormValues>({
     resolver: zodResolver(ownedPurchaseSchema),
     mode: 'onTouched',
     defaultValues: {
@@ -50,20 +57,28 @@ export default function AddOwnedPurchaseScreen(): React.ReactElement {
       categoryId: DEFAULT_PURCHASE_CATEGORY_ID,
       imageUri: null,
       currentResaleValueCents: null,
+      expectedUsageFrequency: null,
+      customUsesPerMonth: null,
+      expectedOwnershipMonths: null,
     },
   });
 
-  const onSubmit = handleSubmit(async (values) => {
+  const values = useWatch({ control });
+
+  const onSubmit = handleSubmit(async (formValues) => {
     setIsSaving(true);
     setSaveError(null);
     try {
       const purchase = await createOwnedPurchase(repositories, {
-        name: values.name,
-        purchasePriceCents: values.purchasePriceCents,
-        purchaseDate: values.purchaseDate,
-        categoryId: values.categoryId,
-        imageUri: values.imageUri,
-        currentResaleValueCents: values.currentResaleValueCents,
+        name: formValues.name,
+        purchasePriceCents: formValues.purchasePriceCents,
+        purchaseDate: formValues.purchaseDate,
+        categoryId: formValues.categoryId,
+        imageUri: formValues.imageUri,
+        currentResaleValueCents: formValues.currentResaleValueCents,
+        expectedUsageFrequency: formValues.expectedUsageFrequency,
+        customUsesPerMonth: formValues.customUsesPerMonth,
+        expectedOwnershipMonths: formValues.expectedOwnershipMonths,
       });
 
       if (router.canDismiss()) router.dismissAll();
@@ -167,6 +182,77 @@ export default function AddOwnedPurchaseScreen(): React.ReactElement {
             name="imageUri"
             render={({ field }) => (
               <ImagePickerField value={field.value} onChange={field.onChange} />
+            )}
+          />
+        </View>
+
+        <View style={{ height: theme.spacing.xl }} />
+        <SectionHeader
+          title="What you expected"
+          subtitle="Optional. If you had a rough idea when you got it, the app can hold it up against what actually happened."
+        />
+
+        <View style={{ gap: theme.spacing.md }}>
+          <Controller
+            control={control}
+            name="expectedUsageFrequency"
+            render={({ field, fieldState }) => (
+              <ChipSelect
+                label="How often did you expect to use it?"
+                options={USAGE_PRESETS.map((preset) => ({
+                  value: preset.id,
+                  label: preset.label,
+                }))}
+                value={field.value}
+                onChange={(next) => {
+                  field.onChange(next);
+                  if (next !== 'custom') setValue('customUsesPerMonth', null);
+                }}
+                hint={
+                  USAGE_PRESETS.find((preset) => preset.id === field.value)?.detail ?? undefined
+                }
+                error={fieldState.error?.message}
+              />
+            )}
+          />
+
+          {values.expectedUsageFrequency === 'custom' ? (
+            <Controller
+              control={control}
+              name="customUsesPerMonth"
+              render={({ field, fieldState }) => (
+                <TextField
+                  label="Uses per month"
+                  required
+                  keyboardType="numeric"
+                  inputMode="numeric"
+                  value={field.value == null ? '' : String(field.value)}
+                  onChangeText={(text) => {
+                    const parsed = Number.parseFloat(text.replace(',', '.'));
+                    field.onChange(Number.isFinite(parsed) ? parsed : null);
+                  }}
+                  onBlur={field.onBlur}
+                  error={fieldState.error?.message}
+                  suffix="/ month"
+                />
+              )}
+            />
+          ) : null}
+
+          <Controller
+            control={control}
+            name="expectedOwnershipMonths"
+            render={({ field, fieldState }) => (
+              <ChipSelect
+                label="How long did you expect to keep it?"
+                options={OWNERSHIP_PRESETS.map((preset) => ({
+                  value: preset.months,
+                  label: preset.label,
+                }))}
+                value={field.value}
+                onChange={field.onChange}
+                error={fieldState.error?.message}
+              />
             )}
           />
         </View>

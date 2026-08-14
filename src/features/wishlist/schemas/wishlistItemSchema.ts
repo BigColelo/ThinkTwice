@@ -1,20 +1,10 @@
 import { z } from 'zod';
 
 import { MAX_OWNERSHIP_MONTHS, MIN_OWNERSHIP_MONTHS } from '@/constants/ownership';
+import { USAGE_FREQUENCY_IDS } from '@/constants/usagePresets';
 import { MAX_COOLDOWN_DAYS, MIN_COOLDOWN_DAYS } from '@/domain';
-import type { UsageFrequencyId } from '@/types/domain';
 
 /** Validation for the "something I want to buy" form. */
-
-const USAGE_IDS = [
-  'daily',
-  'several_times_week',
-  'weekly',
-  'several_times_month',
-  'monthly',
-  'occasionally',
-  'custom',
-] as const satisfies readonly UsageFrequencyId[];
 
 const MAX_PRICE_CENTS = 100_000_000;
 
@@ -37,7 +27,7 @@ export const wishlistItemSchema = z
     categoryId: z.string().min(1, 'Choose a category.'),
     imageUri: z.string().nullable(),
 
-    expectedUsageFrequency: z.enum(USAGE_IDS),
+    expectedUsageFrequency: z.enum(USAGE_FREQUENCY_IDS),
     customUsesPerMonth: z
       .number()
       .positive('Enter how many times per month you expect to use it.')

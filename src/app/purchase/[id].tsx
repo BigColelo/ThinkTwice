@@ -1,6 +1,6 @@
 import { Image } from 'expo-image';
 import { useLocalSearchParams } from 'expo-router';
-import { Plus, Trash2 } from 'lucide-react-native';
+import { Calendar, Plus, Repeat, Trash2 } from 'lucide-react-native';
 import React, { useState } from 'react';
 import { View } from 'react-native';
 
@@ -32,7 +32,7 @@ import {
 import { useTheme } from '@/theme';
 import type { Cents } from '@/types/domain';
 import { confirm } from '@/utils/confirm';
-import { formatDate } from '@/utils/dates';
+import { formatDate, formatMonthsAsDuration } from '@/utils/dates';
 
 /**
  * What an owned item has actually cost, and the one-tap action that keeps that
@@ -202,25 +202,34 @@ export default function PurchaseDetailScreen(): React.ReactElement {
           </>
         ) : null}
 
-        {purchase.expectedUsageFrequency ? (
+        {purchase.expectedUsageFrequency != null || purchase.expectedOwnershipMonths != null ? (
           <>
             <View style={{ height: theme.spacing.xl }} />
             <SectionHeader
               title="What you expected"
-              subtitle="Recorded when you added this to your wishlist."
+              subtitle="Recorded when you added this item, beside what has happened since."
             />
             <Card padding={theme.spacing.md}>
               <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: theme.spacing.xs }}>
-                <Chip
-                  label={usageFrequencyShortLabel(
-                    purchase.expectedUsageFrequency,
-                    purchase.customUsesPerMonth,
-                  )}
-                />
+                {purchase.expectedUsageFrequency != null ? (
+                  <Chip
+                    icon={Repeat}
+                    label={usageFrequencyShortLabel(
+                      purchase.expectedUsageFrequency,
+                      purchase.customUsesPerMonth,
+                    )}
+                  />
+                ) : null}
                 {metrics.usesPerMonth != null ? (
                   <Chip
                     label={`Actually ${Math.round(metrics.usesPerMonth * 10) / 10} / month`}
                     tone="accent"
+                  />
+                ) : null}
+                {purchase.expectedOwnershipMonths != null ? (
+                  <Chip
+                    icon={Calendar}
+                    label={formatMonthsAsDuration(purchase.expectedOwnershipMonths)}
                   />
                 ) : null}
               </View>

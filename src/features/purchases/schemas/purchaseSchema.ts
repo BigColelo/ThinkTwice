@@ -1,6 +1,9 @@
 import { z } from 'zod';
 
+import { MAX_OWNERSHIP_MONTHS, MIN_OWNERSHIP_MONTHS } from '@/constants/ownership';
+import { USAGE_FREQUENCY_IDS } from '@/constants/usagePresets';
 import type { ExpenseType } from '@/types/domain';
+import { parseIsoDate, toIsoDate } from '@/utils/dates';
 
 /** Validation for the "something I already own" and "add expense" forms. */
 
@@ -8,7 +11,13 @@ const MAX_AMOUNT_CENTS = 100_000_000;
 
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 
-export const ownedPurchaseSchema = z.object({
+/**
+ * The fields of the owned-purchase form, before the cross-field rule below.
+ *
+ * Kept as a plain object so a subset can be picked from it: `.refine` produces a
+ * schema that no longer has `.pick`.
+ */
+const ownedPurchaseFields = z.object({
   name: z
     .string()
     .trim()
@@ -22,7 +31,14 @@ export const ownedPurchaseSchema = z.object({
   purchaseDate: z
     .string()
     .regex(ISO_DATE, 'Choose a purchase date.')
-    .refine((value) => !Number.isNaN(Date.parse(value)), 'Choose a valid purchase date.'),
+    // A day that does not exist is not caught by parsing: both `Date.parse` and
+    // `parseIsoDate` roll 2026-02-31 into March, which would quietly shift how long
+    // the item has been owned. Round-tripping the parsed date back to text is what
+    // actually rejects it.
+    .refine((value) => {
+      const parsed = parseIsoDate(value);
+      return parsed != null && toIsoDate(parsed) === value;
+    }, 'Choose a valid purchase date.'),
   categoryId: z.string().min(1, 'Choose a category.'),
   imageUri: z.string().nullable(),
   currentResaleValueCents: z
@@ -31,16 +47,42 @@ export const ownedPurchaseSchema = z.object({
     .min(0, 'A resale value cannot be negative.')
     .max(MAX_AMOUNT_CENTS, 'That value looks too large.')
     .nullable(),
+
+  // The expectation is optional here, unlike on a wishlist item: something bought
+  // long ago may have been recorded without one, and inventing a forecast after
+  // the fact would be worse than leaving it unset.
+  expectedUsageFrequency: z.enum(USAGE_FREQUENCY_IDS).nullable(),
+  customUsesPerMonth: z
+    .number()
+    .positive('Enter how many times per month you expect to use it.')
+    .max(1000, 'That looks like too many uses per month.')
+    .nullable(),
+  expectedOwnershipMonths: z
+    .number()
+    .int()
+    .min(MIN_OWNERSHIP_MONTHS, 'Expected ownership must be at least one month.')
+    .max(MAX_OWNERSHIP_MONTHS, 'That is longer than this app plans for.')
+    .nullable(),
 });
+
+export const ownedPurchaseSchema = ownedPurchaseFields.refine(
+  // Same rule as the wishlist form: a custom frequency without a rate would leave
+  // the comparison silently empty rather than visibly wrong.
+  (values) => values.expectedUsageFrequency !== 'custom' || values.customUsesPerMonth != null,
+  {
+    path: ['customUsesPerMonth'],
+    message: 'Enter how many times per month you expect to use it.',
+  },
+);
 
 export type OwnedPurchaseFormValues = z.infer<typeof ownedPurchaseSchema>;
 
 /**
  * The two things a wishlist item cannot know when it becomes a purchase: when it
- * was bought and what was actually paid. Picked from the schema above so both
+ * was bought and what was actually paid. Picked from the fields above so both
  * flows validate a price and a date by exactly the same rules.
  */
-export const confirmedPurchaseSchema = ownedPurchaseSchema.pick({
+export const confirmedPurchaseSchema = ownedPurchaseFields.pick({
   purchaseDate: true,
   purchasePriceCents: true,
 });
