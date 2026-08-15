@@ -5,6 +5,7 @@ import { AppText } from '@/components/ui/AppText';
 import { IconTile } from '@/components/ui/IconTile';
 import { MoneyValue } from '@/components/ui/MoneyValue';
 import { getPurchaseCategory } from '@/constants/categories';
+import { useT } from '@/i18n';
 import { useTheme } from '@/theme';
 import type { Cents, CategoryId } from '@/types/domain';
 import { clamp } from '@/utils/numbers';
@@ -35,6 +36,7 @@ export function CategoryBarChart({
   style,
 }: CategoryBarChartProps): React.ReactElement | null {
   const theme = useTheme();
+  const t = useT();
 
   if (items.length === 0) return null;
 
@@ -70,7 +72,7 @@ export function CategoryBarChart({
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing.sm }}>
               <IconTile icon={category.icon} tint={category.tint} size="sm" />
               <AppText variant="body" style={{ flex: 1 }} numberOfLines={1}>
-                {category.label}
+                {t(category.labelKey)}
               </AppText>
               <MoneyValue cents={item.totalCents} variant="bodyStrong" />
             </View>
@@ -83,7 +85,9 @@ export function CategoryBarChart({
                 borderRadius: theme.radius.full,
                 backgroundColor: theme.colors.surfaceMuted,
                 overflow: 'hidden',
-                marginLeft: theme.sizes.iconTile.sm + theme.spacing.sm,
+                // Logical rather than `marginLeft`: under a right-to-left
+                // language the bar has to line up with the label on the right.
+                marginStart: theme.sizes.iconTile.sm + theme.spacing.sm,
               }}
             >
               <View

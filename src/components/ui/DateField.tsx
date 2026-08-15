@@ -3,6 +3,7 @@ import { Calendar } from 'lucide-react-native';
 import React, { useState } from 'react';
 import { Platform, Pressable, View } from 'react-native';
 
+import { useT } from '@/i18n';
 import { useTheme } from '@/theme';
 import type { IsoDate } from '@/types/domain';
 import { formatDate, parseIsoDate, toIsoDate } from '@/utils/dates';
@@ -43,6 +44,7 @@ export function DateField({
   minimumDate,
 }: DateFieldProps): React.ReactElement {
   const theme = useTheme();
+  const t = useT();
   const [isOpen, setIsOpen] = useState(false);
 
   const selected = parseIsoDate(value) ?? new Date();
@@ -64,8 +66,8 @@ export function DateField({
     <FormField label={label} required={required} hint={hint} error={error}>
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel={`${label}: ${formatDate(value)}`}
-        accessibilityHint="Opens a date picker"
+        accessibilityLabel={t('form.dateFieldLabel', { label, date: formatDate(value) })}
+        accessibilityHint={t('form.dateFieldHint')}
         onPress={() => setIsOpen(true)}
         style={({ pressed }) => [
           {
@@ -110,7 +112,12 @@ export function DateField({
             onDismiss={() => setIsOpen(false)}
           />
           {Platform.OS === 'ios' ? (
-            <Button label="Done" variant="secondary" size="md" onPress={() => setIsOpen(false)} />
+            <Button
+              label={t('common.done')}
+              variant="secondary"
+              size="md"
+              onPress={() => setIsOpen(false)}
+            />
           ) : null}
         </View>
       ) : null}

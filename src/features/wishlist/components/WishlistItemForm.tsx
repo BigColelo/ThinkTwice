@@ -5,9 +5,7 @@ import { View } from 'react-native';
 
 import { AppText } from '@/components/ui/AppText';
 import { Button } from '@/components/ui/Button';
-import { Chip } from '@/components/ui/Chip';
 import { ChipSelect } from '@/components/ui/ChipSelect';
-import { FormField } from '@/components/ui/FormField';
 import { MoneyField } from '@/components/ui/MoneyField';
 import { Screen } from '@/components/ui/Screen';
 import { SectionHeader } from '@/components/ui/SectionHeader';
@@ -27,15 +25,14 @@ import { useSettings } from '@/features/settings/SettingsProvider';
 import { EstimatePreview } from '@/features/wishlist/components/EstimatePreview';
 import { PurchaseImpactCard } from '@/features/wishlist/components/PurchaseImpactCard';
 import {
-  REASON_TAGS,
-  wishlistItemSchema,
+  buildWishlistItemSchema,
   type WishlistItemFormInput,
   type WishlistItemFormValues,
 } from '@/features/wishlist/schemas/wishlistItemSchema';
 import type { CreateWishlistItemInput } from '@/features/wishlist/services/wishlistActions';
+import { formatMonthsAsDuration, useT } from '@/i18n';
 import { useTheme } from '@/theme';
 import type { WishlistItem } from '@/types/domain';
-import { pluralize } from '@/utils/dates';
 
 /**
  * The form behind both "something I want to buy" and editing an item.
@@ -64,6 +61,7 @@ export function WishlistItemForm({
   onSubmit: (values: CreateWishlistItemInput) => Promise<void>;
 }): React.ReactElement {
   const theme = useTheme();
+  const t = useT();
   const { settings } = useSettings();
 
   const [isSaving, setIsSaving] = useState(false);
@@ -76,12 +74,16 @@ export function WishlistItemForm({
     () => item != null && item.cooldownDays !== suggestCooldownDays(item.priceCents, finances).days,
   );
 
+  // Rebuilt when the language changes, not on every render: the messages it
+  // carries are copy, and copy follows the chosen language.
+  const schema = useMemo(() => buildWishlistItemSchema(t), [t]);
+
   const { control, handleSubmit, setValue, formState } = useForm<
     WishlistItemFormInput,
     unknown,
     WishlistItemFormValues
   >({
-    resolver: zodResolver(wishlistItemSchema),
+    resolver: zodResolver(schema),
     mode: 'onTouched',
     defaultValues: {
       name: item?.name ?? '',
@@ -94,7 +96,6 @@ export function WishlistItemForm({
       customUsesPerMonth: item?.customUsesPerMonth ?? null,
       expectedOwnershipMonths: item?.expectedOwnershipMonths ?? DEFAULT_OWNERSHIP_MONTHS,
       cooldownDays: item?.cooldownDays ?? DEFAULT_COOLDOWN_DAYS,
-      reasonTags: item?.reasonTags ?? [],
       notes: item?.notes ?? null,
     },
   });
@@ -135,11 +136,10 @@ export function WishlistItemForm({
         customUsesPerMonth: formValues.customUsesPerMonth,
         expectedOwnershipMonths: formValues.expectedOwnershipMonths,
         cooldownDays: formValues.cooldownDays,
-        reasonTags: formValues.reasonTags,
         notes: formValues.notes,
       });
     } catch {
-      setSaveError('This item could not be saved. Please try again.');
+      setSaveError(t('wishlist.saveError'));
       setIsSaving(false);
     }
   });
@@ -163,9 +163,9 @@ export function WishlistItemForm({
           name="name"
           render={({ field, fieldState }) => (
             <TextField
-              label="Name"
+              label={t('wishlist.nameLabel')}
               required
-              placeholder="What are you considering?"
+              placeholder={t('wishlist.namePlaceholder')}
               value={field.value}
               onChangeText={field.onChange}
               onBlur={field.onBlur}
@@ -181,7 +181,7 @@ export function WishlistItemForm({
           name="priceCents"
           render={({ field, fieldState }) => (
             <MoneyField
-              label="Price"
+              label={t('wishlist.priceLabel')}
               required
               valueCents={field.value}
               onChangeCents={field.onChange}
@@ -195,10 +195,10 @@ export function WishlistItemForm({
           name="categoryId"
           render={({ field, fieldState }) => (
             <ChipSelect
-              label="Category"
+              label={t('wishlist.categoryLabel')}
               options={PURCHASE_CATEGORIES.map((category) => ({
                 value: category.id,
-                label: category.label,
+                label: t(category.labelKey),
                 icon: category.icon,
               }))}
               value={field.value}
@@ -217,8 +217,8 @@ export function WishlistItemForm({
 
       <View style={{ height: theme.spacing.xl }} />
       <SectionHeader
-        title="Expected usage"
-        subtitle="Your best guess is enough — it is what turns a price into a cost per use."
+        title={t('wishlist.expectedUsageTitle')}
+        subtitle={t('wishlist.expectedUsageSubtitle')}
       />
 
       <View style={{ gap: theme.spacing.md }}>
@@ -227,17 +227,20 @@ export function WishlistItemForm({
           name="expectedUsageFrequency"
           render={({ field, fieldState }) => (
             <ChipSelect
-              label="How often will you use it?"
+              label={t('wishlist.frequencyLabel')}
               options={USAGE_PRESETS.map((preset) => ({
                 value: preset.id,
-                label: preset.label,
+                label: t(preset.labelKey),
               }))}
               value={field.value}
               onChange={(next) => {
                 field.onChange(next);
                 if (next !== 'custom') setValue('customUsesPerMonth', null);
               }}
-              hint={USAGE_PRESETS.find((preset) => preset.id === field.value)?.detail ?? undefined}
+              hint={(() => {
+                const preset = USAGE_PRESETS.find((option) => option.id === field.value);
+                return preset ? t(preset.detailKey) : undefined;
+              })()}
               error={fieldState.error?.message}
             />
           )}
@@ -249,7 +252,7 @@ export function WishlistItemForm({
             name="customUsesPerMonth"
             render={({ field, fieldState }) => (
               <TextField
-                label="Uses per month"
+                label={t('wishlist.usesPerMonthLabel')}
                 required
                 keyboardType="numeric"
                 inputMode="numeric"
@@ -260,7 +263,7 @@ export function WishlistItemForm({
                 }}
                 onBlur={field.onBlur}
                 error={fieldState.error?.message}
-                suffix="/ month"
+                suffix={t('units.perMonth')}
               />
             )}
           />
@@ -271,10 +274,10 @@ export function WishlistItemForm({
           name="expectedOwnershipMonths"
           render={({ field, fieldState }) => (
             <ChipSelect
-              label="How long will you keep it?"
-              options={OWNERSHIP_PRESETS.map((preset) => ({
-                value: preset.months,
-                label: preset.label,
+              label={t('wishlist.ownershipLabel')}
+              options={OWNERSHIP_PRESETS.map((months) => ({
+                value: months,
+                label: formatMonthsAsDuration(t, months),
               }))}
               value={field.value}
               onChange={field.onChange}
@@ -292,16 +295,14 @@ export function WishlistItemForm({
       </View>
 
       <View style={{ height: theme.spacing.xl }} />
-      <SectionHeader title="Purchase impact" />
+      <SectionHeader title={t('impact.sectionTitle')} />
       <PurchaseImpactCard impact={impact} />
 
       <View style={{ height: theme.spacing.xl }} />
       <SectionHeader
-        title="Reflection period"
+        title={t('cooldown.sectionTitle')}
         subtitle={
-          settings.cooldownRemindersEnabled
-            ? 'ThinkTwice will remind you about this item when the period is over.'
-            : 'ThinkTwice will hold on to this item until the period is over. Turn on reminders in Settings to be notified.'
+          settings.cooldownRemindersEnabled ? t('cooldown.remindersOn') : t('cooldown.remindersOff')
         }
       />
 
@@ -310,10 +311,10 @@ export function WishlistItemForm({
         name="cooldownDays"
         render={({ fieldState }) => (
           <ChipSelect
-            label="Give yourself"
+            label={t('cooldown.giveYourself')}
             options={COOLDOWN_DAY_OPTIONS.map((days) => ({
               value: days,
-              label: pluralize(days, 'day'),
+              label: t('units.day', { count: days }),
             }))}
             value={cooldownDays}
             onChange={(days) => {
@@ -322,10 +323,13 @@ export function WishlistItemForm({
             }}
             hint={
               item != null
-                ? 'Counted from when this reflection period started, not from today.'
+                ? t('cooldown.editHint')
                 : hasEditedCooldown
                   ? undefined
-                  : `Suggested: ${pluralize(suggestion.days, 'day')}. ${suggestion.rationale} You can change it.`
+                  : t('cooldown.suggestionHint', {
+                      period: t('units.day', { count: suggestion.days }),
+                      rationale: t(`cooldown.rationale.${suggestion.rationale}`),
+                    })
             }
             error={fieldState.error?.message}
           />
@@ -333,53 +337,23 @@ export function WishlistItemForm({
       />
 
       <View style={{ height: theme.spacing.xl }} />
-      <SectionHeader title="Why do you want it?" subtitle="Optional" />
+      <SectionHeader title={t('wishlist.reasonTitle')} subtitle={t('common.optional')} />
 
-      <View style={{ gap: theme.spacing.md }}>
-        <Controller
-          control={control}
-          name="reasonTags"
-          render={({ field }) => (
-            <FormField label="Reasons">
-              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: theme.spacing.xs }}>
-                {REASON_TAGS.map((tag) => {
-                  const isSelected = field.value.includes(tag);
-                  return (
-                    <Chip
-                      key={tag}
-                      label={tag}
-                      selected={isSelected}
-                      onPress={() =>
-                        field.onChange(
-                          isSelected
-                            ? field.value.filter((value: string) => value !== tag)
-                            : [...field.value, tag],
-                        )
-                      }
-                    />
-                  );
-                })}
-              </View>
-            </FormField>
-          )}
-        />
-
-        <Controller
-          control={control}
-          name="notes"
-          render={({ field, fieldState }) => (
-            <TextField
-              label="Notes"
-              multiline
-              placeholder="Anything you want to remember when you decide."
-              value={field.value ?? ''}
-              onChangeText={(text) => field.onChange(text === '' ? null : text)}
-              onBlur={field.onBlur}
-              error={fieldState.error?.message}
-            />
-          )}
-        />
-      </View>
+      <Controller
+        control={control}
+        name="notes"
+        render={({ field, fieldState }) => (
+          <TextField
+            label={t('wishlist.notesLabel')}
+            multiline
+            placeholder={t('wishlist.notesPlaceholder')}
+            value={field.value ?? ''}
+            onChangeText={(text) => field.onChange(text === '' ? null : text)}
+            onBlur={field.onBlur}
+            error={fieldState.error?.message}
+          />
+        )}
+      />
 
       {saveError ? (
         <AppText

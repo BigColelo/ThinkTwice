@@ -5,7 +5,7 @@ import { AppText } from '@/components/ui/AppText';
 import { Card } from '@/components/ui/Card';
 import { MoneyValue } from '@/components/ui/MoneyValue';
 import type { PurchaseMetrics } from '@/domain';
-import { EXPENSE_TYPE_LABELS } from '@/features/purchases/schemas/purchaseSchema';
+import { useT } from '@/i18n';
 import { useTheme } from '@/theme';
 import type { PurchaseExpense } from '@/types/domain';
 
@@ -26,34 +26,42 @@ export function RealCostBreakdown({
   expenses: readonly PurchaseExpense[];
 }): React.ReactElement {
   const theme = useTheme();
+  const t = useT();
   const { ownership } = metrics;
 
   const byType = groupByType(expenses);
 
   return (
     <Card padding={theme.spacing.md}>
-      <AppText variant="heading">Real cost</AppText>
+      <AppText variant="heading">{t('purchases.realCost.title')}</AppText>
 
       <View style={{ marginTop: theme.spacing.md, gap: theme.spacing.sm }}>
-        <BreakdownRow label="Purchase price" cents={ownership.purchasePriceCents} />
+        <BreakdownRow
+          label={t('purchases.realCost.purchasePrice')}
+          cents={ownership.purchasePriceCents}
+        />
 
         {byType.length > 0 ? (
           byType.map(([type, total]) => (
             <BreakdownRow
               key={type}
-              label={EXPENSE_TYPE_LABELS[type]}
+              label={t(`purchases.expenses.type.${type}`)}
               cents={total}
               showPositiveSign
             />
           ))
         ) : (
-          <BreakdownRow label="Additional expenses" cents={0} showPositiveSign />
+          <BreakdownRow
+            label={t('purchases.realCost.additionalExpenses')}
+            cents={0}
+            showPositiveSign
+          />
         )}
 
         <BreakdownRow
-          label="Resale value"
+          label={t('purchases.realCost.resaleValue')}
           cents={ownership.hasResaleEstimate ? -ownership.resaleValueCents : null}
-          placeholder="Not set"
+          placeholder={t('common.notSet')}
         />
       </View>
 
@@ -72,7 +80,7 @@ export function RealCostBreakdown({
         style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}
       >
         <AppText variant="bodyStrong" color={ownership.isNetPositive ? 'positive' : 'primary'}>
-          Current real cost
+          {t('purchases.realCost.current')}
         </AppText>
         <MoneyValue
           cents={ownership.currentOwnershipCostCents}
@@ -83,7 +91,7 @@ export function RealCostBreakdown({
 
       {ownership.isNetPositive ? (
         <AppText variant="caption" color="secondary" style={{ marginTop: theme.spacing.xs }}>
-          The resale value you entered is higher than what you have spent on this item so far.
+          {t('purchases.realCost.netPositive')}
         </AppText>
       ) : null}
 
@@ -96,11 +104,11 @@ export function RealCostBreakdown({
         }}
       >
         <AppText variant="body" color="secondary">
-          Real cost per use
+          {t('purchases.realCost.costPerUse')}
         </AppText>
         {metrics.realCostPerUseCents == null ? (
           <AppText variant="body" color="tertiary">
-            No usage data yet
+            {t('purchases.noUsageData')}
           </AppText>
         ) : (
           <MoneyValue cents={metrics.realCostPerUseCents} variant="bodyStrong" decimals="always" />
@@ -130,7 +138,7 @@ function BreakdownRow({
         cents={cents}
         variant="body"
         showPositiveSign={showPositiveSign}
-        placeholder={placeholder ?? '—'}
+        placeholder={placeholder}
       />
     </View>
   );

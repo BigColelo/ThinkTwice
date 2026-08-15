@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, type StyleProp, type ViewStyle } from 'react-native';
 
+import { useT } from '@/i18n';
 import { useTheme } from '@/theme';
 
 import { AppText } from './AppText';
@@ -30,6 +31,7 @@ export function FormField({
   style,
 }: FormFieldProps): React.ReactElement {
   const theme = useTheme();
+  const t = useT();
 
   return (
     <View style={[{ gap: theme.spacing.xs }, style]}>
@@ -38,7 +40,7 @@ export function FormField({
           {label}
         </AppText>
         {required ? (
-          <AppText variant="label" color="secondary" accessibilityLabel="required">
+          <AppText variant="label" color="secondary" accessibilityLabel={t('common.required')}>
             *
           </AppText>
         ) : null}

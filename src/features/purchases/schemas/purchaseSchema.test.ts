@@ -1,11 +1,17 @@
 import { OWNERSHIP_PRESETS } from '@/constants/ownership';
 import { USAGE_PRESETS } from '@/constants/usagePresets';
+import { t } from '@/i18n';
 
 import {
-  confirmedPurchaseSchema,
-  ownedPurchaseSchema,
-  purchaseExpenseSchema,
+  buildConfirmedPurchaseSchema,
+  buildOwnedPurchaseSchema,
+  buildPurchaseExpenseSchema,
 } from './purchaseSchema';
+
+// The suite pins the language to English, so one schema serves every case.
+const ownedPurchaseSchema = buildOwnedPurchaseSchema(t);
+const confirmedPurchaseSchema = buildConfirmedPurchaseSchema(t);
+const purchaseExpenseSchema = buildPurchaseExpenseSchema(t);
 
 /**
  * Validation for the two forms that record money already spent.
@@ -125,10 +131,9 @@ describe('ownedPurchaseSchema, the optional expectation', () => {
   });
 
   it('accepts every ownership duration the form offers', () => {
-    for (const preset of OWNERSHIP_PRESETS) {
+    for (const months of OWNERSHIP_PRESETS) {
       expect(
-        ownedPurchaseSchema.safeParse(ownedValues({ expectedOwnershipMonths: preset.months }))
-          .success,
+        ownedPurchaseSchema.safeParse(ownedValues({ expectedOwnershipMonths: months })).success,
       ).toBe(true);
     }
   });

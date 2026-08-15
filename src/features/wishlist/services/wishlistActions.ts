@@ -106,7 +106,6 @@ export async function updateWishlistItem(
     expectedUsageFrequency: input.expectedUsageFrequency,
     customUsesPerMonth: input.customUsesPerMonth,
     expectedOwnershipMonths: input.expectedOwnershipMonths,
-    reasonTags: input.reasonTags,
     notes: input.notes,
     ...period,
   });

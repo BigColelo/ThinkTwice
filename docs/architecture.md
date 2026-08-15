@@ -268,7 +268,78 @@ would take the whole adapter out of its own test suite without failing anything.
 
 ---
 
-## 10. Accessibility
+## 10. Language
+
+The app ships six languages. The choice is one setting, and it moves two things at once: the copy and
+every `Intl` format. Half of one and half of the other — Italian sentences beside `13 Aug 2026` — is
+the failure mode this design is arranged to make impossible.
+
+**Language is not locale.** `AppSettings.language` holds `system | en | it | de | fr | es | ar`;
+`LANGUAGE_LOCALES` maps each to the tag `Intl` formats with. The two are separate because they answer
+different questions: i18next picks plural forms from the short code (six categories for Arabic, three
+for Italian, French and Spanish, two for English and German), while grouping, decimal separators,
+month names and currency-symbol placement come from the full tag. Arabic is pinned to
+`ar-u-ca-gregory-nu-latn` for two concrete reasons — ICU resolves plain `ar` to the Umm al-Qura
+calendar in some regions, which would print a year the stored ISO date does not mean; and it emits
+Arabic-Indic digits, which `centsToInputString` would put into a money field whose parser reads only
+`0-9`, so the field would clear itself on blur and the amount would be lost with no error anywhere.
+`currency.test.ts` round-trips every language through that exact path.
+
+**The locale is a module singleton, applied during render.** `formatMoney`, `formatDate` and
+`formatNumber` are pure functions that read `getLocale()` (`src/utils/locale.ts`) at call time —
+threading a locale through a hundred call sites would be worse, and nothing about a formatter belongs
+in React state. What that costs is an ordering requirement: the locale has to be set before the tree
+below it renders, or one frame paints with the previous language's separators. `I18nProvider`
+therefore applies the language in its render body rather than in an effect. That call writes module
+state and notifies nothing, and it is derived only from its prop, which is what makes it safe to
+repeat. Like `ThemeProvider` it is mounted
+twice — once above the database gate, following the device, so "Opening your data" is already
+translated; once below settings, following the stored preference.
+
+**The translation function travels through context, not through an event.** This is the part that
+had to be corrected after the first implementation shipped. `react-i18next` subscribes every
+`useTranslation()` caller to i18next's `languageChanged` event, and `changeLanguage` emits it
+synchronously — so applying the stored language while the inner provider rendered called `setState`
+on `DatabaseGate`, which sits _above_ it and had already committed. React reports that as "Cannot
+update a component while rendering a different component", and it is right to: a render must not
+move state belonging to another part of the tree. Providing `t` through a context the provider owns
+makes the change an ordinary top-down update for the subtree below, with no path back upwards. It
+also gives each provider its own language, so the gate keeps rendering in the device's language
+after the user picks another — which is what it was mounted to do. `I18nProvider.test.tsx` renders
+that exact shape and asserts React logs no such warning.
+
+**The domain still returns data.** Adding languages made the exceptions expensive rather than
+untidy: `formatCooldownRemaining` returning `"6 days remaining"` would have needed a plural rule and
+a noun inside a pure calculation. So `cooldownRemaining` returns a discriminated union,
+`suggestCooldownDays` a `CooldownRationale` enum, `calculateOwnershipDuration` months and days, and
+`INSIGHTS_RANGES` / `PURCHASE_SORTS` bare ids. The words live in `src/i18n/format.ts` and
+`src/features/wishlist/cooldownText.ts`, both of which take `t` as a parameter — which is also what
+makes them testable without React and what forces a caller to hold the `t` it was re-rendered with.
+
+**Validation messages are built, not declared.** A Zod schema evaluated at module scope would freeze
+its messages in whichever language loaded first, so each schema is a `build*(t)` factory memoised on
+`t` in the form that uses it. It is rebuilt on a language change and on nothing else.
+
+**Right-to-left is a platform adapter**, `src/i18n/rtl.ts`, because it behaves differently by
+platform rather than because it might be missing: the web flips on the spot via the document `dir`,
+while native records the flag in `I18nManager` and only lays out mirrored on the next launch. Yoga
+resolves `flexDirection: 'row'` against that flag, so the layout mirrors itself; what does not are
+physical offsets, which is why the codebase uses `marginStart` over `marginLeft` and `align="auto"`
+over `align="left"`.
+
+**Reminder copy is frozen by the operating system** at the moment it is scheduled, and a reflection
+period can run for ninety days. A language change therefore re-schedules every pending reminder — the
+same reasoning that already made an edited item re-schedule its own.
+
+The catalogues are plain TypeScript objects, bundled rather than fetched, because every workflow has
+to work in airplane mode. English is the source of truth and is typed into `t` itself
+(`i18next.d.ts`), so a mistyped key fails to compile; the other five are checked at test time
+instead, because a structural type cannot express that Arabic needs plural forms English does not
+have.
+
+---
+
+## 11. Accessibility
 
 - Icon-only controls take a **required** `accessibilityLabel` — the prop is not optional on
   `IconButton`, because that is the component most likely to ship without one.
@@ -282,13 +353,14 @@ would take the whole adapter out of its own test suite without failing anything.
 
 ---
 
-## 11. Deliberate non-goals
+## 12. Deliberate non-goals
 
 Kept in mind only so nothing forecloses them: cloud sync, accounts, export/backup, custom
-categories, more currencies, localisation, advanced insights.
+categories, more currencies, advanced insights.
 
 The two decisions that keep those open are the repository boundary and the fact that every user-
-facing string is in the UI layer rather than inside a domain function. Neither costs anything today.
+facing string is in the UI layer rather than inside a domain function. The second of those is what
+made localisation a matter of moving strings into catalogues rather than a rewrite.
 
 Everything else — a backend, analytics, AI, bank integration, subscriptions — is out of scope, and
 no scaffolding for it exists in the repository.

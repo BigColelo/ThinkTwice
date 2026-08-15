@@ -4,7 +4,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ThinkTwice is a local-first Expo (SDK 57) / React Native app that shows the financial impact of a
 purchase before it is made, holds a reflection period, and tracks the real cost per use afterwards.
-No backend, no network in the data path, no accounts.
+No backend, no network in the data path, no accounts. It ships in six languages (EN, IT, DE, FR, ES,
+AR), and the chosen one drives number, money and date formatting as well as the copy.
 
 `README.md` is the product and setup overview; `docs/architecture.md` explains _why_ the
 non-obvious decisions were made; `THIRD_PARTY.md` justifies every dependency. Read the relevant one
@@ -31,7 +32,7 @@ npx jest -t 'cost per use'
 npx jest --coverage      # collected from src/domain, src/utils, src/db only
 ```
 
-`npm run verify` is green as a baseline (47 suites / 518 tests) — treat a failure as caused by the
+`npm run verify` is green as a baseline (53 suites / 599 tests) — treat a failure as caused by the
 current change.
 
 ## Architecture
@@ -118,6 +119,8 @@ These are enforced by tests; breaking one is a regression even if it typechecks.
   (`requiredAmount` in `src/features/forms` turns that into the field's required message), because a
   prefilled zero is a figure the user never entered and cannot be typed over: `0,01` is a valid
   amount, so the leading zero survives the next keystroke as `05`.
+  `MoneyField` reads the symbol _and the side it belongs on_ from the locale (`currencyAdornment`):
+  `€17.99` in English, `17,99 €` in Italian, German, French and Spanish.
 - **Divide with `safeDivide`** (`src/utils/numbers.ts`), which returns `null` for a zero or
   non-finite denominator. Income, available money and usage counts are legitimately zero.
 - **Time**: ISO-8601 UTC strings for instants, `YYYY-MM-DD` for calendar-only values, nothing
@@ -125,9 +128,10 @@ These are enforced by tests; breaking one is a regression even if it typechecks.
   every read — no counter is decremented, no background job exists, and `calculateCooldownState`
   takes `now` as an argument so it is testable.
 - **Neutral wording.** The app never concludes anything about a purchase. Impact labels describe
-  size, not advisability; "afford", "good", "bad", "waste" and "you should" are asserted absent in
-  `impact.test.ts` and `PurchaseImpactCard.test.tsx`. Semantic colour never carries meaning alone —
-  always pair it with a label or icon.
+  size, not advisability; "afford", "waste", "worth it" and "you should" — and their equivalents in
+  each of the other five languages — are asserted absent across every catalogue in
+  `src/i18n/catalogues.test.ts`. Semantic colour never carries meaning alone — always pair it with a
+  label or icon.
 - **Theme tokens only.** No hardcoded colour or pixel value in a screen; use `useTheme()` /
   `useThemedStyles(factory)` with the factory declared at module scope (it is deliberately excluded
   from the memo deps). Dark mode is designed, not inverted: `elevation(level, isDark)` resolves
@@ -135,6 +139,43 @@ These are enforced by tests; breaking one is a regression even if it typechecks.
 - **Accessibility**: `IconButton` requires `accessibilityLabel` (non-optional by design), list rows
   are a single element with a composed label, errors use `accessibilityRole="alert"`, and font
   scaling is capped per typography role.
+
+### Language
+
+The chosen language drives both the copy and every `Intl` format. The rules:
+
+- **No user-facing string literal outside `src/i18n/locales`.** A component calls `t('area.key')`
+  from `useT()`; the key is checked at compile time against the English catalogue (`i18next.d.ts`
+  types `t` from `typeof en`), so a typo does not compile. A data table that needs a label carries
+  the key instead — `Category.labelKey`, `UsagePreset.detailKey`, typed `TranslationKey`.
+- **Language and locale are different values.** `AppSettings.language` is `system | en | it | de |
+fr | es | ar`; `LANGUAGE_LOCALES` maps each to the full tag `Intl` formats with. i18next resolves
+  plural categories from the short code, which is what gives Arabic six forms and Italian, French
+  and Spanish three. Arabic is pinned to `ar-u-ca-gregory-nu-latn`: Arabic-Indic digits would come
+  back out of `centsToInputString` into a money field whose parser reads only `0-9`, and the amount
+  would clear itself on blur — `currency.test.ts` round-trips every language to catch it.
+- **`I18nProvider` applies the locale during render, not in an effect.** Money and dates are
+  formatted by pure functions reading `getLocale()` at call time, so an effect would paint one frame
+  with the previous language's separators. It is mounted twice, like `ThemeProvider`: once above the
+  database gate following the device, once below settings following the stored preference.
+- **`t` comes from the provider's own context, never from an event.** `react-i18next` was removed
+  for this: its `languageChanged` subscription fires synchronously, so changing language while the
+  inner provider rendered called `setState` on `DatabaseGate` above it, which React refuses. Do not
+  reintroduce a subscription-based `useTranslation` — `I18nProvider.test.tsx` guards it.
+- **The domain returns keys, never sentences.** `suggestCooldownDays` returns a `CooldownRationale`,
+  `cooldownRemaining` a discriminated union, `INSIGHTS_RANGES` and `PURCHASE_SORTS` bare ids. Words
+  and plural rules belong to the UI (`src/features/wishlist/cooldownText.ts`, `src/i18n/format.ts`).
+- **Zod schemas are factories.** `buildWishlistItemSchema(t)`, memoised on `t` in the form: a schema
+  built once at module scope would freeze its messages in whichever language loaded first.
+- **Counted nouns go through `t('units.x', { count })`**, never string concatenation. There is no
+  `pluralize` helper any more, deliberately.
+- **RTL.** `src/i18n/rtl.ts` is a platform adapter: `I18nManager` on native, the document `dir` on
+  web. Native needs a restart, and the language screen says so. Use `marginStart`/`paddingStart`
+  rather than `marginLeft`/`paddingLeft`, and `align="auto"` rather than `"left"`.
+- **Notification copy is frozen by the OS at schedule time**, so a language change re-schedules every
+  pending reminder through `rescheduleAllCooldownReminders`.
+- Adding a key means adding it to all six catalogues; `catalogues.test.ts` checks coverage,
+  placeholders, plural completeness per language and the neutral-wording guard.
 
 ### Platform adapters
 
@@ -158,12 +199,14 @@ pattern.
 
 - Tests are colocated as `*.test.ts` / `*.test.tsx` next to the code they cover. Coverage is
   concentrated in `src/domain`, `src/utils` and `src/db`.
-- `jest.setup.ts` pins the locale to `en-GB` before every test, so assertions on formatted money and
-  dates are stable. Expect `€1,799` / `17.99` formatting in expectations.
+- `jest.setup.ts` pins the language to English before every test, which pins the locale to `en-GB`
+  with it, so assertions on copy, formatted money and dates are stable. Expect `€1,799` / `17.99`
+  formatting in expectations. A test that switches language must switch it back.
 - Component tests use `renderWithProviders` from `@/test/renderWithProviders` — **await it** — which
-  supplies theme, settings and safe-area context but _no database_. Pass `settings` to vary currency
-  or income. `fireEvent.press` / `.scroll` are async too in RNTL 14: not awaiting them asserts before
-  React has flushed, which surfaces as "overlapping act() calls" rather than a clear failure.
+  supplies theme, settings, language and safe-area context but _no database_. Pass `settings` to vary
+  currency or income, and `language` to exercise a translation or a right-to-left layout.
+  `fireEvent.press` / `.scroll` are async too in RNTL 14: not awaiting them asserts before React has
+  flushed, which surfaces as "overlapping act() calls" rather than a clear failure.
 - Never put a `*.test.tsx` under `src/app`. Expo Router's route context (`_ctx.*.js`) matches every
   `.tsx` in the app directory, test files included, so it would ship as a real route — keep the
   component in `src/features/<area>/` and test it there.

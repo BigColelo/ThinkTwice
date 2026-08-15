@@ -8,9 +8,10 @@ import { CostPerUse, MoneyValue } from '@/components/ui/MoneyValue';
 import { Thumbnail } from '@/components/ui/Thumbnail';
 import { getPurchaseCategory } from '@/constants/categories';
 import { calculatePurchaseMetrics } from '@/domain';
+import { useT } from '@/i18n';
 import { useTheme } from '@/theme';
 import type { PurchaseWithStats } from '@/types/domain';
-import { formatDate, pluralize } from '@/utils/dates';
+import { formatDate } from '@/utils/dates';
 
 /**
  * An owned item in a list. Cost per use is the headline, because it is the
@@ -25,17 +26,25 @@ export function PurchaseCard({
   onPress: () => void;
 }): React.ReactElement {
   const theme = useTheme();
+  const t = useT();
   const category = getPurchaseCategory(purchase.categoryId);
   const metrics = calculatePurchaseMetrics(purchase);
 
-  const uses = metrics.totalUses > 0 ? pluralize(metrics.totalUses, 'use') : 'No uses recorded';
+  const uses =
+    metrics.totalUses > 0
+      ? t('units.use', { count: metrics.totalUses })
+      : t('purchases.noUsesRecorded');
 
   return (
     <PressableCard
       onPress={onPress}
       padding={theme.spacing.sm}
-      accessibilityLabel={`${purchase.name}, ${category.label}, ${pluralize(metrics.totalUses, 'use')}`}
-      accessibilityHint="Opens this purchase"
+      accessibilityLabel={t('purchases.cardLabel', {
+        name: purchase.name,
+        category: t(category.labelKey),
+        uses: t('units.use', { count: metrics.totalUses }),
+      })}
+      accessibilityHint={t('purchases.openHint')}
     >
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing.sm }}>
         <Thumbnail
@@ -50,7 +59,7 @@ export function PurchaseCard({
             {purchase.name}
           </AppText>
           <AppText variant="caption" color="secondary">
-            {`${uses} · ${category.label}`}
+            {`${uses}${t('common.dotSeparator')}${t(category.labelKey)}`}
           </AppText>
           {/* What was paid and when: two of the sort orders are based on these, so
               a row that hid them would rank items by figures it never showed. */}
@@ -66,7 +75,7 @@ export function PurchaseCard({
           <CostPerUse
             cents={metrics.realCostPerUseCents}
             variant="bodyStrong"
-            placeholder="No usage yet"
+            placeholder={t('purchases.noUsageYet')}
           />
         </View>
 

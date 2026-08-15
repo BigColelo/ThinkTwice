@@ -6,6 +6,7 @@ import { AppText } from '@/components/ui/AppText';
 import { FormField } from '@/components/ui/FormField';
 import { IconButton } from '@/components/ui/IconButton';
 import { Thumbnail } from '@/components/ui/Thumbnail';
+import { useT } from '@/i18n';
 import { useTheme } from '@/theme';
 
 import { deleteItemImage, pickItemImage } from './itemImages';
@@ -25,11 +26,12 @@ export type ImagePickerFieldProps = {
 };
 
 export function ImagePickerField({
-  label = 'Photo',
+  label,
   value,
   onChange,
 }: ImagePickerFieldProps): React.ReactElement {
   const theme = useTheme();
+  const t = useT();
   const [message, setMessage] = useState<string | null>(null);
   const [isPicking, setIsPicking] = useState(false);
 
@@ -46,12 +48,10 @@ export function ImagePickerField({
         onChange(result.uri);
         break;
       case 'permission_denied':
-        setMessage(
-          'ThinkTwice needs access to your photos to add one. You can allow it in Settings.',
-        );
+        setMessage(t('images.permissionDenied'));
         break;
       case 'failed':
-        setMessage(result.message);
+        setMessage(t('images.failed'));
         break;
       case 'cancelled':
         break;
@@ -67,7 +67,7 @@ export function ImagePickerField({
   };
 
   return (
-    <FormField label={label} hint="Optional. Stored on this device only.">
+    <FormField label={label ?? t('images.label')} hint={t('images.hint')}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing.sm }}>
         {value ? (
           <>
@@ -81,19 +81,19 @@ export function ImagePickerField({
             <View style={{ flex: 1, gap: theme.spacing.xs }}>
               <Pressable
                 accessibilityRole="button"
-                accessibilityLabel="Replace photo"
+                accessibilityLabel={t('images.replace')}
                 onPress={pick}
                 disabled={isPicking}
                 style={({ pressed }) => (pressed ? { opacity: 0.6 } : null)}
               >
                 <AppText variant="label" color="accent">
-                  Replace photo
+                  {t('images.replace')}
                 </AppText>
               </Pressable>
             </View>
             <IconButton
               icon={X}
-              accessibilityLabel="Remove photo"
+              accessibilityLabel={t('images.remove')}
               variant="muted"
               size="sm"
               onPress={remove}
@@ -102,7 +102,7 @@ export function ImagePickerField({
         ) : (
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel="Add a photo"
+            accessibilityLabel={t('images.add')}
             onPress={pick}
             disabled={isPicking}
             style={({ pressed }) => [

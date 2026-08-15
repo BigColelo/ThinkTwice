@@ -5,6 +5,7 @@ import { AppText } from '@/components/ui/AppText';
 import { Card } from '@/components/ui/Card';
 import { MoneyValue } from '@/components/ui/MoneyValue';
 import type { MonthlyFinances } from '@/domain';
+import { useT } from '@/i18n';
 import { useTheme } from '@/theme';
 
 /**
@@ -20,18 +21,19 @@ export function MonthlyOverviewCard({
   finances: MonthlyFinances;
 }): React.ReactElement {
   const theme = useTheme();
+  const t = useT();
 
   const availableColor = finances.availableAfterCommitmentsCents >= 0 ? 'positive' : 'danger';
 
   return (
     <Card padding={theme.spacing.md}>
-      <AppText variant="heading">Monthly overview</AppText>
+      <AppText variant="heading">{t('money.overviewTitle')}</AppText>
 
       <View style={{ marginTop: theme.spacing.md, gap: theme.spacing.sm }}>
-        <SummaryRow label="Net income" cents={finances.netIncomeCents} />
-        <SummaryRow label="Recurring commitments" cents={-finances.commitmentsCents} />
+        <SummaryRow label={t('money.netIncome')} cents={finances.netIncomeCents} />
+        <SummaryRow label={t('money.recurringCommitments')} cents={-finances.commitmentsCents} />
         {finances.savingsTargetCents != null ? (
-          <SummaryRow label="Savings goal" cents={-finances.savingsTargetCents} />
+          <SummaryRow label={t('money.savingsGoal')} cents={-finances.savingsTargetCents} />
         ) : null}
       </View>
 
@@ -51,7 +53,7 @@ export function MonthlyOverviewCard({
         style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}
       >
         <AppText variant="bodyStrong" color={availableColor}>
-          Available after commitments
+          {t('money.availableAfterCommitments')}
         </AppText>
         <MoneyValue
           cents={finances.availableAfterCommitmentsCents}
@@ -70,7 +72,7 @@ export function MonthlyOverviewCard({
           }}
         >
           <AppText variant="caption" color="secondary">
-            Available after savings goal
+            {t('money.availableAfterSavings')}
           </AppText>
           <MoneyValue
             cents={finances.availableAfterSavingsGoalCents}
@@ -82,7 +84,7 @@ export function MonthlyOverviewCard({
 
       {finances.commitmentsExceedIncome ? (
         <AppText variant="caption" color="warning" style={{ marginTop: theme.spacing.sm }}>
-          Your recurring commitments are currently larger than your net income.
+          {t('money.commitmentsExceedIncome')}
         </AppText>
       ) : null}
     </Card>

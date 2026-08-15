@@ -32,11 +32,11 @@ import {
   setResaleValue,
   updatePurchaseExpense,
 } from '@/features/purchases/services/purchaseActions';
+import { formatDuration, formatMonthsAsDuration, useT } from '@/i18n';
 import { useTheme } from '@/theme';
 import type { Cents, PurchaseExpense, UsageEvent } from '@/types/domain';
 import { confirm } from '@/utils/confirm';
 import { formatNumber } from '@/utils/currency';
-import { formatMonthsAsDuration } from '@/utils/dates';
 
 /**
  * What an owned item has actually cost, and the one-tap action that keeps that
@@ -48,6 +48,7 @@ import { formatMonthsAsDuration } from '@/utils/dates';
  */
 export default function PurchaseDetailScreen(): React.ReactElement {
   const theme = useTheme();
+  const t = useT();
   const router = useRouter();
   const repositories = useRepositories();
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -78,9 +79,9 @@ export default function PurchaseDetailScreen(): React.ReactElement {
 
   const handleExpenseDelete = async (expense: PurchaseExpense): Promise<void> => {
     const confirmed = await confirm({
-      title: 'Remove this expense?',
-      message: `${expense.name} will no longer count towards the real cost.`,
-      confirmLabel: 'Remove',
+      title: t('purchases.expenses.removeTitle'),
+      message: t('purchases.expenses.removeMessage', { name: expense.name }),
+      confirmLabel: t('purchases.expenses.removeConfirm'),
       destructive: true,
     });
     if (!confirmed) return;
@@ -106,9 +107,9 @@ export default function PurchaseDetailScreen(): React.ReactElement {
   const handleDelete = async (): Promise<void> => {
     if (!data) return;
     const confirmed = await confirm({
-      title: 'Delete this purchase?',
-      message: 'Its uses and expenses are removed too. This cannot be undone.',
-      confirmLabel: 'Delete',
+      title: t('purchases.deleteTitle'),
+      message: t('purchases.deleteMessage'),
+      confirmLabel: t('common.delete'),
       destructive: true,
     });
     if (!confirmed) return;
@@ -117,7 +118,7 @@ export default function PurchaseDetailScreen(): React.ReactElement {
     try {
       await remove(() => deletePurchase(repositories, data.purchase));
     } catch {
-      setActionError('This could not be deleted. Please try again.');
+      setActionError(t('purchases.deleteError'));
     }
   };
 
@@ -138,8 +139,8 @@ export default function PurchaseDetailScreen(): React.ReactElement {
         <ScreenHeader onBack={goBack} />
         <Screen>
           <ErrorState
-            title="Purchase not found"
-            description="This purchase may have been deleted."
+            title={t('purchases.notFound')}
+            description={t('purchases.notFoundDescription')}
             onRetry={refetch}
           />
         </Screen>
@@ -159,13 +160,20 @@ export default function PurchaseDetailScreen(): React.ReactElement {
         // arrangement as a wishlist item.
         action={{
           icon: Pencil,
-          accessibilityLabel: 'Edit purchase',
+          accessibilityLabel: t('purchases.editLabel'),
           onPress: () => router.push(`/purchase/edit/${purchase.id}`),
         }}
       />
 
       <Screen scroll>
-        <PurchaseIdentity purchase={purchase} ownedFor={metrics.duration?.label ?? null} />
+        <PurchaseIdentity
+          purchase={purchase}
+          ownedFor={
+            metrics.duration
+              ? formatDuration(t, metrics.duration.months, metrics.duration.days)
+              : null
+          }
+        />
 
         <View style={{ height: theme.spacing.lg }} />
 
@@ -177,14 +185,19 @@ export default function PurchaseDetailScreen(): React.ReactElement {
         />
 
         <View style={{ height: theme.spacing.xl }} />
-        <SectionHeader title="Real cost" />
+        <SectionHeader title={t('purchases.realCost.title')} />
         <RealCostBreakdown metrics={metrics} expenses={expenses} />
 
         <View style={{ height: theme.spacing.sm }} />
-        <Button label="Add expense" icon={Plus} variant="secondary" onPress={openNewExpense} />
+        <Button
+          label={t('purchases.addExpense')}
+          icon={Plus}
+          variant="secondary"
+          onPress={openNewExpense}
+        />
 
         <View style={{ height: theme.spacing.xl }} />
-        <SectionHeader title="Current resale value" />
+        <SectionHeader title={t('purchases.resaleTitle')} />
         <ResaleValueEditor
           valueCents={purchase.currentResaleValueCents}
           onSave={handleResaleSave}
@@ -200,8 +213,8 @@ export default function PurchaseDetailScreen(): React.ReactElement {
           <>
             <View style={{ height: theme.spacing.xl }} />
             <SectionHeader
-              title="What you expected"
-              subtitle="Recorded when you added this item, beside what has happened since."
+              title={t('purchases.expectationTitle')}
+              subtitle={t('purchases.expectationSubtitle')}
             />
             <Card padding={theme.spacing.md}>
               <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: theme.spacing.xs }}>
@@ -209,6 +222,7 @@ export default function PurchaseDetailScreen(): React.ReactElement {
                   <Chip
                     icon={Repeat}
                     label={usageFrequencyShortLabel(
+                      t,
                       purchase.expectedUsageFrequency,
                       purchase.customUsesPerMonth,
                     )}
@@ -216,14 +230,16 @@ export default function PurchaseDetailScreen(): React.ReactElement {
                 ) : null}
                 {metrics.usesPerMonth != null ? (
                   <Chip
-                    label={`Actually ${formatNumber(metrics.usesPerMonth, 1)} / month`}
+                    label={t('purchases.actualRate', {
+                      rate: formatNumber(metrics.usesPerMonth, 1),
+                    })}
                     tone="accent"
                   />
                 ) : null}
                 {purchase.expectedOwnershipMonths != null ? (
                   <Chip
                     icon={Calendar}
-                    label={formatMonthsAsDuration(purchase.expectedOwnershipMonths)}
+                    label={formatMonthsAsDuration(t, purchase.expectedOwnershipMonths)}
                   />
                 ) : null}
               </View>
@@ -244,7 +260,7 @@ export default function PurchaseDetailScreen(): React.ReactElement {
 
         <View style={{ height: theme.spacing.xl }} />
         <Button
-          label="Delete this purchase"
+          label={t('purchases.delete')}
           variant="destructive"
           icon={Trash2}
           loading={isDeleting}

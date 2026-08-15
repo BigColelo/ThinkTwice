@@ -9,6 +9,7 @@ import { AppText } from '@/components/ui/AppText';
 import { ErrorState, LoadingState } from '@/components/ui/StateViews';
 import { DatabaseProvider, useDatabaseState, useRetryDatabase } from '@/db/DatabaseProvider';
 import { SettingsProvider, useSettings } from '@/features/settings/SettingsProvider';
+import { I18nProvider, useT } from '@/i18n';
 import {
   configureNotificationHandling,
   subscribeToCooldownReminderTaps,
@@ -19,8 +20,13 @@ import { ThemeProvider, useTheme } from '@/theme';
  * Application root.
  *
  * Provider order matters: the database must be open before settings can be
- * read, and settings decide the theme. Everything below the gate can assume
- * storage is ready and preferences are loaded.
+ * read, and settings decide the theme and the language. Everything below the
+ * gate can assume storage is ready and preferences are loaded.
+ *
+ * Theme and language are each provided twice, for the same reason: the gate
+ * above them renders real UI — a spinner, or an explanation of why the database
+ * would not open — before any preference has been read. The outer pair follows
+ * the device, the inner pair follows what the user chose.
  */
 
 // Keeps the native splash up until the first screen is genuinely ready.
@@ -31,15 +37,18 @@ configureNotificationHandling();
 export default function RootLayout(): React.ReactElement {
   return (
     <SafeAreaProvider>
-      {/* Bootstrap theme, so the loading and error gates are already themed. */}
+      {/* Bootstrap theme and language, so the loading and error gates are
+          already themed and already in the device's language. */}
       <ThemeProvider mode="system">
-        <DatabaseProvider>
-          <DatabaseGate>
-            <SettingsProvider>
-              <ThemedApp />
-            </SettingsProvider>
-          </DatabaseGate>
-        </DatabaseProvider>
+        <I18nProvider language="system">
+          <DatabaseProvider>
+            <DatabaseGate>
+              <SettingsProvider>
+                <ThemedApp />
+              </SettingsProvider>
+            </DatabaseGate>
+          </DatabaseProvider>
+        </I18nProvider>
       </ThemeProvider>
     </SafeAreaProvider>
   );
@@ -50,6 +59,7 @@ function DatabaseGate({ children }: { children: React.ReactNode }): React.ReactE
   const state = useDatabaseState();
   const retry = useRetryDatabase();
   const theme = useTheme();
+  const t = useT();
 
   useEffect(() => {
     if (state.status !== 'loading') void SplashScreen.hideAsync().catch(() => undefined);
@@ -58,7 +68,7 @@ function DatabaseGate({ children }: { children: React.ReactNode }): React.ReactE
   if (state.status === 'loading') {
     return (
       <View style={{ flex: 1, backgroundColor: theme.colors.background, justifyContent: 'center' }}>
-        <LoadingState label="Opening your data" />
+        <LoadingState label={t('app.databaseOpening')} />
       </View>
     );
   }
@@ -74,8 +84,8 @@ function DatabaseGate({ children }: { children: React.ReactNode }): React.ReactE
         }}
       >
         <ErrorState
-          title="Your data could not be opened"
-          description="ThinkTwice stores everything on this device. Restarting the app usually resolves this."
+          title={t('app.databaseErrorTitle')}
+          description={t('app.databaseErrorDescription')}
           onRetry={retry}
         />
         <AppText variant="caption" color="tertiary" align="center">
@@ -93,7 +103,12 @@ function ThemedApp(): React.ReactElement {
 
   return (
     <ThemeProvider mode={settings.themeMode}>
-      <AppChrome isSettingsLoading={isLoading} onboardingCompleted={settings.onboardingCompleted} />
+      <I18nProvider language={settings.language}>
+        <AppChrome
+          isSettingsLoading={isLoading}
+          onboardingCompleted={settings.onboardingCompleted}
+        />
+      </I18nProvider>
     </ThemeProvider>
   );
 }
@@ -153,6 +168,7 @@ function AppChrome({
           options={{ presentation: 'modal', animation: 'slide_from_bottom' }}
         />
         <Stack.Screen name="settings/index" />
+        <Stack.Screen name="settings/language" />
       </Stack>
     </View>
   );

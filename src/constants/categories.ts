@@ -23,6 +23,7 @@ import {
   Zap,
 } from 'lucide-react-native';
 
+import type { TranslationKey } from '@/i18n';
 import type { TintName } from '@/theme/palette';
 import type { CategoryId } from '@/types/domain';
 
@@ -30,45 +31,48 @@ import type { CategoryId } from '@/types/domain';
  * Categories are a fixed V1 set: custom categories are an explicit non-goal, and
  * a closed set keeps the colour palette small and the insights chart readable.
  *
- * Ids are stable strings — they are persisted, so renaming a label is safe but
- * changing an id would need a migration.
+ * Ids are stable strings — they are persisted, so retranslating a label is safe
+ * but changing an id would need a migration. The name the user reads is not
+ * stored anywhere: each category carries the key of its own label instead, so
+ * the same stored row reads "Photography" or "Fotografia" depending only on the
+ * chosen language.
  */
 
 export type Category = {
   id: CategoryId;
-  label: string;
+  labelKey: TranslationKey;
   icon: LucideIcon;
   tint: TintName;
 };
 
 /** Categories for things the user buys or wants to buy. */
 export const PURCHASE_CATEGORIES: readonly Category[] = [
-  { id: 'technology', label: 'Technology', icon: Laptop, tint: 'blue' },
-  { id: 'photography', label: 'Photography', icon: Camera, tint: 'orange' },
-  { id: 'clothing', label: 'Clothing', icon: Shirt, tint: 'teal' },
-  { id: 'sport', label: 'Sport', icon: Dumbbell, tint: 'green' },
-  { id: 'home', label: 'Home', icon: Armchair, tint: 'violet' },
-  { id: 'transport', label: 'Transport', icon: Bike, tint: 'slate' },
-  { id: 'health', label: 'Health', icon: HeartPulse, tint: 'red' },
-  { id: 'travel', label: 'Travel', icon: Plane, tint: 'pink' },
-  { id: 'entertainment', label: 'Entertainment', icon: Gamepad2, tint: 'amber' },
-  { id: 'education', label: 'Education', icon: BookOpen, tint: 'blue' },
-  { id: 'other', label: 'Other', icon: Package, tint: 'amber' },
+  { id: 'technology', labelKey: 'categories.technology', icon: Laptop, tint: 'blue' },
+  { id: 'photography', labelKey: 'categories.photography', icon: Camera, tint: 'orange' },
+  { id: 'clothing', labelKey: 'categories.clothing', icon: Shirt, tint: 'teal' },
+  { id: 'sport', labelKey: 'categories.sport', icon: Dumbbell, tint: 'green' },
+  { id: 'home', labelKey: 'categories.home', icon: Armchair, tint: 'violet' },
+  { id: 'transport', labelKey: 'categories.transport', icon: Bike, tint: 'slate' },
+  { id: 'health', labelKey: 'categories.health', icon: HeartPulse, tint: 'red' },
+  { id: 'travel', labelKey: 'categories.travel', icon: Plane, tint: 'pink' },
+  { id: 'entertainment', labelKey: 'categories.entertainment', icon: Gamepad2, tint: 'amber' },
+  { id: 'education', labelKey: 'categories.education', icon: BookOpen, tint: 'blue' },
+  { id: 'other', labelKey: 'categories.other', icon: Package, tint: 'amber' },
 ];
 
 /** Categories for predictable monthly commitments. */
 export const COMMITMENT_CATEGORIES: readonly Category[] = [
-  { id: 'housing', label: 'Housing', icon: House, tint: 'violet' },
-  { id: 'utilities', label: 'Utilities', icon: Zap, tint: 'amber' },
-  { id: 'subscriptions', label: 'Subscriptions', icon: Tv, tint: 'red' },
-  { id: 'phone_internet', label: 'Phone & internet', icon: Wifi, tint: 'blue' },
-  { id: 'transport', label: 'Transport', icon: Car, tint: 'slate' },
-  { id: 'insurance', label: 'Insurance', icon: ShieldCheck, tint: 'teal' },
-  { id: 'health_fitness', label: 'Health & fitness', icon: Dumbbell, tint: 'green' },
-  { id: 'food', label: 'Food', icon: Utensils, tint: 'orange' },
-  { id: 'education', label: 'Education', icon: GraduationCap, tint: 'pink' },
-  { id: 'phone', label: 'Phone', icon: Smartphone, tint: 'blue' },
-  { id: 'other', label: 'Other', icon: CreditCard, tint: 'amber' },
+  { id: 'housing', labelKey: 'categories.housing', icon: House, tint: 'violet' },
+  { id: 'utilities', labelKey: 'categories.utilities', icon: Zap, tint: 'amber' },
+  { id: 'subscriptions', labelKey: 'categories.subscriptions', icon: Tv, tint: 'red' },
+  { id: 'phone_internet', labelKey: 'categories.phone_internet', icon: Wifi, tint: 'blue' },
+  { id: 'transport', labelKey: 'categories.transport', icon: Car, tint: 'slate' },
+  { id: 'insurance', labelKey: 'categories.insurance', icon: ShieldCheck, tint: 'teal' },
+  { id: 'health_fitness', labelKey: 'categories.health_fitness', icon: Dumbbell, tint: 'green' },
+  { id: 'food', labelKey: 'categories.food', icon: Utensils, tint: 'orange' },
+  { id: 'education', labelKey: 'categories.education', icon: GraduationCap, tint: 'pink' },
+  { id: 'phone', labelKey: 'categories.phone', icon: Smartphone, tint: 'blue' },
+  { id: 'other', labelKey: 'categories.other', icon: CreditCard, tint: 'amber' },
 ];
 
 export const DEFAULT_PURCHASE_CATEGORY_ID: CategoryId = 'other';
@@ -76,7 +80,7 @@ export const DEFAULT_COMMITMENT_CATEGORY_ID: CategoryId = 'other';
 
 const FALLBACK_CATEGORY: Category = {
   id: 'other',
-  label: 'Other',
+  labelKey: 'categories.other',
   icon: Package,
   tint: 'slate',
 };

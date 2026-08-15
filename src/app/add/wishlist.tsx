@@ -11,6 +11,7 @@ import {
   createWishlistItem,
   type CreateWishlistItemInput,
 } from '@/features/wishlist/services/wishlistActions';
+import { useT } from '@/i18n';
 
 /**
  * "Something I want to buy." The fields live in `WishlistItemForm`, which the
@@ -18,6 +19,7 @@ import {
  */
 export default function AddWishlistItemScreen(): React.ReactElement {
   const router = useRouter();
+  const t = useT();
   const goBack = useGoBack('/');
   const repositories = useRepositories();
   const { settings } = useSettings();
@@ -36,8 +38,12 @@ export default function AddWishlistItemScreen(): React.ReactElement {
 
   return (
     <>
-      <ScreenHeader title="Something I want to buy" onBack={goBack} />
-      <WishlistItemForm finances={finances} submitLabel="Start thinking" onSubmit={handleSubmit} />
+      <ScreenHeader title={t('add.wantToBuy')} onBack={goBack} />
+      <WishlistItemForm
+        finances={finances}
+        submitLabel={t('add.startThinking')}
+        onSubmit={handleSubmit}
+      />
     </>
   );
 }

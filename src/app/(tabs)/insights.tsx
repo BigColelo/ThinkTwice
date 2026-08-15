@@ -19,8 +19,8 @@ import { getPurchaseCategory } from '@/constants/categories';
 import { INSIGHTS_RANGES, type InsightsRange, type ValueHighlight } from '@/domain';
 import { AvoidedPurchasesCard } from '@/features/insights/components/AvoidedPurchasesCard';
 import { useInsights } from '@/features/insights/hooks/useInsights';
+import { useT } from '@/i18n';
 import { useTheme } from '@/theme';
-import { pluralize } from '@/utils/dates';
 
 /**
  * Deterministic summaries of what the user has recorded.
@@ -30,6 +30,7 @@ import { pluralize } from '@/utils/dates';
  */
 export default function InsightsScreen(): React.ReactElement {
   const theme = useTheme();
+  const t = useT();
   const router = useRouter();
   const [range, setRange] = useState<InsightsRange>('this_year');
 
@@ -37,12 +38,15 @@ export default function InsightsScreen(): React.ReactElement {
 
   return (
     <>
-      <ScreenHeader title="Insights" />
+      <ScreenHeader title={t('insights.title')} />
 
       <Screen scroll edgeBottom={false}>
         <SegmentedControl
-          accessibilityLabel="Time range"
-          options={INSIGHTS_RANGES.map((option) => ({ value: option.id, label: option.label }))}
+          accessibilityLabel={t('insights.rangeLabel')}
+          options={INSIGHTS_RANGES.map((option) => ({
+            value: option,
+            label: t(`insights.range.${option}`),
+          }))}
           value={range}
           onChange={setRange}
           size="sm"
@@ -51,15 +55,18 @@ export default function InsightsScreen(): React.ReactElement {
         <View style={{ height: theme.spacing.lg }} />
 
         {error ? (
-          <ErrorState description="Your insights could not be calculated." onRetry={refetch} />
+          <ErrorState description={t('insights.error')} onRetry={refetch} />
         ) : isLoading || !summary ? (
           <LoadingState />
         ) : summary.isEmpty ? (
           <EmptyState
             icon={ChartPie}
-            title="No insights yet"
-            description="Once you track a few purchases and record some uses, your totals and cost per use appear here."
-            action={{ label: 'Add a purchase', onPress: () => router.push('/add/purchase') }}
+            title={t('insights.emptyTitle')}
+            description={t('insights.emptyDescription')}
+            action={{
+              label: t('insights.emptyAction'),
+              onPress: () => router.push('/add/purchase'),
+            }}
           />
         ) : (
           <>
@@ -69,7 +76,7 @@ export default function InsightsScreen(): React.ReactElement {
               <>
                 <View style={{ flexDirection: 'row', gap: theme.spacing.sm }}>
                   <StatCard
-                    label="Tracked purchases"
+                    label={t('insights.trackedPurchases')}
                     value={
                       <MoneyValue
                         cents={summary.totalTrackedPurchaseValueCents}
@@ -78,15 +85,15 @@ export default function InsightsScreen(): React.ReactElement {
                         numberOfLines={1}
                       />
                     }
-                    caption={pluralize(summary.purchaseCount, 'item')}
+                    caption={t('units.item', { count: summary.purchaseCount })}
                     style={{ flex: 1 }}
                   />
                   <StatCard
-                    label="Average cost/use"
+                    label={t('insights.averageCostPerUse')}
                     value={
                       summary.averageCostPerUseCents == null ? (
                         <AppText variant="metric" color="tertiary">
-                          —
+                          {t('common.noValue')}
                         </AppText>
                       ) : (
                         <MoneyValue
@@ -100,8 +107,8 @@ export default function InsightsScreen(): React.ReactElement {
                     }
                     caption={
                       summary.itemsWithUsage > 0
-                        ? `From ${pluralize(summary.itemsWithUsage, 'item')} with uses`
-                        : 'No uses recorded yet'
+                        ? t('insights.fromItemsWithUses', { count: summary.itemsWithUsage })
+                        : t('insights.noUsesRecordedYet')
                     }
                     style={{ flex: 1 }}
                   />
@@ -113,9 +120,7 @@ export default function InsightsScreen(): React.ReactElement {
                     color="tertiary"
                     style={{ marginTop: theme.spacing.xs }}
                   >
-                    {`${pluralize(summary.itemsWithoutUsage, 'item')} without recorded uses ${
-                      summary.itemsWithoutUsage === 1 ? 'is' : 'are'
-                    } excluded from the average.`}
+                    {t('insights.excludedFromAverage', { count: summary.itemsWithoutUsage })}
                   </AppText>
                 ) : null}
               </>
@@ -124,17 +129,17 @@ export default function InsightsScreen(): React.ReactElement {
             {summary.bestValue ? (
               <>
                 <View style={{ height: theme.spacing.xl }} />
-                <SectionHeader title="Cost per use" />
+                <SectionHeader title={t('insights.costPerUseTitle')} />
                 <View style={{ gap: theme.spacing.sm }}>
                   <HighlightCard
-                    label="Lowest cost per use"
+                    label={t('insights.lowestCostPerUse')}
                     highlight={summary.bestValue}
                     tone="positive"
                     onPress={() => router.push(`/purchase/${summary.bestValue?.purchaseId}`)}
                   />
                   {summary.highestCostPerUse ? (
                     <HighlightCard
-                      label="Highest cost per use"
+                      label={t('insights.highestCostPerUse')}
                       highlight={summary.highestCostPerUse}
                       tone="warning"
                       onPress={() =>
@@ -149,7 +154,7 @@ export default function InsightsScreen(): React.ReactElement {
             {summary.spendingByCategory.length > 0 ? (
               <>
                 <View style={{ height: theme.spacing.xl }} />
-                <SectionHeader title="By category" />
+                <SectionHeader title={t('insights.byCategory')} />
                 <Card padding={theme.spacing.md}>
                   <CategoryBarChart items={summary.spendingByCategory} />
                 </Card>
@@ -159,7 +164,7 @@ export default function InsightsScreen(): React.ReactElement {
             {summary.avoidedPurchaseCount > 0 ? (
               <>
                 <View style={{ height: theme.spacing.xl }} />
-                <SectionHeader title="Decided against" />
+                <SectionHeader title={t('insights.decidedAgainst')} />
                 <AvoidedPurchasesCard
                   count={summary.avoidedPurchaseCount}
                   totalCents={summary.avoidedPurchaseValueCents}
@@ -168,7 +173,7 @@ export default function InsightsScreen(): React.ReactElement {
             ) : null}
 
             <View style={{ height: theme.spacing.xl }} />
-            <SectionHeader title="Recurring commitments" />
+            <SectionHeader title={t('insights.commitmentsTitle')} />
             <Card padding={theme.spacing.md}>
               <View
                 style={{
@@ -178,7 +183,7 @@ export default function InsightsScreen(): React.ReactElement {
                 }}
               >
                 <AppText variant="body" color="secondary">
-                  Per month
+                  {t('insights.perMonth')}
                 </AppText>
                 <MoneyValue cents={summary.monthlyCommitmentsCents} variant="bodyStrong" />
               </View>
@@ -191,7 +196,7 @@ export default function InsightsScreen(): React.ReactElement {
                 }}
               >
                 <AppText variant="body" color="secondary">
-                  Per year
+                  {t('insights.perYear')}
                 </AppText>
                 <MoneyValue cents={summary.annualCommitmentsCents} variant="bodyStrong" />
               </View>
@@ -219,6 +224,7 @@ function HighlightCard({
   onPress: () => void;
 }): React.ReactElement {
   const theme = useTheme();
+  const t = useT();
   const category = getPurchaseCategory(highlight.categoryId);
   const accent = tone === 'positive' ? theme.colors.positive : theme.colors.warning;
   const Icon = tone === 'positive' ? TrendingDown : TrendingUp;
@@ -227,8 +233,8 @@ function HighlightCard({
     <PressableCard
       onPress={onPress}
       padding={theme.spacing.sm}
-      accessibilityLabel={`${label}: ${highlight.name}`}
-      accessibilityHint="Opens this purchase"
+      accessibilityLabel={t('insights.highlightLabel', { label, name: highlight.name })}
+      accessibilityHint={t('purchases.openHint')}
     >
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing.sm }}>
         <Thumbnail
@@ -248,14 +254,14 @@ function HighlightCard({
             {highlight.name}
           </AppText>
           <AppText variant="caption" color="secondary">
-            {pluralize(highlight.totalUses, 'use')}
+            {t('units.use', { count: highlight.totalUses })}
           </AppText>
         </View>
         <MoneyValue
           cents={highlight.costPerUseCents}
           variant="bodyStrong"
           decimals="always"
-          suffix=" / use"
+          suffix={` ${t('units.perUse')}`}
         />
       </View>
     </PressableCard>

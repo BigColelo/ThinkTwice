@@ -92,7 +92,9 @@ export function MetricCell({
       <AppText
         variant="caption"
         color="secondary"
-        align={align === 'center' ? 'center' : 'left'}
+        // `auto` rather than `left`, so the label follows the writing
+        // direction instead of pinning itself to the left in Arabic.
+        align={align === 'center' ? 'center' : 'auto'}
         style={{ marginTop: theme.spacing.xxs }}
       >
         {label}

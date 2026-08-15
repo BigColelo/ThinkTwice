@@ -5,6 +5,7 @@ import { AppText } from '@/components/ui/AppText';
 import { Chip } from '@/components/ui/Chip';
 import { ItemImage } from '@/components/ui/ItemImage';
 import { getPurchaseCategory } from '@/constants/categories';
+import { useT } from '@/i18n';
 import { useTheme } from '@/theme';
 import type { Purchase } from '@/types/domain';
 import { formatDate } from '@/utils/dates';
@@ -25,6 +26,7 @@ export const PurchaseIdentity = React.memo(function PurchaseIdentity({
   ownedFor: string | null;
 }): React.ReactElement {
   const theme = useTheme();
+  const t = useT();
   const category = getPurchaseCategory(purchase.categoryId);
 
   return (
@@ -43,11 +45,11 @@ export const PurchaseIdentity = React.memo(function PurchaseIdentity({
             justifyContent: 'center',
           }}
         >
-          <Chip label={category.label} icon={category.icon} tint={category.tint} />
-          {ownedFor ? <Chip label={`Owned for ${ownedFor}`} /> : null}
+          <Chip label={t(category.labelKey)} icon={category.icon} tint={category.tint} />
+          {ownedFor ? <Chip label={t('purchases.ownedFor', { duration: ownedFor })} /> : null}
         </View>
         <AppText variant="caption" color="tertiary">
-          {`Bought ${formatDate(purchase.purchaseDate)}`}
+          {t('purchases.boughtOn', { date: formatDate(purchase.purchaseDate) })}
         </AppText>
       </View>
     </>

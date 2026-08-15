@@ -4,10 +4,11 @@ import { View } from 'react-native';
 import { Card } from '@/components/ui/Card';
 import { ListRow } from '@/components/ui/ListRow';
 import { SectionHeader } from '@/components/ui/SectionHeader';
+import { useT } from '@/i18n';
 import { useTheme } from '@/theme';
 import type { UsageEvent } from '@/types/domain';
 import { confirm } from '@/utils/confirm';
-import { formatDateTime, pluralize } from '@/utils/dates';
+import { formatDateTime } from '@/utils/dates';
 
 /**
  * The last few recorded uses, each removable.
@@ -29,14 +30,15 @@ export const RecentUsesSection = React.memo(function RecentUsesSection({
   onRemove: (use: UsageEvent) => Promise<void>;
 }): React.ReactElement | null {
   const theme = useTheme();
+  const t = useT();
 
   if (uses.length === 0) return null;
 
   const remove = async (use: UsageEvent): Promise<void> => {
     const confirmed = await confirm({
-      title: 'Remove this use?',
-      message: 'The cost per use is worked out again without it.',
-      confirmLabel: 'Remove',
+      title: t('purchases.recentUses.removeTitle'),
+      message: t('purchases.recentUses.removeMessage'),
+      confirmLabel: t('purchases.recentUses.removeConfirm'),
       destructive: true,
     });
     if (confirmed) await onRemove(use);
@@ -45,11 +47,11 @@ export const RecentUsesSection = React.memo(function RecentUsesSection({
   return (
     <>
       <SectionHeader
-        title="Recent uses"
+        title={t('purchases.recentUses.title')}
         subtitle={
           uses.length === limit
-            ? `The last ${limit}. Tap one to remove it.`
-            : 'Tap one to remove it.'
+            ? t('purchases.recentUses.subtitleLimited', { limit })
+            : t('purchases.recentUses.subtitle')
         }
       />
       <Card padding={theme.spacing.md}>
@@ -66,9 +68,9 @@ export const RecentUsesSection = React.memo(function RecentUsesSection({
             ) : null}
             <ListRow
               title={formatDateTime(use.occurredAt)}
-              subtitle={use.count > 1 ? pluralize(use.count, 'use') : undefined}
+              subtitle={use.count > 1 ? t('units.use', { count: use.count }) : undefined}
               onPress={() => void remove(use)}
-              accessibilityHint="Removes this recorded use"
+              accessibilityHint={t('purchases.recentUses.rowHint')}
             />
           </View>
         ))}

@@ -14,6 +14,7 @@ import { getPurchaseCategory } from '@/constants/categories';
 import { useGoBack } from '@/features/navigation/useGoBack';
 import { useRecentPurchases } from '@/features/purchases/hooks/usePurchases';
 import { useWishlistPreview } from '@/features/wishlist/hooks/useWishlist';
+import { useT } from '@/i18n';
 import { useTheme } from '@/theme';
 
 /**
@@ -23,6 +24,7 @@ import { useTheme } from '@/theme';
  */
 export default function AddItemScreen(): React.ReactElement {
   const theme = useTheme();
+  const t = useT();
   const router = useRouter();
   const goBack = useGoBack('/');
 
@@ -37,7 +39,7 @@ export default function AddItemScreen(): React.ReactElement {
       categoryId: item.categoryId,
       imageUri: item.imageUri,
       href: `/wishlist/${item.id}` as const,
-      caption: 'Thinking about',
+      caption: t('add.thinkingCaption'),
     })),
     ...(purchases.data ?? []).map((purchase) => ({
       key: `p-${purchase.id}`,
@@ -46,31 +48,34 @@ export default function AddItemScreen(): React.ReactElement {
       categoryId: purchase.categoryId,
       imageUri: purchase.imageUri,
       href: `/purchase/${purchase.id}` as const,
-      caption: 'Owned',
+      caption: t('add.ownedCaption'),
     })),
   ].slice(0, 4);
 
   return (
     <>
-      <ScreenHeader title="Add item" textAction={{ label: 'Close', onPress: goBack }} />
+      <ScreenHeader
+        title={t('add.screenTitle')}
+        textAction={{ label: t('common.close'), onPress: goBack }}
+      />
 
       <Screen scroll>
         <AppText variant="title" style={{ marginBottom: theme.spacing.md }}>
-          What are you adding?
+          {t('add.question')}
         </AppText>
 
         <View style={{ gap: theme.spacing.sm }}>
           <ChoiceCard
             icon={Heart}
-            title="Something I want to buy"
-            description="Add it to your wishlist and think twice before deciding."
+            title={t('add.wantToBuy')}
+            description={t('add.wantToBuyDescription')}
             highlighted
             onPress={() => router.push('/add/wishlist')}
           />
           <ChoiceCard
             icon={Package}
-            title="Something I already own"
-            description="Track usage and see the real cost of ownership."
+            title={t('add.alreadyOwn')}
+            description={t('add.alreadyOwnDescription')}
             onPress={() => router.push('/add/purchase')}
           />
         </View>
@@ -78,7 +83,7 @@ export default function AddItemScreen(): React.ReactElement {
         {recent.length > 0 ? (
           <>
             <View style={{ height: theme.spacing.xl }} />
-            <SectionHeader title="Recent" />
+            <SectionHeader title={t('add.recent')} />
             <View style={{ gap: theme.spacing.xs }}>
               {recent.map((entry) => {
                 const category = getPurchaseCategory(entry.categoryId);
@@ -87,7 +92,10 @@ export default function AddItemScreen(): React.ReactElement {
                     key={entry.key}
                     padding={theme.spacing.sm}
                     onPress={() => router.push(entry.href)}
-                    accessibilityLabel={`${entry.name}, ${entry.caption}`}
+                    accessibilityLabel={t('add.entryLabel', {
+                      name: entry.name,
+                      caption: entry.caption,
+                    })}
                   >
                     <View
                       style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing.sm }}

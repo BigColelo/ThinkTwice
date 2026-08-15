@@ -55,7 +55,6 @@ export async function seedDevelopmentData(repositories: Repositories): Promise<v
     cooldownDays: 7,
     cooldownStartedAt: cameraCooldown.startedAt,
     cooldownEndsAt: cameraCooldown.endsAt,
-    reasonTags: ['Hobby', 'Long-term use'],
     notes: 'Would replace the phone camera for weekend trips.',
   });
 
@@ -71,7 +70,6 @@ export async function seedDevelopmentData(repositories: Repositories): Promise<v
     cooldownDays: 14,
     cooldownStartedAt: headphonesCooldown.startedAt,
     cooldownEndsAt: headphonesCooldown.endsAt,
-    reasonTags: ['Work'],
     notes: null,
   });
 

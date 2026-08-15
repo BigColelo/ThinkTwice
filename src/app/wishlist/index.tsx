@@ -11,6 +11,7 @@ import { ErrorState, LoadingState } from '@/components/ui/StateViews';
 import { useGoBack } from '@/features/navigation/useGoBack';
 import { WishlistCard } from '@/features/wishlist/components/WishlistCard';
 import { useWishlist } from '@/features/wishlist/hooks/useWishlist';
+import { useT } from '@/i18n';
 import { useTheme } from '@/theme';
 
 /**
@@ -20,6 +21,7 @@ import { useTheme } from '@/theme';
  */
 export default function WishlistScreen(): React.ReactElement {
   const theme = useTheme();
+  const t = useT();
   const router = useRouter();
   const { thinking, readyToDecide, isLoading, error, refetch } = useWishlist();
   const goBack = useGoBack();
@@ -28,27 +30,27 @@ export default function WishlistScreen(): React.ReactElement {
 
   return (
     <>
-      <ScreenHeader title="Thinking about" onBack={goBack} />
+      <ScreenHeader title={t('wishlistList.title')} onBack={goBack} />
 
       <Screen scroll>
         {error ? (
-          <ErrorState description="Your wishlist could not be read." onRetry={refetch} />
+          <ErrorState description={t('wishlistList.error')} onRetry={refetch} />
         ) : isLoading ? (
           <LoadingState />
         ) : isEmpty ? (
           <EmptyState
             icon={Clock}
-            title="Nothing on your mind"
-            description="Add something you are considering. ThinkTwice will hold on to it and remind you when your reflection period is over."
-            action={{ label: 'Add an item', onPress: () => router.push('/add/wishlist') }}
+            title={t('wishlistList.emptyTitle')}
+            description={t('wishlistList.emptyDescription')}
+            action={{ label: t('home.addItem'), onPress: () => router.push('/add/wishlist') }}
           />
         ) : (
           <>
             {readyToDecide.length > 0 ? (
               <>
                 <SectionHeader
-                  title="Ready to decide"
-                  subtitle="Your reflection period is over for these."
+                  title={t('wishlistList.readyTitle')}
+                  subtitle={t('wishlistList.readySubtitle')}
                 />
                 <View style={{ gap: theme.spacing.xs }}>
                   {readyToDecide.map((item) => (
@@ -65,7 +67,7 @@ export default function WishlistScreen(): React.ReactElement {
 
             {thinking.length > 0 ? (
               <>
-                <SectionHeader title="Thinking" />
+                <SectionHeader title={t('wishlistList.thinkingTitle')} />
                 <View style={{ gap: theme.spacing.xs }}>
                   {thinking.map((item) => (
                     <WishlistCard

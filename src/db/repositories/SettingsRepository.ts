@@ -18,6 +18,7 @@ export type SettingsUpdate = Partial<
     AppSettings,
     | 'currencyCode'
     | 'themeMode'
+    | 'language'
     | 'monthlyNetIncomeCents'
     | 'monthlySavingsTargetCents'
     | 'onboardingCompleted'
@@ -28,6 +29,7 @@ export type SettingsUpdate = Partial<
 const COLUMN_BY_FIELD: Record<keyof SettingsUpdate, string> = {
   currencyCode: 'currency_code',
   themeMode: 'theme_mode',
+  language: 'language',
   monthlyNetIncomeCents: 'monthly_net_income_cents',
   monthlySavingsTargetCents: 'monthly_savings_target_cents',
   onboardingCompleted: 'onboarding_completed',
@@ -39,8 +41,9 @@ export class SettingsRepository {
 
   async get(): Promise<AppSettings> {
     const row = await this.db.getFirstAsync<AppSettingsRow>(
-      `SELECT currency_code, theme_mode, monthly_net_income_cents, monthly_savings_target_cents,
-              onboarding_completed, cooldown_reminders_enabled, created_at, updated_at
+      `SELECT currency_code, theme_mode, language, monthly_net_income_cents,
+              monthly_savings_target_cents, onboarding_completed, cooldown_reminders_enabled,
+              created_at, updated_at
          FROM app_settings
         WHERE id = 1`,
     );
@@ -58,6 +61,7 @@ export class SettingsRepository {
     return {
       currencyCode: 'EUR',
       themeMode: 'system',
+      language: 'system',
       monthlyNetIncomeCents: 0,
       monthlySavingsTargetCents: null,
       onboardingCompleted: false,

@@ -6,19 +6,13 @@
  * quicker and more honest than asking for a precise duration.
  */
 
-export type OwnershipPreset = {
-  months: number;
-  label: string;
-};
-
-export const OWNERSHIP_PRESETS: readonly OwnershipPreset[] = [
-  { months: 6, label: '6 months' },
-  { months: 12, label: '1 year' },
-  { months: 24, label: '2 years' },
-  { months: 36, label: '3 years' },
-  { months: 60, label: '5 years' },
-  { months: 120, label: '10 years' },
-];
+/**
+ * Only the figure. Each preset is a whole number of months or years, so its
+ * label is exactly what `formatMonthsAsDuration` already produces — spelling
+ * "6 months" out a second time here would be a second place to translate it,
+ * and one that could disagree with the duration shown everywhere else.
+ */
+export const OWNERSHIP_PRESETS: readonly number[] = [6, 12, 24, 36, 60, 120];
 
 export const DEFAULT_OWNERSHIP_MONTHS = 36;
 

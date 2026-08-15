@@ -25,6 +25,12 @@ export type ListRowProps = {
   trailingSubtitle?: React.ReactNode;
   onPress?: () => void;
   showChevron?: boolean;
+  /**
+   * Marks the row as one option among several, e.g. in the language picker.
+   * Announced as a selected radio rather than as a button, so the state does not
+   * rest on a tick mark alone.
+   */
+  selected?: boolean;
   /** Screen-reader label; defaults to title + subtitle. */
   accessibilityLabel?: string;
   accessibilityHint?: string;
@@ -40,6 +46,7 @@ export function ListRow({
   trailingSubtitle,
   onPress,
   showChevron = false,
+  selected,
   accessibilityLabel,
   accessibilityHint,
   style,
@@ -101,7 +108,8 @@ export function ListRow({
   return (
     <Pressable
       testID={testID}
-      accessibilityRole="button"
+      accessibilityRole={selected === undefined ? 'button' : 'radio'}
+      accessibilityState={selected === undefined ? undefined : { selected }}
       accessibilityLabel={accessibilityLabel ?? [title, subtitle].filter(Boolean).join(', ')}
       accessibilityHint={accessibilityHint}
       onPress={onPress}

@@ -1,3 +1,4 @@
+import { LANGUAGE_PREFERENCES } from '@/i18n/languages';
 import type {
   AppSettings,
   CommitmentFrequency,
@@ -28,6 +29,7 @@ import { SUPPORTED_CURRENCIES } from '@/utils/currency';
 export type AppSettingsRow = {
   currency_code: string;
   theme_mode: string;
+  language: string;
   monthly_net_income_cents: number;
   monthly_savings_target_cents: number | null;
   onboarding_completed: number;
@@ -60,7 +62,6 @@ export type WishlistItemRow = {
   cooldown_started_at: string;
   cooldown_ends_at: string;
   status: string;
-  reason_tags: string;
   notes: string | null;
   decided_at: string | null;
   created_at: string;
@@ -168,23 +169,6 @@ function toNullableNumber(value: number | null | undefined): number | null {
   return Number.isFinite(value) ? value : null;
 }
 
-/** Reason tags are stored as a JSON array; a malformed value degrades to none. */
-export function parseReasonTags(value: string | null | undefined): string[] {
-  if (!value) return [];
-  try {
-    const parsed: unknown = JSON.parse(value);
-    return Array.isArray(parsed)
-      ? parsed.filter((tag): tag is string => typeof tag === 'string')
-      : [];
-  } catch {
-    return [];
-  }
-}
-
-export function serializeReasonTags(tags: readonly string[]): string {
-  return JSON.stringify(tags);
-}
-
 // -- Mappers -----------------------------------------------------------------
 
 export function mapAppSettings(row: AppSettingsRow): AppSettings {
@@ -194,6 +178,9 @@ export function mapAppSettings(row: AppSettingsRow): AppSettings {
     // the user looking at a symbol they have no way to change back.
     currencyCode: oneOf(SUPPORTED_CURRENCIES, row.currency_code, 'EUR'),
     themeMode: oneOf(THEME_MODES, row.theme_mode, 'system'),
+    // A language this build no longer ships falls back to the device's, which is
+    // a language the user can read, rather than to English.
+    language: oneOf(LANGUAGE_PREFERENCES, row.language, 'system'),
     monthlyNetIncomeCents: toInteger(row.monthly_net_income_cents),
     monthlySavingsTargetCents: toNullableInteger(row.monthly_savings_target_cents),
     onboardingCompleted: toBoolean(row.onboarding_completed),
@@ -230,7 +217,6 @@ export function mapWishlistItem(row: WishlistItemRow): WishlistItem {
     cooldownStartedAt: row.cooldown_started_at,
     cooldownEndsAt: row.cooldown_ends_at,
     status: oneOf(STATUSES, row.status, 'thinking'),
-    reasonTags: parseReasonTags(row.reason_tags),
     notes: row.notes,
     decidedAt: row.decided_at,
     createdAt: row.created_at,

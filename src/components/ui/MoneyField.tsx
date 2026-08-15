@@ -3,7 +3,7 @@ import { Platform, type StyleProp, type ViewStyle } from 'react-native';
 
 import { useCurrency } from '@/features/settings/SettingsProvider';
 import type { Cents } from '@/types/domain';
-import { centsToInputString, currencySymbol, parseMoneyInput } from '@/utils/currency';
+import { centsToInputString, currencyAdornment, parseMoneyInput } from '@/utils/currency';
 
 import { TextField } from './TextField';
 
@@ -41,6 +41,7 @@ export function MoneyField({
   testID,
 }: MoneyFieldProps): React.ReactElement {
   const currency = useCurrency();
+  const adornment = currencyAdornment(currency);
   const [text, setText] = useState(() => centsToInputString(valueCents));
   const [isEditing, setIsEditing] = useState(false);
   const [lastSyncedCents, setLastSyncedCents] = useState(valueCents);
@@ -61,7 +62,8 @@ export function MoneyField({
       required={required}
       hint={hint}
       error={error}
-      prefix={currencySymbol(currency)}
+      prefix={adornment.position === 'prefix' ? adornment.symbol : undefined}
+      suffix={adornment.position === 'suffix' ? adornment.symbol : undefined}
       value={text}
       placeholder={placeholder}
       autoFocus={autoFocus}

@@ -4,7 +4,7 @@ import type { IsoTimestamp, WishlistItem, WishlistStatus } from '@/types/domain'
 import { nowIso } from '@/utils/dates';
 import { createId } from '@/utils/ids';
 
-import { mapWishlistItem, serializeReasonTags, type WishlistItemRow } from '../mappers';
+import { mapWishlistItem, type WishlistItemRow } from '../mappers';
 
 export type NewWishlistItem = Pick<
   WishlistItem,
@@ -18,15 +18,17 @@ export type NewWishlistItem = Pick<
   | 'cooldownDays'
   | 'cooldownStartedAt'
   | 'cooldownEndsAt'
-  | 'reasonTags'
   | 'notes'
 >;
 
 export type WishlistItemUpdate = Partial<NewWishlistItem & { status: WishlistStatus }>;
 
+// `reason_tags` is not selected: the tags were removed from the app, and the
+// column stays only because migrations are append-only. New rows take its
+// default.
 const SELECT = `SELECT id, name, price_cents, category_id, image_uri, expected_usage_frequency,
                        custom_uses_per_month, expected_ownership_months, cooldown_days,
-                       cooldown_started_at, cooldown_ends_at, status, reason_tags, notes,
+                       cooldown_started_at, cooldown_ends_at, status, notes,
                        decided_at, created_at, updated_at
                   FROM wishlist_items`;
 
@@ -87,9 +89,9 @@ export class WishlistRepository {
       `INSERT INTO wishlist_items
          (id, name, price_cents, category_id, image_uri, expected_usage_frequency,
           custom_uses_per_month, expected_ownership_months, cooldown_days,
-          cooldown_started_at, cooldown_ends_at, status, reason_tags, notes,
+          cooldown_started_at, cooldown_ends_at, status, notes,
           decided_at, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'thinking', ?, ?, NULL, ?, ?)`,
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'thinking', ?, NULL, ?, ?)`,
       id,
       input.name.trim(),
       Math.round(input.priceCents),
@@ -101,7 +103,6 @@ export class WishlistRepository {
       Math.round(input.cooldownDays),
       input.cooldownStartedAt,
       input.cooldownEndsAt,
-      serializeReasonTags(input.reasonTags),
       input.notes,
       now,
       now,
@@ -135,7 +136,6 @@ export class WishlistRepository {
     if (update.cooldownStartedAt !== undefined)
       set('cooldown_started_at', update.cooldownStartedAt);
     if (update.cooldownEndsAt !== undefined) set('cooldown_ends_at', update.cooldownEndsAt);
-    if (update.reasonTags !== undefined) set('reason_tags', serializeReasonTags(update.reasonTags));
     if (update.notes !== undefined) set('notes', update.notes);
     if (update.status !== undefined) set('status', update.status);
 

@@ -7,13 +7,15 @@ import {
   SettingsContext,
   type SettingsContextValue,
 } from '@/features/settings/SettingsProvider';
+import { I18nProvider } from '@/i18n';
 import { ThemeProvider } from '@/theme';
-import type { AppSettings, ThemeMode } from '@/types/domain';
+import type { AppSettings, LanguageCode, ThemeMode } from '@/types/domain';
 
 /**
- * Renders a component inside the providers it needs — theme and settings — but
- * without a database. Components below this level read money formatting and
- * theme from context, so supplying those two is enough to exercise them.
+ * Renders a component inside the providers it needs — theme, settings and
+ * language — but without a database. Components below this level read money
+ * formatting, theme and copy from context, so supplying those three is enough
+ * to exercise them.
  */
 
 const SAFE_AREA_METRICS: Metrics = {
@@ -24,12 +26,24 @@ const SAFE_AREA_METRICS: Metrics = {
 export type RenderWithProvidersOptions = {
   settings?: Partial<AppSettings>;
   themeMode?: ThemeMode;
+  /**
+   * Defaults to English, and deliberately not to the stored preference: a
+   * component test asserts on copy, and pinning the language keeps it asserting
+   * on the same copy on every machine. Pass another one to exercise a
+   * translation or a right-to-left layout.
+   */
+  language?: LanguageCode;
   updateSettings?: SettingsContextValue['updateSettings'];
 };
 
 export function renderWithProviders(
   ui: React.ReactElement,
-  { settings, themeMode = 'light', updateSettings }: RenderWithProvidersOptions = {},
+  {
+    settings,
+    themeMode = 'light',
+    language = 'en',
+    updateSettings,
+  }: RenderWithProvidersOptions = {},
 ): Promise<RenderResult> {
   const value: SettingsContextValue = {
     settings: { ...FALLBACK_SETTINGS, onboardingCompleted: true, ...settings },
@@ -42,7 +56,9 @@ export function renderWithProviders(
     return (
       <SafeAreaProvider initialMetrics={SAFE_AREA_METRICS}>
         <SettingsContext.Provider value={value}>
-          <ThemeProvider mode={themeMode}>{children}</ThemeProvider>
+          <ThemeProvider mode={themeMode}>
+            <I18nProvider language={language}>{children}</I18nProvider>
+          </ThemeProvider>
         </SettingsContext.Provider>
       </SafeAreaProvider>
     );

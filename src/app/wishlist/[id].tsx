@@ -38,10 +38,10 @@ import {
   dismissWishlistItem,
   type ConvertToPurchaseOptions,
 } from '@/features/wishlist/services/wishlistActions';
+import { formatMonthsAsDuration, useT } from '@/i18n';
 import { useTheme } from '@/theme';
 import { confirm } from '@/utils/confirm';
 import { formatNumber } from '@/utils/currency';
-import { formatMonthsAsDuration } from '@/utils/dates';
 
 /**
  * The reflection screen — the heart of ThinkTwice.
@@ -52,6 +52,7 @@ import { formatMonthsAsDuration } from '@/utils/dates';
  */
 export default function WishlistDetailScreen(): React.ReactElement {
   const theme = useTheme();
+  const t = useT();
   const router = useRouter();
   const repositories = useRepositories();
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -98,9 +99,9 @@ export default function WishlistDetailScreen(): React.ReactElement {
   const handleDismissed = async (): Promise<void> => {
     if (!item) return;
     const confirmed = await confirm({
-      title: 'Remove from what you are considering?',
-      message: 'The item stays in your history, and the reminder is cancelled.',
-      confirmLabel: "I don't want it",
+      title: t('wishlist.dismissTitle'),
+      message: t('wishlist.dismissMessage'),
+      confirmLabel: t('wishlist.dismissConfirm'),
     });
     if (!confirmed) return;
 
@@ -110,7 +111,7 @@ export default function WishlistDetailScreen(): React.ReactElement {
       await dismissWishlistItem(repositories, item.id);
       goBack();
     } catch {
-      setActionError('This could not be saved. Please try again.');
+      setActionError(t('wishlist.dismissError'));
       setIsDismissing(false);
     }
   };
@@ -118,14 +119,14 @@ export default function WishlistDetailScreen(): React.ReactElement {
   const handleDelete = async (): Promise<void> => {
     if (!item) return;
     // What is lost depends on where the item is in its life; the copy says which.
-    const confirmed = await confirm(wishlistDeleteConfirmation(item.status));
+    const confirmed = await confirm(wishlistDeleteConfirmation(t, item.status));
     if (!confirmed) return;
 
     setActionError(null);
     try {
       await remove(() => deleteWishlistItem(repositories, item));
     } catch {
-      setActionError('This could not be deleted. Please try again.');
+      setActionError(t('wishlist.deleteError'));
     }
   };
 
@@ -146,8 +147,8 @@ export default function WishlistDetailScreen(): React.ReactElement {
         <ScreenHeader onBack={goBack} />
         <Screen>
           <ErrorState
-            title="Item not found"
-            description="This item may have been deleted."
+            title={t('wishlist.notFound')}
+            description={t('wishlist.notFoundDescription')}
             onRetry={refetch}
           />
         </Screen>
@@ -170,7 +171,7 @@ export default function WishlistDetailScreen(): React.ReactElement {
             ? undefined
             : {
                 icon: Pencil,
-                accessibilityLabel: 'Edit item',
+                accessibilityLabel: t('wishlist.editLabel'),
                 onPress: () => router.push(`/wishlist/edit/${item.id}`),
               }
         }
@@ -182,14 +183,14 @@ export default function WishlistDetailScreen(): React.ReactElement {
           decided ? undefined : (
             <View style={{ flexDirection: 'row', gap: theme.spacing.sm }}>
               <Button
-                label="I don't want it anymore"
+                label={t('wishlist.noLongerWantIt')}
                 variant="secondary"
                 onPress={handleDismissed}
                 loading={isDismissing}
                 style={{ flex: 1 }}
               />
               <Button
-                label="I bought it"
+                label={t('wishlist.iBoughtIt')}
                 onPress={() => setIsConfirmingPurchase(true)}
                 disabled={isDismissing}
                 style={{ flex: 1 }}
@@ -207,13 +208,15 @@ export default function WishlistDetailScreen(): React.ReactElement {
           style={{ marginTop: theme.spacing.xxs }}
         />
         <View style={{ flexDirection: 'row', marginTop: theme.spacing.xs }}>
-          <Chip label={category.label} icon={category.icon} tint={category.tint} />
+          <Chip label={t(category.labelKey)} icon={category.icon} tint={category.tint} />
         </View>
 
         {decided ? (
           <View style={{ marginTop: theme.spacing.md }}>
             <Chip
-              label={item.status === 'purchased' ? 'You bought this' : 'You decided against this'}
+              label={
+                item.status === 'purchased' ? t('wishlist.boughtIt') : t('wishlist.dismissedIt')
+              }
               tone={item.status === 'purchased' ? 'positive' : 'neutral'}
             />
           </View>
@@ -224,19 +227,23 @@ export default function WishlistDetailScreen(): React.ReactElement {
         ) : null}
 
         <View style={{ height: theme.spacing.xl }} />
-        <SectionHeader title="Purchase impact" />
+        <SectionHeader title={t('impact.sectionTitle')} />
         {impact ? <PurchaseImpactCard impact={impact} /> : null}
 
         <View style={{ height: theme.spacing.xl }} />
-        <SectionHeader title="Expected usage" />
+        <SectionHeader title={t('wishlist.expectedUsageTitle')} />
 
         <Card padding={theme.spacing.md}>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: theme.spacing.xs }}>
             <Chip
               icon={Repeat}
-              label={usageFrequencyShortLabel(item.expectedUsageFrequency, item.customUsesPerMonth)}
+              label={usageFrequencyShortLabel(
+                t,
+                item.expectedUsageFrequency,
+                item.customUsesPerMonth,
+              )}
             />
-            <Chip icon={Calendar} label={formatMonthsAsDuration(item.expectedOwnershipMonths)} />
+            <Chip icon={Calendar} label={formatMonthsAsDuration(t, item.expectedOwnershipMonths)} />
           </View>
 
           <View
@@ -249,16 +256,16 @@ export default function WishlistDetailScreen(): React.ReactElement {
 
           <View style={{ flexDirection: 'row', alignItems: 'stretch' }}>
             <MetricCell
-              label="estimated uses"
-              value={estimatedUses == null ? '—' : formatNumber(estimatedUses)}
+              label={t('wishlist.estimatedUses')}
+              value={estimatedUses == null ? t('common.noValue') : formatNumber(estimatedUses)}
             />
             <MetricDivider />
             <MetricCell
-              label="estimated cost / use"
+              label={t('wishlist.estimatedCostPerUse')}
               value={
                 estimatedCostPerUse == null ? (
                   <AppText variant="metricSmall" color="tertiary">
-                    —
+                    {t('common.noValue')}
                   </AppText>
                 ) : (
                   <MoneyValue
@@ -274,22 +281,10 @@ export default function WishlistDetailScreen(): React.ReactElement {
           </View>
         </Card>
 
-        {item.reasonTags.length > 0 ? (
-          <>
-            <View style={{ height: theme.spacing.xl }} />
-            <SectionHeader title="Why you want it" />
-            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: theme.spacing.xs }}>
-              {item.reasonTags.map((tag) => (
-                <Chip key={tag} label={tag} tone="accent" />
-              ))}
-            </View>
-          </>
-        ) : null}
-
         {item.notes ? (
           <>
             <View style={{ height: theme.spacing.xl }} />
-            <SectionHeader title="Notes" />
+            <SectionHeader title={t('wishlist.whyYouWantIt')} />
             <Card padding={theme.spacing.md}>
               <AppText variant="body" color="secondary">
                 {item.notes}
@@ -311,7 +306,7 @@ export default function WishlistDetailScreen(): React.ReactElement {
 
         <View style={{ height: theme.spacing.xl }} />
         <Button
-          label="Delete this item"
+          label={t('wishlist.delete')}
           variant="destructive"
           icon={Trash2}
           loading={isDeleting}

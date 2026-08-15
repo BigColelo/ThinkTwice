@@ -1,3 +1,4 @@
+import type { TFunction } from 'i18next';
 import { z } from 'zod';
 
 import { requiredAmount } from '@/features/forms/requiredAmount';
@@ -7,7 +8,9 @@ import type { CommitmentFrequency } from '@/types/domain';
  * Validation for the recurring-commitment form.
  *
  * TypeScript cannot check what a user types, so every form has a runtime schema
- * here. Messages are written for the person reading them, not for a developer.
+ * here. Messages are written for the person reading them, not for a developer —
+ * which is also why the schema is built from `t` rather than declared once: the
+ * person reading them chose a language.
  */
 
 const FREQUENCIES = [
@@ -21,44 +24,52 @@ const FREQUENCIES = [
 /** One million euro a month is well beyond any real commitment; it catches slips. */
 const MAX_AMOUNT_CENTS = 100_000_000;
 
-const amountCents = z
-  .number({ error: 'Enter an amount.' })
-  .int()
-  .min(0, 'The amount cannot be negative.')
-  .max(MAX_AMOUNT_CENTS, 'That amount looks too large.');
+export function buildCommitmentSchema(t: TFunction) {
+  const amountCents = z
+    .number({ error: t('validation.amountRequired') })
+    .int()
+    .min(0, t('validation.amountNegative'))
+    .max(MAX_AMOUNT_CENTS, t('validation.amountTooLarge'));
 
-export const commitmentSchema = z.object({
-  name: z
-    .string()
-    .trim()
-    .min(1, 'Give this commitment a name.')
-    .max(60, 'Keep the name under 60 characters.'),
-  amountCents: requiredAmount(amountCents),
-  frequency: z.enum(FREQUENCIES),
-  categoryId: z.string().min(1, 'Choose a category.'),
-  /** Paused commitments stay in the list but stop counting towards the month. */
-  isActive: z.boolean(),
-});
+  return z.object({
+    name: z
+      .string()
+      .trim()
+      .min(1, t('validation.money.nameRequired'))
+      .max(60, t('validation.nameTooLong60')),
+    amountCents: requiredAmount(amountCents),
+    frequency: z.enum(FREQUENCIES),
+    categoryId: z.string().min(1, t('validation.categoryRequired')),
+    /** Paused commitments stay in the list but stop counting towards the month. */
+    isActive: z.boolean(),
+  });
+}
+
+export type CommitmentSchema = ReturnType<typeof buildCommitmentSchema>;
 
 /** What a valid form produces — the amount is a number by the time it gets here. */
-export type CommitmentFormValues = z.infer<typeof commitmentSchema>;
+export type CommitmentFormValues = z.infer<CommitmentSchema>;
 
 /** What the form holds while it is being filled in: an empty amount is `null`. */
-export type CommitmentFormInput = z.input<typeof commitmentSchema>;
+export type CommitmentFormInput = z.input<CommitmentSchema>;
 
 /** Validation for the income and savings-target fields on the Money screen. */
-export const monthlyIncomeSchema = z.object({
-  monthlyNetIncomeCents: z
-    .number({ error: 'Enter your monthly net income.' })
-    .int()
-    .min(0, 'Income cannot be negative.')
-    .max(MAX_AMOUNT_CENTS, 'That amount looks too large.'),
-  monthlySavingsTargetCents: z
-    .number()
-    .int()
-    .min(0, 'A savings target cannot be negative.')
-    .max(MAX_AMOUNT_CENTS, 'That amount looks too large.')
-    .nullable(),
-});
+export function buildMonthlyIncomeSchema(t: TFunction) {
+  return z.object({
+    monthlyNetIncomeCents: z
+      .number({ error: t('validation.money.incomeRequired') })
+      .int()
+      .min(0, t('validation.money.incomeNegative'))
+      .max(MAX_AMOUNT_CENTS, t('validation.amountTooLarge')),
+    monthlySavingsTargetCents: z
+      .number()
+      .int()
+      .min(0, t('validation.money.savingsNegative'))
+      .max(MAX_AMOUNT_CENTS, t('validation.amountTooLarge'))
+      .nullable(),
+  });
+}
 
-export type MonthlyIncomeFormValues = z.infer<typeof monthlyIncomeSchema>;
+export type MonthlyIncomeSchema = ReturnType<typeof buildMonthlyIncomeSchema>;
+
+export type MonthlyIncomeFormValues = z.infer<MonthlyIncomeSchema>;

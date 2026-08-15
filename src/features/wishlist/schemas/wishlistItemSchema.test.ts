@@ -1,8 +1,12 @@
 import { OWNERSHIP_PRESETS } from '@/constants/ownership';
 import { USAGE_PRESETS } from '@/constants/usagePresets';
 import { COOLDOWN_DAY_OPTIONS, MAX_COOLDOWN_DAYS, MIN_COOLDOWN_DAYS } from '@/domain';
+import { t } from '@/i18n';
 
-import { wishlistItemSchema } from './wishlistItemSchema';
+import { buildWishlistItemSchema } from './wishlistItemSchema';
+
+// The suite pins the language to English, so one schema serves every case.
+const wishlistItemSchema = buildWishlistItemSchema(t);
 
 /**
  * Validation for the "something I want to buy" form.
@@ -23,7 +27,6 @@ function values(overrides: Record<string, unknown> = {}): Record<string, unknown
     customUsesPerMonth: null,
     expectedOwnershipMonths: 60,
     cooldownDays: 7,
-    reasonTags: [],
     notes: null,
     ...overrides,
   };
@@ -175,9 +178,9 @@ describe('expected ownership', () => {
   });
 
   it('accepts every preset the form offers', () => {
-    for (const preset of OWNERSHIP_PRESETS) {
+    for (const months of OWNERSHIP_PRESETS) {
       expect(
-        wishlistItemSchema.safeParse(values({ expectedOwnershipMonths: preset.months })).success,
+        wishlistItemSchema.safeParse(values({ expectedOwnershipMonths: months })).success,
       ).toBe(true);
     }
   });
@@ -215,10 +218,8 @@ describe('cooldown', () => {
 });
 
 describe('optional fields', () => {
-  it('accepts an item with no image, no notes and no reasons', () => {
-    const result = wishlistItemSchema.safeParse(
-      values({ imageUri: null, notes: null, reasonTags: [] }),
-    );
+  it('accepts an item with no image and no notes', () => {
+    const result = wishlistItemSchema.safeParse(values({ imageUri: null, notes: null }));
 
     expect(result.success).toBe(true);
   });

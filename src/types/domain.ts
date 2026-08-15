@@ -22,6 +22,15 @@ export type IsoDate = string;
 export type ThemeMode = 'system' | 'light' | 'dark';
 
 /**
+ * The languages the app ships. The `Intl` locale each one formats with, its
+ * native name and the device-language resolution live in `src/i18n/languages`.
+ */
+export type LanguageCode = 'en' | 'it' | 'de' | 'fr' | 'es' | 'ar';
+
+/** What the user can pick: one of the languages, or whatever the device uses. */
+export type LanguagePreference = LanguageCode | 'system';
+
+/**
  * V1 ships EUR only, but every formatting path already goes through the
  * currency code so adding another is a data change, not a refactor.
  */
@@ -52,6 +61,12 @@ export type CategoryId = string;
 export type AppSettings = {
   currencyCode: CurrencyCode;
   themeMode: ThemeMode;
+  /**
+   * The interface language, which also decides how money, numbers and dates are
+   * formatted. `system` follows the device, exactly as `themeMode` does. The
+   * codes themselves live in `src/i18n/languages`.
+   */
+  language: LanguagePreference;
   monthlyNetIncomeCents: Cents;
   /** `null` when the user has not set a savings target. Kept separate from commitments. */
   monthlySavingsTargetCents: Cents | null;
@@ -91,7 +106,6 @@ export type WishlistItem = {
 
   status: WishlistStatus;
 
-  reasonTags: string[];
   notes: string | null;
 
   /** Set when the item was converted into a purchase, so history is preserved. */

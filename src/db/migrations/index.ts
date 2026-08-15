@@ -143,7 +143,24 @@ const purchaseLookupIndexes: Migration = {
   },
 };
 
-export const MIGRATIONS: readonly Migration[] = [initial, purchaseLookupIndexes];
+/**
+ * The interface language.
+ *
+ * `system` rather than `en` is the default so an install that predates this
+ * column behaves like a fresh one: the app follows the device instead of
+ * announcing itself in English to someone whose phone is in Italian.
+ */
+const settingsLanguage: Migration = {
+  version: 3,
+  name: 'settings_language',
+  up: async (db) => {
+    await db.execAsync(`
+      ALTER TABLE app_settings ADD COLUMN language TEXT NOT NULL DEFAULT 'system';
+    `);
+  },
+};
+
+export const MIGRATIONS: readonly Migration[] = [initial, purchaseLookupIndexes, settingsLanguage];
 
 export const LATEST_SCHEMA_VERSION = MIGRATIONS.reduce(
   (highest, migration) => Math.max(highest, migration.version),

@@ -1,5 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { Modal, Pressable, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -10,13 +10,14 @@ import { ChipSelect } from '@/components/ui/ChipSelect';
 import { DateField } from '@/components/ui/DateField';
 import { MoneyField } from '@/components/ui/MoneyField';
 import { TextField } from '@/components/ui/TextField';
+import { useT } from '@/i18n';
 import { useTheme } from '@/theme';
 import type { PurchaseExpense } from '@/types/domain';
 import { todayIsoDate } from '@/utils/dates';
 
 import {
-  EXPENSE_TYPE_LABELS,
-  purchaseExpenseSchema,
+  buildPurchaseExpenseSchema,
+  EXPENSE_TYPES,
   type PurchaseExpenseFormInput,
   type PurchaseExpenseFormValues,
 } from '../schemas/purchaseSchema';
@@ -50,18 +51,22 @@ export function ExpenseSheet({
   onDelete?: () => Promise<void>;
 }): React.ReactElement {
   const theme = useTheme();
+  const t = useT();
   const insets = useSafeAreaInsets();
 
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
 
+  // Rebuilt when the language changes: the messages it carries are copy.
+  const schema = useMemo(() => buildPurchaseExpenseSchema(t), [t]);
+
   const { control, handleSubmit, reset } = useForm<
     PurchaseExpenseFormInput,
     unknown,
     PurchaseExpenseFormValues
   >({
-    resolver: zodResolver(purchaseExpenseSchema),
+    resolver: zodResolver(schema),
     mode: 'onTouched',
     defaultValues: {
       name: expense?.name ?? '',
@@ -87,7 +92,7 @@ export function ExpenseSheet({
     try {
       await onSubmit(values);
     } catch {
-      setSaveError('This expense could not be saved. Please try again.');
+      setSaveError(t('purchases.expenses.saveError'));
     } finally {
       setIsSaving(false);
     }
@@ -100,7 +105,7 @@ export function ExpenseSheet({
     try {
       await onDelete();
     } catch {
-      setSaveError('This expense could not be removed. Please try again.');
+      setSaveError(t('purchases.expenses.removeError'));
     } finally {
       setIsDeleting(false);
     }
@@ -117,7 +122,7 @@ export function ExpenseSheet({
       <View style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: theme.colors.scrim }}>
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="Close"
+          accessibilityLabel={t('common.close')}
           onPress={close}
           style={{ flex: 1 }}
         />
@@ -154,10 +159,10 @@ export function ExpenseSheet({
             {/* The heading names the thing, the button names the action — saying
                 "Add expense" twice would leave the button doing no work. */}
             <AppText variant="title" accessibilityRole="header">
-              {expense ? 'Edit expense' : 'New expense'}
+              {expense ? t('purchases.expenses.editTitle') : t('purchases.expenses.newTitle')}
             </AppText>
             <AppText variant="caption" color="secondary">
-              Accessories, maintenance, repairs — anything you spent on this item after buying it.
+              {t('purchases.expenses.sheetDescription')}
             </AppText>
 
             <Controller
@@ -165,9 +170,9 @@ export function ExpenseSheet({
               name="name"
               render={({ field, fieldState }) => (
                 <TextField
-                  label="What was it?"
+                  label={t('purchases.expenses.nameLabel')}
                   required
-                  placeholder="Extra battery, service, case…"
+                  placeholder={t('purchases.expenses.namePlaceholder')}
                   value={field.value}
                   onChangeText={field.onChange}
                   onBlur={field.onBlur}
@@ -182,7 +187,7 @@ export function ExpenseSheet({
               name="amountCents"
               render={({ field, fieldState }) => (
                 <MoneyField
-                  label="Amount"
+                  label={t('purchases.expenses.amountLabel')}
                   required
                   valueCents={field.value}
                   onChangeCents={field.onChange}
@@ -196,10 +201,10 @@ export function ExpenseSheet({
               name="expenseType"
               render={({ field, fieldState }) => (
                 <ChipSelect
-                  label="Type"
-                  options={Object.entries(EXPENSE_TYPE_LABELS).map(([value, label]) => ({
+                  label={t('purchases.expenses.typeLabel')}
+                  options={EXPENSE_TYPES.map((value) => ({
                     value,
-                    label,
+                    label: t(`purchases.expenses.type.${value}`),
                   }))}
                   value={field.value}
                   onChange={(value) => field.onChange(value)}
@@ -213,7 +218,7 @@ export function ExpenseSheet({
               name="date"
               render={({ field, fieldState }) => (
                 <DateField
-                  label="Date"
+                  label={t('purchases.expenses.dateLabel')}
                   value={field.value}
                   onChange={field.onChange}
                   error={fieldState.error?.message}
@@ -229,14 +234,14 @@ export function ExpenseSheet({
 
             <View style={{ flexDirection: 'row', gap: theme.spacing.sm }}>
               <Button
-                label="Cancel"
+                label={t('common.cancel')}
                 variant="secondary"
                 onPress={close}
                 style={{ flex: 1 }}
                 disabled={isBusy}
               />
               <Button
-                label={expense ? 'Save changes' : 'Add expense'}
+                label={expense ? t('purchases.expenses.saveChanges') : t('purchases.expenses.add')}
                 onPress={submit}
                 loading={isSaving}
                 disabled={isBusy}
@@ -246,7 +251,7 @@ export function ExpenseSheet({
 
             {onDelete ? (
               <Button
-                label="Remove expense"
+                label={t('purchases.expenses.remove')}
                 variant="destructive"
                 size="md"
                 onPress={remove}

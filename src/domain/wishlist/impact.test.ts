@@ -1,6 +1,6 @@
 import type { MonthlyFinances } from '@/domain/money/calculations';
 
-import { calculatePurchaseImpact, classifyImpact, impactLevelLabel } from './impact';
+import { calculatePurchaseImpact, classifyImpact } from './impact';
 
 function finances(overrides: Partial<MonthlyFinances> = {}): MonthlyFinances {
   return {
@@ -98,18 +98,5 @@ describe('classifyImpact', () => {
     expect(classifyImpact(null)).toBe('unknown');
     expect(classifyImpact(Number.NaN)).toBe('unknown');
     expect(classifyImpact(Number.POSITIVE_INFINITY)).toBe('unknown');
-  });
-});
-
-describe('impactLevelLabel', () => {
-  it('never uses judgemental wording', () => {
-    const labels = (['low', 'moderate', 'high', 'unknown'] as const).map(impactLevelLabel);
-    const forbidden = ['afford', 'bad', 'good', 'waste', 'should'];
-
-    for (const label of labels) {
-      for (const word of forbidden) {
-        expect(label.toLowerCase()).not.toContain(word);
-      }
-    }
   });
 });

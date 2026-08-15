@@ -117,18 +117,17 @@ describe('calculateOwnershipDuration', () => {
   it('reports whole months of ownership', () => {
     const duration = calculateOwnershipDuration('2025-12-13', new Date('2026-08-13T12:00:00'));
     expect(duration?.months).toBe(8);
-    expect(duration?.label).toBe('8 months');
   });
 
-  it('describes a young purchase in days', () => {
+  it('describes a young purchase in days rather than whole months', () => {
     const duration = calculateOwnershipDuration('2026-08-10', new Date('2026-08-13T12:00:00'));
     expect(duration?.months).toBe(0);
-    expect(duration?.label).toBe('3 days');
+    expect(duration?.days).toBe(3);
   });
 
-  it('combines years and months', () => {
+  it('reports both parts of a duration spanning years', () => {
     const duration = calculateOwnershipDuration('2024-05-13', new Date('2026-08-13T12:00:00'));
-    expect(duration?.label).toBe('2 years 3 months');
+    expect(duration?.months).toBe(27);
   });
 
   it('never reports negative ownership for a future date', () => {
@@ -155,7 +154,7 @@ describe('calculatePurchaseMetrics', () => {
     expect(metrics.ownership.currentOwnershipCostCents).toBe(105_900);
     expect(Math.round(metrics.realCostPerUseCents as number)).toBe(1_826);
     expect(Math.round(metrics.costPerUseFromPriceCents as number)).toBe(3_102);
-    expect(metrics.duration?.label).toBe('8 months');
+    expect(metrics.duration?.months).toBe(8);
     expect(metrics.usesPerMonth).toBeCloseTo(58 / 8, 6);
   });
 

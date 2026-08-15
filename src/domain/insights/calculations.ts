@@ -22,10 +22,11 @@ import {
 
 export type InsightsRange = 'this_year' | 'last_12_months' | 'all_time';
 
-export const INSIGHTS_RANGES: readonly { id: InsightsRange; label: string }[] = [
-  { id: 'this_year', label: 'This year' },
-  { id: 'last_12_months', label: 'Last 12 months' },
-  { id: 'all_time', label: 'All time' },
+/** The order the ranges are offered in. The UI supplies each one's label. */
+export const INSIGHTS_RANGES: readonly InsightsRange[] = [
+  'this_year',
+  'last_12_months',
+  'all_time',
 ];
 
 export type CategoryBreakdownEntry = {

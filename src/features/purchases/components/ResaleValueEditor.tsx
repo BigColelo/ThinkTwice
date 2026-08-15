@@ -4,6 +4,7 @@ import { AppText } from '@/components/ui/AppText';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { MoneyField } from '@/components/ui/MoneyField';
+import { useT } from '@/i18n';
 import { useTheme } from '@/theme';
 import type { Cents } from '@/types/domain';
 
@@ -25,6 +26,7 @@ export function ResaleValueEditor({
   onSave: (valueCents: Cents | null) => Promise<void>;
 }): React.ReactElement {
   const theme = useTheme();
+  const t = useT();
 
   const [draft, setDraft] = useState<Cents | null>(valueCents);
   const [lastSavedValue, setLastSavedValue] = useState<Cents | null>(valueCents);
@@ -46,7 +48,7 @@ export function ResaleValueEditor({
     try {
       await onSave(draft);
     } catch {
-      setSaveError('This could not be saved. Please try again.');
+      setSaveError(t('purchases.resale.saveError'));
     } finally {
       setIsSaving(false);
     }
@@ -55,8 +57,8 @@ export function ResaleValueEditor({
   return (
     <Card padding={theme.spacing.md}>
       <MoneyField
-        label="What is it worth today?"
-        hint="Your own estimate. It lowers the real cost of ownership, because that value is not spent."
+        label={t('purchases.resale.label')}
+        hint={t('purchases.resale.hint')}
         valueCents={draft}
         onChangeCents={setDraft}
       />
@@ -74,7 +76,7 @@ export function ResaleValueEditor({
 
       {hasChanges ? (
         <Button
-          label="Save resale value"
+          label={t('purchases.resale.save')}
           size="md"
           onPress={save}
           loading={isSaving}

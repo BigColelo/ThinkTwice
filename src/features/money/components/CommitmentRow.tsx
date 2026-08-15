@@ -6,6 +6,7 @@ import { MoneyValue } from '@/components/ui/MoneyValue';
 import { getCommitmentCategory } from '@/constants/categories';
 import { getFrequency } from '@/constants/frequencies';
 import { calculateMonthlyCommitmentEquivalent } from '@/domain';
+import { useT } from '@/i18n';
 import type { RecurringCommitment } from '@/types/domain';
 
 /**
@@ -23,12 +24,15 @@ export function CommitmentRow({
   commitment: RecurringCommitment;
   onPress?: () => void;
 }): React.ReactElement {
+  const t = useT();
   const category = getCommitmentCategory(commitment.categoryId);
   const frequency = getFrequency(commitment.frequency);
   const isMonthly = commitment.frequency === 'monthly';
   const isPaused = !commitment.isActive;
 
-  const details = isMonthly ? category.label : `${frequency.label} · ${category.label}`;
+  const details = isMonthly
+    ? t(category.labelKey)
+    : `${t(frequency.labelKey)}${t('common.dotSeparator')}${t(category.labelKey)}`;
 
   return (
     <ListRow
@@ -36,7 +40,11 @@ export function CommitmentRow({
       title={commitment.name}
       // Paused is said in words rather than shown by dimming the row: a figure
       // the user has to read should not lose contrast to carry a state.
-      subtitle={isPaused ? `Paused · ${details}` : details}
+      subtitle={
+        isPaused
+          ? `${t('money.commitmentPausedPrefix')}${t('common.dotSeparator')}${details}`
+          : details
+      }
       trailing={
         <MoneyValue
           cents={commitment.amountCents}
@@ -50,15 +58,17 @@ export function CommitmentRow({
             cents={calculateMonthlyCommitmentEquivalent(commitment)}
             variant="caption"
             color="secondary"
-            suffix=" / month"
+            suffix={` ${t('units.perMonth')}`}
           />
         )
       }
       onPress={onPress}
-      accessibilityLabel={`${commitment.name}, ${category.label}, ${frequency.label}${
-        isPaused ? ', paused' : ''
-      }`}
-      accessibilityHint={onPress ? 'Opens this commitment for editing' : undefined}
+      accessibilityLabel={`${t('money.commitmentLabel', {
+        name: commitment.name,
+        category: t(category.labelKey),
+        frequency: t(frequency.labelKey),
+      })}${isPaused ? `${t('common.listSeparator')}${t('money.commitmentPaused')}` : ''}`}
+      accessibilityHint={onPress ? t('money.commitmentHint') : undefined}
     />
   );
 }

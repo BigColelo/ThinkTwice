@@ -50,7 +50,6 @@ function item(overrides: Partial<WishlistItem> = {}): WishlistItem {
     cooldownStartedAt: '2026-08-06T09:00:00.000Z',
     cooldownEndsAt: '2026-09-05T09:00:00.000Z',
     status: 'thinking',
-    reasonTags: ['Hobby'],
     notes: 'Compare with the second-hand price.',
     decidedAt: null,
     createdAt: '2026-08-06T09:00:00.000Z',

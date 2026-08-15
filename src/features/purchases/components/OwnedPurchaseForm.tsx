@@ -1,5 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Controller, useForm, useWatch } from 'react-hook-form';
 import { View } from 'react-native';
 
@@ -17,10 +17,11 @@ import { USAGE_PRESETS } from '@/constants/usagePresets';
 import type { NewPurchase } from '@/db/repositories';
 import { ImagePickerField } from '@/features/images/ImagePickerField';
 import {
-  ownedPurchaseSchema,
+  buildOwnedPurchaseSchema,
   type OwnedPurchaseFormInput,
   type OwnedPurchaseFormValues,
 } from '@/features/purchases/schemas/purchaseSchema';
+import { formatMonthsAsDuration, useT } from '@/i18n';
 import { useTheme } from '@/theme';
 import type { Purchase } from '@/types/domain';
 import { todayIsoDate } from '@/utils/dates';
@@ -53,16 +54,20 @@ export function OwnedPurchaseForm({
   onSubmit: (values: NewPurchase) => Promise<void>;
 }): React.ReactElement {
   const theme = useTheme();
+  const t = useT();
 
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+
+  // Rebuilt when the language changes: the messages it carries are copy.
+  const schema = useMemo(() => buildOwnedPurchaseSchema(t), [t]);
 
   const { control, handleSubmit, setValue, formState } = useForm<
     OwnedPurchaseFormInput,
     unknown,
     OwnedPurchaseFormValues
   >({
-    resolver: zodResolver(ownedPurchaseSchema),
+    resolver: zodResolver(schema),
     mode: 'onTouched',
     defaultValues: {
       name: purchase?.name ?? '',
@@ -97,7 +102,7 @@ export function OwnedPurchaseForm({
         expectedOwnershipMonths: formValues.expectedOwnershipMonths,
       });
     } catch {
-      setSaveError('This purchase could not be saved. Please try again.');
+      setSaveError(t('purchases.form.saveError'));
       setIsSaving(false);
     }
   });
@@ -121,9 +126,9 @@ export function OwnedPurchaseForm({
           name="name"
           render={({ field, fieldState }) => (
             <TextField
-              label="Name"
+              label={t('purchases.form.nameLabel')}
               required
-              placeholder="What do you own?"
+              placeholder={t('purchases.form.namePlaceholder')}
               value={field.value}
               onChangeText={field.onChange}
               onBlur={field.onBlur}
@@ -138,7 +143,7 @@ export function OwnedPurchaseForm({
           name="purchasePriceCents"
           render={({ field, fieldState }) => (
             <MoneyField
-              label="Purchase price"
+              label={t('purchases.form.priceLabel')}
               required
               valueCents={field.value}
               onChangeCents={field.onChange}
@@ -152,12 +157,12 @@ export function OwnedPurchaseForm({
           name="purchaseDate"
           render={({ field, fieldState }) => (
             <DateField
-              label="Purchase date"
+              label={t('purchases.form.dateLabel')}
               required
               value={field.value}
               onChange={field.onChange}
               error={fieldState.error?.message}
-              hint="Used to work out how long you have owned it."
+              hint={t('purchases.form.dateHint')}
             />
           )}
         />
@@ -167,10 +172,10 @@ export function OwnedPurchaseForm({
           name="categoryId"
           render={({ field, fieldState }) => (
             <ChipSelect
-              label="Category"
+              label={t('purchases.form.categoryLabel')}
               options={PURCHASE_CATEGORIES.map((category) => ({
                 value: category.id,
-                label: category.label,
+                label: t(category.labelKey),
                 icon: category.icon,
               }))}
               value={field.value}
@@ -185,8 +190,8 @@ export function OwnedPurchaseForm({
           name="currentResaleValueCents"
           render={({ field, fieldState }) => (
             <MoneyField
-              label="Current resale value"
-              hint="Optional. What you think it is worth today — it reduces the real cost of ownership."
+              label={t('purchases.form.resaleLabel')}
+              hint={t('purchases.form.resaleHint')}
               valueCents={field.value}
               onChangeCents={field.onChange}
               error={fieldState.error?.message}
@@ -203,8 +208,8 @@ export function OwnedPurchaseForm({
 
       <View style={{ height: theme.spacing.xl }} />
       <SectionHeader
-        title="What you expected"
-        subtitle="Optional. If you had a rough idea when you got it, the app can hold it up against what actually happened."
+        title={t('purchases.form.expectationTitle')}
+        subtitle={t('purchases.form.expectationSubtitle')}
       />
 
       <View style={{ gap: theme.spacing.md }}>
@@ -213,17 +218,20 @@ export function OwnedPurchaseForm({
           name="expectedUsageFrequency"
           render={({ field, fieldState }) => (
             <ChipSelect
-              label="How often did you expect to use it?"
+              label={t('purchases.form.frequencyLabel')}
               options={USAGE_PRESETS.map((preset) => ({
                 value: preset.id,
-                label: preset.label,
+                label: t(preset.labelKey),
               }))}
               value={field.value}
               onChange={(next) => {
                 field.onChange(next);
                 if (next !== 'custom') setValue('customUsesPerMonth', null);
               }}
-              hint={USAGE_PRESETS.find((preset) => preset.id === field.value)?.detail ?? undefined}
+              hint={(() => {
+                const preset = USAGE_PRESETS.find((option) => option.id === field.value);
+                return preset ? t(preset.detailKey) : undefined;
+              })()}
               error={fieldState.error?.message}
             />
           )}
@@ -235,7 +243,7 @@ export function OwnedPurchaseForm({
             name="customUsesPerMonth"
             render={({ field, fieldState }) => (
               <TextField
-                label="Uses per month"
+                label={t('purchases.form.usesPerMonthLabel')}
                 required
                 keyboardType="numeric"
                 inputMode="numeric"
@@ -246,7 +254,7 @@ export function OwnedPurchaseForm({
                 }}
                 onBlur={field.onBlur}
                 error={fieldState.error?.message}
-                suffix="/ month"
+                suffix={t('units.perMonth')}
               />
             )}
           />
@@ -257,10 +265,10 @@ export function OwnedPurchaseForm({
           name="expectedOwnershipMonths"
           render={({ field, fieldState }) => (
             <ChipSelect
-              label="How long did you expect to keep it?"
-              options={OWNERSHIP_PRESETS.map((preset) => ({
-                value: preset.months,
-                label: preset.label,
+              label={t('purchases.form.ownershipLabel')}
+              options={OWNERSHIP_PRESETS.map((months) => ({
+                value: months,
+                label: formatMonthsAsDuration(t, months),
               }))}
               value={field.value}
               onChange={field.onChange}

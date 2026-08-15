@@ -2,6 +2,7 @@ import { ChevronLeft, type LucideIcon } from 'lucide-react-native';
 import React from 'react';
 import { Pressable, View } from 'react-native';
 
+import { useT } from '@/i18n';
 import { useTheme } from '@/theme';
 
 import { AppText } from './AppText';
@@ -41,13 +42,14 @@ export type ScreenHeaderProps = {
 export function ScreenHeader({
   title,
   onBack,
-  backAccessibilityLabel = 'Go back',
+  backAccessibilityLabel,
   action,
   textAction,
   leadingAction,
   bordered = false,
 }: ScreenHeaderProps): React.ReactElement {
   const theme = useTheme();
+  const t = useT();
 
   return (
     <View
@@ -78,7 +80,7 @@ export function ScreenHeader({
           ) : onBack ? (
             <IconButton
               icon={ChevronLeft}
-              accessibilityLabel={backAccessibilityLabel}
+              accessibilityLabel={backAccessibilityLabel ?? t('common.back')}
               onPress={onBack}
             />
           ) : null}

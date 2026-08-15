@@ -6,7 +6,8 @@ import { AppText } from '@/components/ui/AppText';
 import { Card } from '@/components/ui/Card';
 import { Chip, type ChipTone } from '@/components/ui/Chip';
 import { MetricCell, MetricDivider } from '@/components/ui/StatCard';
-import { impactLevelLabel, type ImpactLevel, type PurchaseImpact } from '@/domain';
+import type { ImpactLevel, PurchaseImpact } from '@/domain';
+import { useT } from '@/i18n';
 import { useTheme } from '@/theme';
 import { formatNumber, formatPercent } from '@/utils/currency';
 
@@ -21,6 +22,7 @@ import { formatNumber, formatPercent } from '@/utils/currency';
 
 export function PurchaseImpactCard({ impact }: { impact: PurchaseImpact }): React.ReactElement {
   const theme = useTheme();
+  const t = useT();
 
   if (impact.unavailableReason === 'no_income') {
     return (
@@ -32,9 +34,9 @@ export function PurchaseImpactCard({ impact }: { impact: PurchaseImpact }): Reac
             strokeWidth={theme.sizes.iconStrokeWidth}
           />
           <View style={{ flex: 1 }}>
-            <AppText variant="subheading">Financial impact unavailable</AppText>
+            <AppText variant="subheading">{t('impact.unavailableTitle')}</AppText>
             <AppText variant="caption" color="secondary" style={{ marginTop: 2 }}>
-              Add your monthly net income on the Money screen to see how this price compares.
+              {t('impact.unavailableDescription')}
             </AppText>
           </View>
         </View>
@@ -46,22 +48,22 @@ export function PurchaseImpactCard({ impact }: { impact: PurchaseImpact }): Reac
     <Card padding={theme.spacing.md}>
       <View style={{ flexDirection: 'row', alignItems: 'stretch' }}>
         <MetricCell
-          label="of monthly income"
+          label={t('impact.ofMonthlyIncome')}
           value={formatPercent(impact.incomeRatio)}
           valueColor="primary"
         />
         <MetricDivider />
         <MetricCell
-          label="of monthly available"
+          label={t('impact.ofMonthlyAvailable')}
           value={formatPercent(impact.availableRatio)}
           valueColor="primary"
         />
         <MetricDivider />
         <MetricCell
-          label="months of available money"
+          label={t('impact.monthsOfAvailable')}
           value={
             impact.monthsOfAvailableMoney == null
-              ? '—'
+              ? t('common.noValue')
               : formatNumber(impact.monthsOfAvailableMoney, 1)
           }
           valueColor="primary"
@@ -79,15 +81,14 @@ export function PurchaseImpactCard({ impact }: { impact: PurchaseImpact }): Reac
       >
         <Chip
           icon={TrendingUp}
-          label={`${impactLevelLabel(impact.level)} financial impact`}
+          label={t('impact.chip', { level: t(`impact.level.${impact.level}`) })}
           tone={impactChipTone(impact.level)}
         />
       </View>
 
       {impact.unavailableReason === 'no_available_money' ? (
         <AppText variant="caption" color="secondary" style={{ marginTop: theme.spacing.sm }}>
-          Your recurring commitments currently use all of your monthly income, so there is no
-          available amount to compare this price against.
+          {t('impact.noAvailableMoney')}
         </AppText>
       ) : null}
     </Card>

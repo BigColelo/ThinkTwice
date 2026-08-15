@@ -1,3 +1,5 @@
+import type { TFunction } from 'i18next';
+
 import type { WishlistStatus } from '@/types/domain';
 import type { ConfirmOptions } from '@/utils/confirm';
 
@@ -15,23 +17,23 @@ import type { ConfirmOptions } from '@/utils/confirm';
  * tested, and not in the domain, which returns data rather than sentences.
  */
 
-export function wishlistDeleteConfirmation(status: WishlistStatus): ConfirmOptions {
+export function wishlistDeleteConfirmation(t: TFunction, status: WishlistStatus): ConfirmOptions {
   return {
-    title: 'Delete this item?',
-    message: `${consequenceOf(status)} This cannot be undone.`,
-    confirmLabel: 'Delete',
+    title: t('wishlist.deleteTitle'),
+    message: `${consequenceOf(t, status)} ${t('common.cannotBeUndone')}`,
+    confirmLabel: t('common.delete'),
     destructive: true,
   };
 }
 
-function consequenceOf(status: WishlistStatus): string {
+function consequenceOf(t: TFunction, status: WishlistStatus): string {
   switch (status) {
     case 'purchased':
-      return 'The purchase itself stays in ThinkTwice, but the estimate you made before buying it is lost, so there will be nothing left to compare with what it really costs.';
+      return t('wishlist.deleteConsequence.purchased');
     case 'dismissed':
-      return 'It will be removed from ThinkTwice completely, including from what you decided against.';
+      return t('wishlist.deleteConsequence.dismissed');
     case 'thinking':
     case 'ready_to_decide':
-      return 'It will be removed from ThinkTwice completely, and the reflection period you have already spent on it goes with it.';
+      return t('wishlist.deleteConsequence.open');
   }
 }

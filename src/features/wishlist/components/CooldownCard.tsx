@@ -5,7 +5,9 @@ import { View } from 'react-native';
 import { ProgressRing } from '@/components/charts/ProgressRing';
 import { AppText } from '@/components/ui/AppText';
 import { Card } from '@/components/ui/Card';
-import { formatCooldownRemaining, type CooldownState } from '@/domain';
+import { cooldownRemaining, type CooldownState } from '@/domain';
+import { cooldownRemainingText } from '@/features/wishlist/cooldownText';
+import { useT } from '@/i18n';
 import { useTheme } from '@/theme';
 import { formatDate } from '@/utils/dates';
 
@@ -25,7 +27,9 @@ export function CooldownCard({
   cooldownDays: number;
 }): React.ReactElement {
   const theme = useTheme();
+  const t = useT();
   const isComplete = state.isComplete;
+  const remaining = cooldownRemaining(state);
 
   return (
     <Card variant="accent" padding={theme.spacing.md}>
@@ -38,8 +42,11 @@ export function CooldownCard({
           trackColor={theme.isDark ? theme.colors.surfaceMuted : theme.colors.accent.border}
           accessibilityLabel={
             isComplete
-              ? 'Reflection period complete'
-              : `${state.daysRemaining} of ${cooldownDays} days remaining`
+              ? t('cooldown.complete')
+              : t('cooldown.progressLabel', {
+                  remaining: state.daysRemaining,
+                  total: cooldownDays,
+                })
           }
         >
           <Clock
@@ -51,16 +58,16 @@ export function CooldownCard({
 
         <View style={{ flex: 1, gap: 2 }}>
           <AppText variant="subheading" color={isComplete ? 'positive' : 'accent'}>
-            {formatCooldownRemaining(state)}
+            {cooldownRemainingText(t, remaining)}
           </AppText>
           <AppText variant="caption" color="secondary">
             {isComplete
-              ? 'You have had time to think it over. The decision is yours.'
-              : `You chose to reconsider this after ${cooldownDays} ${cooldownDays === 1 ? 'day' : 'days'}.`}
+              ? t('cooldown.completeBody')
+              : t('cooldown.chosenPeriod', { count: cooldownDays })}
           </AppText>
           {state.endsAt && !isComplete ? (
             <AppText variant="caption" color="tertiary">
-              {`Ends ${formatDate(state.endsAt)}`}
+              {t('cooldown.endsOn', { date: formatDate(state.endsAt) })}
             </AppText>
           ) : null}
         </View>

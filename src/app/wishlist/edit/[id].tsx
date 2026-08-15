@@ -15,6 +15,7 @@ import {
   updateWishlistItem,
   type CreateWishlistItemInput,
 } from '@/features/wishlist/services/wishlistActions';
+import { useT } from '@/i18n';
 
 /**
  * Editing an item still under reflection.
@@ -25,6 +26,7 @@ import {
  */
 export default function EditWishlistItemScreen(): React.ReactElement {
   const router = useRouter();
+  const t = useT();
   const repositories = useRepositories();
   const { settings } = useSettings();
   const { finances } = useMonthlyFinances();
@@ -38,7 +40,7 @@ export default function EditWishlistItemScreen(): React.ReactElement {
   if (isLoading) {
     return (
       <>
-        <ScreenHeader title="Edit item" onBack={goBack} />
+        <ScreenHeader title={t('add.editItem')} onBack={goBack} />
         <Screen>
           <LoadingState />
         </Screen>
@@ -49,14 +51,12 @@ export default function EditWishlistItemScreen(): React.ReactElement {
   if (error || !item || decided) {
     return (
       <>
-        <ScreenHeader title="Edit item" onBack={goBack} />
+        <ScreenHeader title={t('add.editItem')} onBack={goBack} />
         <Screen>
           <ErrorState
-            title={decided ? 'This item has been decided' : 'Item not found'}
+            title={decided ? t('add.itemDecidedTitle') : t('wishlist.notFound')}
             description={
-              decided
-                ? 'An item you have decided on is part of your history and is no longer edited.'
-                : 'This item may have been deleted.'
+              decided ? t('add.itemDecidedDescription') : t('wishlist.notFoundDescription')
             }
             onRetry={decided ? undefined : refetch}
           />
@@ -77,11 +77,11 @@ export default function EditWishlistItemScreen(): React.ReactElement {
 
   return (
     <>
-      <ScreenHeader title="Edit item" onBack={goBack} />
+      <ScreenHeader title={t('add.editItem')} onBack={goBack} />
       <WishlistItemForm
         finances={finances}
         item={item}
-        submitLabel="Save changes"
+        submitLabel={t('add.saveChanges')}
         onSubmit={handleSubmit}
       />
     </>

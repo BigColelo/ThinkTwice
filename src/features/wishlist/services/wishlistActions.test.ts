@@ -51,7 +51,6 @@ function baseItem(overrides: Partial<WishlistItem> = {}): WishlistItem {
     cooldownStartedAt: '2026-08-06T09:00:00.000Z',
     cooldownEndsAt: '2026-08-13T09:00:00.000Z',
     status: 'thinking',
-    reasonTags: ['Hobby'],
     notes: null,
     decidedAt: null,
     createdAt: '2026-08-06T09:00:00.000Z',
@@ -147,7 +146,6 @@ describe('createWishlistItem', () => {
         customUsesPerMonth: null,
         expectedOwnershipMonths: 60,
         cooldownDays: 7,
-        reasonTags: [],
         notes: null,
       },
       { scheduleReminder: false },
@@ -175,7 +173,6 @@ describe('createWishlistItem', () => {
       customUsesPerMonth: null,
       expectedOwnershipMonths: 60,
       cooldownDays: 7,
-      reasonTags: [],
       notes: null,
     };
 
@@ -389,7 +386,6 @@ describe('updateWishlistItem', () => {
       customUsesPerMonth: null,
       expectedOwnershipMonths: 60,
       cooldownDays: 3,
-      reasonTags: ['Hobby'],
       notes: null,
       ...overrides,
     };

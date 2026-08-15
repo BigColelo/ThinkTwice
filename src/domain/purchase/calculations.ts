@@ -1,10 +1,5 @@
 import type { Cents, IsoDate, PurchaseExpense, PurchaseWithStats } from '@/types/domain';
-import {
-  calendarDaysBetween,
-  calendarMonthsBetween,
-  formatDuration,
-  parseIsoDate,
-} from '@/utils/dates';
+import { calendarDaysBetween, calendarMonthsBetween, parseIsoDate } from '@/utils/dates';
 import { safeDivide } from '@/utils/numbers';
 
 /**
@@ -78,8 +73,6 @@ export function calculateAdditionalExpenses(expenses: readonly PurchaseExpense[]
 export type OwnershipDuration = {
   days: number;
   months: number;
-  /** `8 months`, `2 years 3 months`, `12 days`. */
-  label: string;
 };
 
 /** How long the item has been owned, from its purchase date to `now`. */
@@ -93,7 +86,7 @@ export function calculateOwnershipDuration(
   const days = Math.max(calendarDaysBetween(purchasedOn, now), 0);
   const months = Math.max(calendarMonthsBetween(purchasedOn, now), 0);
 
-  return { days, months, label: formatDuration(months, days) };
+  return { days, months };
 }
 
 /**

@@ -7,11 +7,10 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { ListRow } from '@/components/ui/ListRow';
 import { MoneyValue } from '@/components/ui/MoneyValue';
 import { SectionHeader } from '@/components/ui/SectionHeader';
+import { useT } from '@/i18n';
 import { useTheme } from '@/theme';
 import type { PurchaseExpense } from '@/types/domain';
 import { formatDate } from '@/utils/dates';
-
-import { EXPENSE_TYPE_LABELS } from '../schemas/purchaseSchema';
 
 /**
  * Everything spent on an item after buying it.
@@ -31,12 +30,17 @@ export const ExpensesSection = React.memo(function ExpensesSection({
   onSelect: (expense: PurchaseExpense) => void;
 }): React.ReactElement {
   const theme = useTheme();
+  const t = useT();
 
   return (
     <>
       <SectionHeader
-        title="Expenses"
-        subtitle={expenses.length > 0 ? `${expenses.length} recorded` : undefined}
+        title={t('purchases.expenses.title')}
+        subtitle={
+          expenses.length > 0
+            ? t('purchases.expenses.recorded', { count: expenses.length })
+            : undefined
+        }
       />
 
       {expenses.length === 0 ? (
@@ -44,8 +48,8 @@ export const ExpensesSection = React.memo(function ExpensesSection({
           <EmptyState
             compact
             icon={Receipt}
-            title="Nothing spent on this yet"
-            description="Accessories, repairs and servicing count towards what this item really costs, so adding them keeps the cost per use honest as it ages."
+            title={t('purchases.expenses.emptyTitle')}
+            description={t('purchases.expenses.emptyDescription')}
           />
         </Card>
       ) : (
@@ -63,10 +67,10 @@ export const ExpensesSection = React.memo(function ExpensesSection({
               ) : null}
               <ListRow
                 title={expense.name}
-                subtitle={`${EXPENSE_TYPE_LABELS[expense.expenseType]} · ${formatDate(expense.date)}`}
+                subtitle={`${t(`purchases.expenses.type.${expense.expenseType}`)}${t('common.dotSeparator')}${formatDate(expense.date)}`}
                 trailing={<MoneyValue cents={expense.amountCents} variant="bodyStrong" />}
                 onPress={() => onSelect(expense)}
-                accessibilityHint="Opens this expense to edit or remove it"
+                accessibilityHint={t('purchases.expenses.rowHint')}
               />
             </View>
           ))}

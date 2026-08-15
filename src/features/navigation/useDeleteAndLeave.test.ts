@@ -7,9 +7,9 @@ type Record = { id: string; name: string };
 const record: Record = { id: 'w1', name: 'Espresso machine' };
 
 /** Stands in for a detail screen: a query result that a delete turns to `null`. */
-function setup(leave: () => void): ReturnType<
-  typeof renderHook<DeleteAndLeave<Record>, { data: Record | null }>
-> {
+function setup(
+  leave: () => void,
+): ReturnType<typeof renderHook<DeleteAndLeave<Record>, { data: Record | null }>> {
   return renderHook<DeleteAndLeave<Record>, { data: Record | null }>(
     ({ data }) => useDeleteAndLeave(data, leave),
     { initialProps: { data: record as Record | null } },

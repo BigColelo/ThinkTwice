@@ -1,3 +1,4 @@
+import type { TranslationKey } from '@/i18n';
 import type { CommitmentFrequency } from '@/types/domain';
 
 /**
@@ -9,23 +10,45 @@ import type { CommitmentFrequency } from '@/types/domain';
 
 export type FrequencyOption = {
   id: CommitmentFrequency;
-  label: string;
+  labelKey: TranslationKey;
   /** Short form for list rows, e.g. `/quarter`. */
-  shortLabel: string;
+  shortLabelKey: TranslationKey;
   occurrencesPerYear: number;
 };
 
+const MONTHLY: FrequencyOption = {
+  id: 'monthly',
+  labelKey: 'frequencies.monthly',
+  shortLabelKey: 'frequencies.short.monthly',
+  occurrencesPerYear: 12,
+};
+
 export const COMMITMENT_FREQUENCIES: readonly FrequencyOption[] = [
-  { id: 'monthly', label: 'Monthly', shortLabel: 'month', occurrencesPerYear: 12 },
+  MONTHLY,
   {
     id: 'every_two_months',
-    label: 'Every 2 months',
-    shortLabel: '2 months',
+    labelKey: 'frequencies.every_two_months',
+    shortLabelKey: 'frequencies.short.every_two_months',
     occurrencesPerYear: 6,
   },
-  { id: 'quarterly', label: 'Quarterly', shortLabel: 'quarter', occurrencesPerYear: 4 },
-  { id: 'semiannual', label: 'Every 6 months', shortLabel: '6 months', occurrencesPerYear: 2 },
-  { id: 'annual', label: 'Yearly', shortLabel: 'year', occurrencesPerYear: 1 },
+  {
+    id: 'quarterly',
+    labelKey: 'frequencies.quarterly',
+    shortLabelKey: 'frequencies.short.quarterly',
+    occurrencesPerYear: 4,
+  },
+  {
+    id: 'semiannual',
+    labelKey: 'frequencies.semiannual',
+    shortLabelKey: 'frequencies.short.semiannual',
+    occurrencesPerYear: 2,
+  },
+  {
+    id: 'annual',
+    labelKey: 'frequencies.annual',
+    shortLabelKey: 'frequencies.short.annual',
+    occurrencesPerYear: 1,
+  },
 ];
 
 const BY_ID = new Map<CommitmentFrequency, FrequencyOption>(
@@ -33,13 +56,9 @@ const BY_ID = new Map<CommitmentFrequency, FrequencyOption>(
 );
 
 export function getFrequency(id: CommitmentFrequency): FrequencyOption {
-  const option = BY_ID.get(id);
-  if (!option) {
-    // Unreachable for valid data; keeping a total function avoids `undefined`
-    // leaking into a monthly-equivalent calculation.
-    return { id: 'monthly', label: 'Monthly', shortLabel: 'month', occurrencesPerYear: 12 };
-  }
-  return option;
+  // Unreachable for valid data; keeping a total function avoids `undefined`
+  // leaking into a monthly-equivalent calculation.
+  return BY_ID.get(id) ?? MONTHLY;
 }
 
 export const DEFAULT_COMMITMENT_FREQUENCY: CommitmentFrequency = 'monthly';

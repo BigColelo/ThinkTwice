@@ -2,6 +2,7 @@ import React from 'react';
 import type { StyleProp, TextStyle } from 'react-native';
 
 import { useCurrency } from '@/features/settings/SettingsProvider';
+import { useT } from '@/i18n';
 import type { TypographyRole } from '@/theme';
 import type { Cents } from '@/types/domain';
 import { formatMoney, formatMoneyCompact, type MoneyDecimals } from '@/utils/currency';
@@ -25,7 +26,7 @@ export type MoneyValueProps = {
   compact?: boolean;
   /** Appended after the amount, e.g. ` / use`. */
   suffix?: string;
-  /** Shown when `cents` is null — never a `NaN` or an empty gap. */
+  /** Shown when `cents` is null — never a `NaN` or an empty gap. Defaults to a dash. */
   placeholder?: string;
   style?: StyleProp<TextStyle>;
   numberOfLines?: number;
@@ -40,16 +41,17 @@ export function MoneyValue({
   showPositiveSign = false,
   compact = false,
   suffix,
-  placeholder = '—',
+  placeholder,
   style,
   numberOfLines,
   adjustsFontSizeToFit,
 }: MoneyValueProps): React.ReactElement {
   const currency = useCurrency();
+  const t = useT();
 
   const text =
     cents == null || !Number.isFinite(cents)
-      ? placeholder
+      ? (placeholder ?? t('common.noValue'))
       : (compact ? formatMoneyCompact : formatMoney)(cents, {
           currency,
           decimals,
@@ -77,25 +79,26 @@ export function CostPerUse({
   cents,
   variant = 'body',
   color = 'primary',
-  placeholder = 'No usage data yet',
+  placeholder,
   style,
 }: Pick<
   MoneyValueProps,
   'cents' | 'variant' | 'color' | 'placeholder' | 'style'
 >): React.ReactElement {
   const currency = useCurrency();
+  const t = useT();
 
   if (cents == null || !Number.isFinite(cents)) {
     return (
       <AppText variant={variant} color="tertiary" style={style}>
-        {placeholder}
+        {placeholder ?? t('purchases.noUsageData')}
       </AppText>
     );
   }
 
   return (
     <AppText variant={variant} color={color} style={style}>
-      {`${formatMoney(cents, { currency, decimals: 'always' })} / use`}
+      {`${formatMoney(cents, { currency, decimals: 'always' })} ${t('units.perUse')}`}
     </AppText>
   );
 }

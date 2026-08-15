@@ -10,6 +10,7 @@ import { useGoBack } from '@/features/navigation/useGoBack';
 import { OwnedPurchaseForm } from '@/features/purchases/components/OwnedPurchaseForm';
 import { usePurchaseDetail } from '@/features/purchases/hooks/usePurchases';
 import { updatePurchase } from '@/features/purchases/services/purchaseActions';
+import { useT } from '@/i18n';
 
 /**
  * Editing an owned item — the same form as adding one, prefilled.
@@ -20,6 +21,7 @@ import { updatePurchase } from '@/features/purchases/services/purchaseActions';
  */
 export default function EditPurchaseScreen(): React.ReactElement {
   const router = useRouter();
+  const t = useT();
   const repositories = useRepositories();
   const { id } = useLocalSearchParams<{ id: string }>();
   const goBack = useGoBack('/purchases');
@@ -29,7 +31,7 @@ export default function EditPurchaseScreen(): React.ReactElement {
   if (isLoading) {
     return (
       <>
-        <ScreenHeader title="Edit purchase" onBack={goBack} />
+        <ScreenHeader title={t('add.editPurchase')} onBack={goBack} />
         <Screen>
           <LoadingState />
         </Screen>
@@ -40,11 +42,11 @@ export default function EditPurchaseScreen(): React.ReactElement {
   if (error || !data) {
     return (
       <>
-        <ScreenHeader title="Edit purchase" onBack={goBack} />
+        <ScreenHeader title={t('add.editPurchase')} onBack={goBack} />
         <Screen>
           <ErrorState
-            title="Purchase not found"
-            description="This purchase may have been deleted."
+            title={t('purchases.notFound')}
+            description={t('purchases.notFoundDescription')}
             onRetry={refetch}
           />
         </Screen>
@@ -61,8 +63,12 @@ export default function EditPurchaseScreen(): React.ReactElement {
 
   return (
     <>
-      <ScreenHeader title="Edit purchase" onBack={goBack} />
-      <OwnedPurchaseForm purchase={purchase} submitLabel="Save changes" onSubmit={handleSubmit} />
+      <ScreenHeader title={t('add.editPurchase')} onBack={goBack} />
+      <OwnedPurchaseForm
+        purchase={purchase}
+        submitLabel={t('add.saveChanges')}
+        onSubmit={handleSubmit}
+      />
     </>
   );
 }

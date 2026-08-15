@@ -16,6 +16,7 @@ import type { AppSettings } from '@/types/domain';
 export const FALLBACK_SETTINGS: AppSettings = {
   currencyCode: 'EUR',
   themeMode: 'system',
+  language: 'system',
   monthlyNetIncomeCents: 0,
   monthlySavingsTargetCents: null,
   onboardingCompleted: false,
@@ -98,4 +99,9 @@ export function useSettings(): SettingsContextValue {
 /** Shorthand for the many components that only need the currency code. */
 export function useCurrency(): AppSettings['currencyCode'] {
   return useSettings().settings.currencyCode;
+}
+
+/** The stored language preference, before `system` is resolved to a language. */
+export function useLanguagePreference(): AppSettings['language'] {
+  return useSettings().settings.language;
 }

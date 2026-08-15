@@ -20,6 +20,7 @@ import { PurchaseCard } from '@/features/purchases/components/PurchaseCard';
 import { useRecentPurchases } from '@/features/purchases/hooks/usePurchases';
 import { WishlistCard } from '@/features/wishlist/components/WishlistCard';
 import { useWishlistPreview } from '@/features/wishlist/hooks/useWishlist';
+import { useT } from '@/i18n';
 import { useTheme } from '@/theme';
 import { formatPercent } from '@/utils/currency';
 
@@ -30,6 +31,7 @@ import { formatPercent } from '@/utils/currency';
  */
 export default function HomeScreen(): React.ReactElement {
   const theme = useTheme();
+  const t = useT();
   const router = useRouter();
 
   const { finances, isLoading: isLoadingFinances } = useMonthlyFinances();
@@ -50,12 +52,12 @@ export default function HomeScreen(): React.ReactElement {
         <View style={{ flex: 1 }}>
           <ThinkTwiceWordmark />
           <AppText variant="caption" color="secondary" style={{ marginTop: 2 }}>
-            Here&apos;s your overview
+            {t('home.greeting')}
           </AppText>
         </View>
         <IconButton
           icon={Settings}
-          accessibilityLabel="Settings"
+          accessibilityLabel={t('home.settingsLabel')}
           onPress={() => router.push('/settings')}
         />
       </View>
@@ -65,10 +67,10 @@ export default function HomeScreen(): React.ReactElement {
       <View style={{ height: theme.spacing.xl }} />
 
       <SectionHeader
-        title="Thinking about"
+        title={t('home.thinkingAbout')}
         action={
           wishlist.data && wishlist.data.length > 0
-            ? { label: 'See all', onPress: () => router.push('/wishlist') }
+            ? { label: t('home.seeAll'), onPress: () => router.push('/wishlist') }
             : undefined
         }
       />
@@ -90,9 +92,9 @@ export default function HomeScreen(): React.ReactElement {
           <EmptyState
             compact
             icon={Clock}
-            title="Nothing on your mind yet"
-            description="Add something you are considering and give yourself time before deciding."
-            action={{ label: 'Add an item', onPress: () => router.push('/add') }}
+            title={t('home.thinkingEmptyTitle')}
+            description={t('home.thinkingEmptyDescription')}
+            action={{ label: t('home.addItem'), onPress: () => router.push('/add') }}
           />
         </Card>
       )}
@@ -100,10 +102,10 @@ export default function HomeScreen(): React.ReactElement {
       <View style={{ height: theme.spacing.xl }} />
 
       <SectionHeader
-        title="Recent purchases"
+        title={t('home.recentPurchases')}
         action={
           purchases.data && purchases.data.length > 0
-            ? { label: 'See all', onPress: () => router.push('/purchases') }
+            ? { label: t('home.seeAll'), onPress: () => router.push('/purchases') }
             : undefined
         }
       />
@@ -125,9 +127,9 @@ export default function HomeScreen(): React.ReactElement {
           <EmptyState
             compact
             icon={ShoppingBag}
-            title="No purchases tracked"
-            description="Track something you already own to see what it really costs per use."
-            action={{ label: 'Add a purchase', onPress: () => router.push('/add/purchase') }}
+            title={t('home.purchasesEmptyTitle')}
+            description={t('home.purchasesEmptyDescription')}
+            action={{ label: t('home.addPurchase'), onPress: () => router.push('/add/purchase') }}
           />
         </Card>
       )}
@@ -141,14 +143,12 @@ export default function HomeScreen(): React.ReactElement {
  */
 function AvailableCard({ finances }: { finances: MonthlyFinances }): React.ReactElement {
   const theme = useTheme();
+  const t = useT();
   const router = useRouter();
 
   if (!finances.isIncomeConfigured) {
     return (
-      <PressableCard
-        onPress={() => router.push('/money')}
-        accessibilityHint="Opens the Money screen"
-      >
+      <PressableCard onPress={() => router.push('/money')} accessibilityHint={t('home.setUpHint')}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing.sm }}>
           <View
             style={{
@@ -167,9 +167,9 @@ function AvailableCard({ finances }: { finances: MonthlyFinances }): React.React
             />
           </View>
           <View style={{ flex: 1 }}>
-            <AppText variant="subheading">Set up your monthly picture</AppText>
+            <AppText variant="subheading">{t('home.setUpTitle')}</AppText>
             <AppText variant="caption" color="secondary" style={{ marginTop: 2 }}>
-              Add your net income and recurring commitments to see what stays available.
+              {t('home.setUpDescription')}
             </AppText>
           </View>
           <Plus
@@ -190,7 +190,7 @@ function AvailableCard({ finances }: { finances: MonthlyFinances }): React.React
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing.md }}>
         <View style={{ flex: 1 }}>
           <AppText variant="caption" color="secondary">
-            Available after commitments
+            {t('home.availableAfterCommitments')}
           </AppText>
           <MoneyValue
             cents={finances.availableAfterCommitmentsCents}
@@ -201,7 +201,7 @@ function AvailableCard({ finances }: { finances: MonthlyFinances }): React.React
             numberOfLines={1}
           />
           <AppText variant="caption" color="tertiary">
-            this month
+            {t('home.thisMonth')}
           </AppText>
         </View>
 
@@ -209,7 +209,9 @@ function AvailableCard({ finances }: { finances: MonthlyFinances }): React.React
           progress={ringProgress}
           size={68}
           strokeWidth={6}
-          accessibilityLabel={`${formatPercent(finances.availableToIncomeRatio)} of monthly income remains available`}
+          accessibilityLabel={t('home.availableRatioLabel', {
+            percent: formatPercent(finances.availableToIncomeRatio),
+          })}
         >
           <AppText variant="subheading">{formatPercent(finances.availableToIncomeRatio)}</AppText>
         </ProgressRing>
@@ -225,19 +227,19 @@ function AvailableCard({ finances }: { finances: MonthlyFinances }): React.React
 
       <View style={{ flexDirection: 'row', alignItems: 'stretch' }}>
         <MetricCell
-          label="Net income"
+          label={t('home.netIncome')}
           value={<MoneyValue cents={finances.netIncomeCents} variant="metricSmall" />}
         />
         <MetricDivider />
         <MetricCell
-          label="Commitments"
+          label={t('home.commitments')}
           value={<MoneyValue cents={finances.commitmentsCents} variant="metricSmall" />}
         />
         {finances.savingsTargetCents != null ? (
           <>
             <MetricDivider />
             <MetricCell
-              label="Savings goal"
+              label={t('home.savingsGoal')}
               value={<MoneyValue cents={finances.savingsTargetCents} variant="metricSmall" />}
             />
           </>

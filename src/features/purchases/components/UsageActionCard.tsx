@@ -10,9 +10,10 @@ import { MoneyValue } from '@/components/ui/MoneyValue';
 import { MetricCell, MetricDivider } from '@/components/ui/StatCard';
 import { useRepositories } from '@/db/DatabaseProvider';
 import { recordUse, undoLastUse } from '@/features/purchases/services/purchaseActions';
+import { useT } from '@/i18n';
 import { useTheme } from '@/theme';
 import { formatNumber } from '@/utils/currency';
-import { formatDateTime, pluralize } from '@/utils/dates';
+import { formatDateTime } from '@/utils/dates';
 
 /**
  * Usage tracking: the count, the cost per use, and one large button.
@@ -34,6 +35,7 @@ export function UsageActionCard({
   lastUsedAt: string | null;
 }): React.ReactElement {
   const theme = useTheme();
+  const t = useT();
   const repositories = useRepositories();
 
   const [isBusy, setIsBusy] = useState(false);
@@ -50,7 +52,7 @@ export function UsageActionCard({
       recorded = true;
       setCanUndo(true);
     } catch {
-      setActionError('That use could not be recorded. Please try again.');
+      setActionError(t('purchases.recordUseError'));
     } finally {
       setIsBusy(false);
     }
@@ -69,7 +71,7 @@ export function UsageActionCard({
       await undoLastUse(repositories, purchaseId);
       setCanUndo(false);
     } catch {
-      setActionError('That use could not be removed. Please try again.');
+      setActionError(t('purchases.undoUseError'));
     } finally {
       setIsBusy(false);
     }
@@ -78,14 +80,14 @@ export function UsageActionCard({
   return (
     <Card padding={theme.spacing.md}>
       <View style={{ flexDirection: 'row', alignItems: 'stretch' }}>
-        <MetricCell label="uses" value={formatNumber(totalUses)} />
+        <MetricCell label={t('purchases.usesMetric')} value={formatNumber(totalUses)} />
         <MetricDivider />
         <MetricCell
-          label="cost per use"
+          label={t('purchases.costPerUseMetric')}
           value={
             realCostPerUseCents == null ? (
               <AppText variant="metricSmall" color="tertiary">
-                —
+                {t('common.noValue')}
               </AppText>
             ) : (
               <MoneyValue
@@ -102,17 +104,17 @@ export function UsageActionCard({
 
       <View style={{ marginTop: theme.spacing.md, gap: theme.spacing.xs }}>
         <Button
-          label="I used it"
+          label={t('purchases.recordUse')}
           icon={Plus}
           onPress={handleUse}
           loading={isBusy && !canUndo}
           disabled={isBusy}
-          accessibilityHint="Records one use of this item"
+          accessibilityHint={t('purchases.recordUseHint')}
         />
 
         {canUndo ? (
           <Button
-            label="Undo last use"
+            label={t('purchases.undoLastUse')}
             icon={Undo2}
             variant="ghost"
             size="md"
@@ -140,7 +142,7 @@ export function UsageActionCard({
           align="center"
           style={{ marginTop: theme.spacing.xs }}
         >
-          {`Last used ${formatDateTime(lastUsedAt)}`}
+          {t('purchases.lastUsed', { date: formatDateTime(lastUsedAt) })}
         </AppText>
       ) : null}
 
@@ -151,7 +153,7 @@ export function UsageActionCard({
           align="center"
           style={{ marginTop: theme.spacing.xs }}
         >
-          Record a use each time you reach for it — that is what turns a price into a cost per use.
+          {t('purchases.usageDescription')}
         </AppText>
       ) : (
         <AppText
@@ -160,7 +162,7 @@ export function UsageActionCard({
           align="center"
           style={{ marginTop: theme.spacing.xxs }}
         >
-          {pluralize(totalUses, 'use')} recorded so far
+          {t('purchases.usesRecorded', { count: totalUses })}
         </AppText>
       )}
     </Card>

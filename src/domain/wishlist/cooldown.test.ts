@@ -3,12 +3,12 @@ import type { MonthlyFinances } from '@/domain/money/calculations';
 import {
   calculateCooldownEnd,
   calculateCooldownState,
-  formatCooldownRemaining,
-  formatCooldownRemainingShort,
+  cooldownRemaining,
   MAX_COOLDOWN_DAYS,
   MIN_COOLDOWN_DAYS,
   reviseCooldownForPrice,
   suggestCooldownDays,
+  type CooldownRationale,
 } from './cooldown';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -150,7 +150,7 @@ describe('calculateCooldownState', () => {
   });
 });
 
-describe('formatCooldownRemaining', () => {
+describe('cooldownRemaining', () => {
   const now = new Date('2026-08-13T12:00:00.000Z');
 
   const stateAt = (endOffsetDays: number) =>
@@ -163,18 +163,20 @@ describe('formatCooldownRemaining', () => {
       now,
     );
 
-  it('describes multiple days remaining', () => {
-    expect(formatCooldownRemaining(stateAt(6))).toBe('6 days remaining');
-    expect(formatCooldownRemainingShort(stateAt(6))).toBe('6 days left');
+  it('reports whole days while more than one is left', () => {
+    expect(cooldownRemaining(stateAt(6))).toEqual({ kind: 'days', days: 6 });
   });
 
   it('switches to hours on the final day', () => {
-    expect(formatCooldownRemaining(stateAt(0.25))).toBe('6 hours remaining');
+    expect(cooldownRemaining(stateAt(0.25))).toEqual({ kind: 'hours', hours: 6 });
   });
 
-  it('states plainly when the period is over', () => {
-    expect(formatCooldownRemaining(stateAt(-1))).toBe('Reflection period complete');
-    expect(formatCooldownRemainingShort(stateAt(-1))).toBe('Ready to decide');
+  it('collapses the last hour into its own case, so nothing reads as zero', () => {
+    expect(cooldownRemaining(stateAt(1 / 48))).toEqual({ kind: 'under_an_hour' });
+  });
+
+  it('reports completion once the period is over', () => {
+    expect(cooldownRemaining(stateAt(-1))).toEqual({ kind: 'complete' });
   });
 });
 
@@ -216,13 +218,22 @@ describe('suggestCooldownDays', () => {
 
     expect(suggestCooldownDays(1_000, withoutIncome).days).toBe(1);
     expect(suggestCooldownDays(179_900, withoutIncome).days).toBe(30);
-    expect(suggestCooldownDays(1_000, withoutIncome).rationale).toContain('no income is set');
+    expect(suggestCooldownDays(1_000, withoutIncome).rationale).toBe('price_only');
   });
 
   it('always explains itself and always returns a supported period', () => {
+    const known: readonly CooldownRationale[] = [
+      'small_share',
+      'under_a_fifth',
+      'noticeable_share',
+      'about_a_month',
+      'over_a_month',
+      'price_only',
+    ];
+
     for (const price of [0, 500, 5_000, 50_000, 500_000, 5_000_000]) {
       const suggestion = suggestCooldownDays(price, finances);
-      expect(suggestion.rationale.length).toBeGreaterThan(0);
+      expect(known).toContain(suggestion.rationale);
       expect(suggestion.days).toBeGreaterThanOrEqual(MIN_COOLDOWN_DAYS);
       expect(suggestion.days).toBeLessThanOrEqual(MAX_COOLDOWN_DAYS);
     }

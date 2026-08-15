@@ -99,10 +99,27 @@ export function calculateCooldownEnd(
   };
 }
 
+/**
+ * Why a period was suggested. A value, not a sentence: the domain decides which
+ * of these applies, the UI decides how to say it and in which language.
+ */
+export type CooldownRationale =
+  /** Under a twentieth of the money available this month. */
+  | 'small_share'
+  /** Under a fifth of it. */
+  | 'under_a_fifth'
+  /** Under three fifths of it. */
+  | 'noticeable_share'
+  /** Around one month of it. */
+  | 'about_a_month'
+  /** More than one month of it. */
+  | 'over_a_month'
+  /** No income is set, so the period comes from the price alone. */
+  | 'price_only';
+
 export type CooldownSuggestion = {
   days: number;
-  /** Plain-language explanation of how the number was reached. */
-  rationale: string;
+  rationale: CooldownRationale;
 };
 
 /**
@@ -123,25 +140,18 @@ export function suggestCooldownDays(
   const available = finances?.availableAfterCommitmentsCents ?? 0;
   if (finances?.isIncomeConfigured && available > 0) {
     const ratio = price / available;
-    if (ratio < 0.05)
-      return { days: 1, rationale: 'Small compared to your monthly available amount.' };
-    if (ratio < 0.2)
-      return { days: 3, rationale: 'Under a fifth of your monthly available amount.' };
-    if (ratio < 0.6)
-      return { days: 7, rationale: 'A noticeable share of your monthly available amount.' };
-    if (ratio < 1.5) return { days: 14, rationale: 'Around a month of your available amount.' };
-    return { days: 30, rationale: 'More than a month of your available amount.' };
+    if (ratio < 0.05) return { days: 1, rationale: 'small_share' };
+    if (ratio < 0.2) return { days: 3, rationale: 'under_a_fifth' };
+    if (ratio < 0.6) return { days: 7, rationale: 'noticeable_share' };
+    if (ratio < 1.5) return { days: 14, rationale: 'about_a_month' };
+    return { days: 30, rationale: 'over_a_month' };
   }
 
-  if (price < 5_000)
-    return { days: 1, rationale: 'Based on the price, since no income is set yet.' };
-  if (price < 15_000)
-    return { days: 3, rationale: 'Based on the price, since no income is set yet.' };
-  if (price < 50_000)
-    return { days: 7, rationale: 'Based on the price, since no income is set yet.' };
-  if (price < 150_000)
-    return { days: 14, rationale: 'Based on the price, since no income is set yet.' };
-  return { days: 30, rationale: 'Based on the price, since no income is set yet.' };
+  if (price < 5_000) return { days: 1, rationale: 'price_only' };
+  if (price < 15_000) return { days: 3, rationale: 'price_only' };
+  if (price < 50_000) return { days: 7, rationale: 'price_only' };
+  if (price < 150_000) return { days: 14, rationale: 'price_only' };
+  return { days: 30, rationale: 'price_only' };
 }
 
 export type CooldownRevision = {
@@ -212,20 +222,25 @@ export function reviseCooldownForPrice(
   };
 }
 
-/** `6 days remaining` / `4 hours remaining` / `Reflection period complete`. */
-export function formatCooldownRemaining(state: CooldownState): string {
-  if (state.isComplete) return 'Reflection period complete';
+/**
+ * How much of a reflection period is left, as the four cases the UI has to say
+ * differently — complete, under an hour, a number of hours, a number of days.
+ *
+ * A discriminated union rather than a sentence: rendering it is the UI's job,
+ * and "6 days remaining" needs a plural rule the domain has no business owning.
+ */
+export type CooldownRemaining =
+  | { kind: 'complete' }
+  | { kind: 'under_an_hour' }
+  | { kind: 'hours'; hours: number }
+  | { kind: 'days'; days: number };
+
+export function cooldownRemaining(state: CooldownState): CooldownRemaining {
+  if (state.isComplete) return { kind: 'complete' };
   if (state.daysRemaining <= 1) {
     return state.hoursRemaining <= 1
-      ? 'Less than an hour remaining'
-      : `${state.hoursRemaining} hours remaining`;
+      ? { kind: 'under_an_hour' }
+      : { kind: 'hours', hours: state.hoursRemaining };
   }
-  return `${state.daysRemaining} days remaining`;
-}
-
-/** Compact form for list rows: `6 days left`. */
-export function formatCooldownRemainingShort(state: CooldownState): string {
-  if (state.isComplete) return 'Ready to decide';
-  if (state.daysRemaining <= 1) return `${Math.max(state.hoursRemaining, 1)}h left`;
-  return `${state.daysRemaining} days left`;
+  return { kind: 'days', days: state.daysRemaining };
 }

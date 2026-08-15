@@ -9,15 +9,15 @@ import {
 
 import type { IsoDate, IsoTimestamp } from '@/types/domain';
 
-import { formatNumber, getLocale } from './currency';
+import { getLocale } from './locale';
 
 /**
  * All date arithmetic and formatting for ThinkTwice.
  *
  * Storage is always an ISO-8601 UTC timestamp (or a `YYYY-MM-DD` calendar date
  * where a time would be meaningless). Nothing preformatted is ever persisted:
- * a value stored today must still format correctly if the user changes their
- * device locale tomorrow.
+ * a value stored today must still format correctly if the user changes the
+ * app's language tomorrow.
  *
  * `date-fns` handles calendar arithmetic (month lengths, DST); `Intl` handles
  * presentation.
@@ -123,41 +123,5 @@ export function formatDateTime(value: string | Date | null | undefined): string 
   }
 }
 
-/**
- * A duration in whole months, rendered the way people say it:
- * `3 days`, `2 weeks`, `8 months`, `1 year`, `2 years 3 months`.
- */
-export function formatDuration(totalMonths: number, totalDays: number): string {
-  if (!Number.isFinite(totalDays) || totalDays < 0) return '—';
-
-  if (totalMonths < 1) {
-    if (totalDays < 1) return 'today';
-    if (totalDays < 14) return pluralize(totalDays, 'day');
-    return pluralize(Math.floor(totalDays / 7), 'week');
-  }
-
-  const years = Math.floor(totalMonths / 12);
-  const months = totalMonths % 12;
-
-  if (years === 0) return pluralize(months, 'month');
-  if (months === 0) return pluralize(years, 'year');
-  return `${pluralize(years, 'year')} ${pluralize(months, 'month')}`;
-}
-
-/** `5 years` / `18 months` — for an expected-ownership figure entered in months. */
-export function formatMonthsAsDuration(totalMonths: number): string {
-  if (!Number.isFinite(totalMonths) || totalMonths <= 0) return '—';
-  if (totalMonths % 12 === 0) return pluralize(totalMonths / 12, 'year');
-  if (totalMonths < 24) return pluralize(totalMonths, 'month');
-  const years = Math.floor(totalMonths / 12);
-  const months = totalMonths % 12;
-  return `${pluralize(years, 'year')} ${pluralize(months, 'month')}`;
-}
-
-export function pluralize(count: number, noun: string): string {
-  const rounded = Math.round(count);
-  // Through `formatNumber` so a count is grouped like every other number in the
-  // app — an item used daily for five years reads "1,820 uses", not "1820 uses" —
-  // and so a non-finite count renders as a dash instead of `NaN`.
-  return `${formatNumber(rounded)} ${noun}${rounded === 1 ? '' : 's'}`;
-}
+// Durations in words live in `src/i18n/format.ts`: which noun to use and how to
+// pluralise it is a property of the language, not of the calendar.

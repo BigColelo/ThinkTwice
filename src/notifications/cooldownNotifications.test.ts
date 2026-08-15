@@ -102,7 +102,6 @@ function item(overrides: Partial<WishlistItem> = {}): WishlistItem {
     cooldownStartedAt: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
     cooldownEndsAt: new Date(Date.now() + 6 * 24 * 60 * 60 * 1000).toISOString(),
     status: 'thinking',
-    reasonTags: [],
     notes: null,
     decidedAt: null,
     createdAt: '2026-08-06T09:00:00.000Z',

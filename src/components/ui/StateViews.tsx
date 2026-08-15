@@ -2,6 +2,7 @@ import { TriangleAlert } from 'lucide-react-native';
 import React from 'react';
 import { ActivityIndicator, View, type StyleProp, type ViewStyle } from 'react-native';
 
+import { useT } from '@/i18n';
 import { useTheme } from '@/theme';
 
 import { AppText } from './AppText';
@@ -13,17 +14,18 @@ import { Button } from './Button';
  */
 
 export function LoadingState({
-  label = 'Loading',
+  label,
   style,
 }: {
   label?: string;
   style?: StyleProp<ViewStyle>;
 }): React.ReactElement {
   const theme = useTheme();
+  const t = useT();
   return (
     <View
       accessibilityRole="progressbar"
-      accessibilityLabel={label}
+      accessibilityLabel={label ?? t('common.loading')}
       style={[{ paddingVertical: theme.spacing.xxl, alignItems: 'center' }, style]}
     >
       <ActivityIndicator color={theme.colors.accent.base} />
@@ -32,7 +34,7 @@ export function LoadingState({
 }
 
 export function ErrorState({
-  title = 'Something went wrong',
+  title,
   description,
   onRetry,
   style,
@@ -43,6 +45,7 @@ export function ErrorState({
   style?: StyleProp<ViewStyle>;
 }): React.ReactElement {
   const theme = useTheme();
+  const t = useT();
 
   return (
     <View
@@ -74,7 +77,7 @@ export function ErrorState({
       </View>
 
       <AppText variant="heading" align="center">
-        {title}
+        {title ?? t('common.somethingWentWrong')}
       </AppText>
       {description ? (
         <AppText
@@ -89,7 +92,7 @@ export function ErrorState({
 
       {onRetry ? (
         <Button
-          label="Try again"
+          label={t('common.tryAgain')}
           onPress={onRetry}
           variant="secondary"
           size="md"

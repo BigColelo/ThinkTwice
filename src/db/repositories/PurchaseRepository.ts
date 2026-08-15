@@ -27,12 +27,13 @@ export type PurchaseUpdate = Partial<NewPurchase>;
 export type PurchaseSort =
   'recent' | 'most_used' | 'lowest_cost_per_use' | 'highest_cost_per_use' | 'highest_price';
 
-export const PURCHASE_SORTS: readonly { id: PurchaseSort; label: string }[] = [
-  { id: 'recent', label: 'Recent' },
-  { id: 'most_used', label: 'Most used' },
-  { id: 'lowest_cost_per_use', label: 'Lowest cost/use' },
-  { id: 'highest_cost_per_use', label: 'Highest cost/use' },
-  { id: 'highest_price', label: 'Highest price' },
+/** The order the sorts are offered in. The UI supplies each one's label. */
+export const PURCHASE_SORTS: readonly PurchaseSort[] = [
+  'recent',
+  'most_used',
+  'lowest_cost_per_use',
+  'highest_cost_per_use',
+  'highest_price',
 ];
 
 /**

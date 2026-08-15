@@ -1,6 +1,7 @@
 import { Clock, Lightbulb, Receipt, type LucideIcon } from 'lucide-react-native';
 import React, { useRef, useState } from 'react';
 import {
+  I18nManager,
   Pressable,
   ScrollView,
   useWindowDimensions,
@@ -13,6 +14,7 @@ import { ThinkTwiceMark } from '@/components/brand/ThinkTwiceMark';
 import { AppText } from '@/components/ui/AppText';
 import { Button } from '@/components/ui/Button';
 import { Screen } from '@/components/ui/Screen';
+import { type TranslationKey, useT } from '@/i18n';
 import { useTheme } from '@/theme';
 import { clamp } from '@/utils/numbers';
 
@@ -26,26 +28,30 @@ import { clamp } from '@/utils/numbers';
  */
 
 type Slide = {
+  id: string;
   icon: LucideIcon;
-  title: string;
-  body: string;
+  titleKey: TranslationKey;
+  bodyKey: TranslationKey;
 };
 
 const SLIDES: readonly Slide[] = [
   {
+    id: 'first',
     icon: Lightbulb,
-    title: 'Buy better.\nLive better.',
-    body: 'ThinkTwice helps you understand the real impact of your purchases — before and after you make them.',
+    titleKey: 'onboarding.slides.first.title',
+    bodyKey: 'onboarding.slides.first.body',
   },
   {
+    id: 'second',
     icon: Clock,
-    title: 'Think before\nyou buy.',
-    body: 'Add what you are considering, see how it compares to your month, and give yourself a reflection period before deciding.',
+    titleKey: 'onboarding.slides.second.title',
+    bodyKey: 'onboarding.slides.second.body',
   },
   {
+    id: 'third',
     icon: Receipt,
-    title: 'Know the\nreal cost.',
-    body: 'Record each use with one tap. Over time, a price turns into something more useful: a cost per use.',
+    titleKey: 'onboarding.slides.third.title',
+    bodyKey: 'onboarding.slides.third.body',
   },
 ];
 
@@ -53,6 +59,7 @@ export const PAGER_TEST_ID = 'onboarding-pager';
 
 export function IntroCarousel({ onDone }: { onDone: () => void }): React.ReactElement {
   const theme = useTheme();
+  const t = useT();
   const { width } = useWindowDimensions();
   const scrollRef = useRef<ScrollView>(null);
 
@@ -66,16 +73,31 @@ export function IntroCarousel({ onDone }: { onDone: () => void }): React.ReactEl
     setIndex(next);
   };
 
+  /**
+   * The horizontal offset of a page.
+   *
+   * Under a right-to-left layout the first page sits at the far end of the
+   * content rather than at zero, so scrolling to `page * width` would jump to
+   * the wrong slide — and the offset a scroll reports counts back from there.
+   */
+  const offsetOf = (page: number): number =>
+    I18nManager.isRTL ? (SLIDES.length - 1 - page) * width : page * width;
+
+  const pageAt = (offset: number): number => {
+    const raw = Math.round(offset / width);
+    return clamp(I18nManager.isRTL ? SLIDES.length - 1 - raw : raw, 0, SLIDES.length - 1);
+  };
+
   const isLast = index === SLIDES.length - 1;
 
   const goTo = (next: number): void => {
-    scrollRef.current?.scrollTo({ x: next * width, animated: true });
+    scrollRef.current?.scrollTo({ x: offsetOf(next), animated: true });
     setPage(next);
   };
 
   const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>): void => {
     if (width <= 0) return;
-    const next = clamp(Math.round(event.nativeEvent.contentOffset.x / width), 0, SLIDES.length - 1);
+    const next = pageAt(event.nativeEvent.contentOffset.x);
     if (next !== indexRef.current) setPage(next);
   };
 
@@ -98,7 +120,7 @@ export function IntroCarousel({ onDone }: { onDone: () => void }): React.ReactEl
         // Fires on mount and on rotation, which is exactly when the offset has to
         // be re-derived from the page the user is on.
         onLayout={() =>
-          scrollRef.current?.scrollTo({ x: indexRef.current * width, animated: false })
+          scrollRef.current?.scrollTo({ x: offsetOf(indexRef.current), animated: false })
         }
         contentContainerStyle={{ flexGrow: 1 }}
         style={{ flex: 1 }}
@@ -108,7 +130,7 @@ export function IntroCarousel({ onDone }: { onDone: () => void }): React.ReactEl
 
           return (
             <View
-              key={slide.title}
+              key={slide.id}
               style={{
                 width,
                 justifyContent: 'center',
@@ -134,7 +156,7 @@ export function IntroCarousel({ onDone }: { onDone: () => void }): React.ReactEl
               </View>
 
               <AppText variant="display" align="center" style={{ marginTop: theme.spacing.lg }}>
-                {slide.title}
+                {t(slide.titleKey)}
               </AppText>
               <AppText
                 variant="body"
@@ -142,7 +164,7 @@ export function IntroCarousel({ onDone }: { onDone: () => void }): React.ReactEl
                 align="center"
                 style={{ marginTop: theme.spacing.sm, maxWidth: theme.sizes.readableTextWidth }}
               >
-                {slide.body}
+                {t(slide.bodyKey)}
               </AppText>
             </View>
           );
@@ -152,7 +174,10 @@ export function IntroCarousel({ onDone }: { onDone: () => void }): React.ReactEl
       <View style={{ paddingHorizontal: theme.screenPadding }}>
         <View
           accessibilityRole="progressbar"
-          accessibilityLabel={`Step ${index + 1} of ${SLIDES.length}`}
+          accessibilityLabel={t('onboarding.stepLabel', {
+            current: index + 1,
+            total: SLIDES.length,
+          })}
           accessibilityValue={{ min: 1, max: SLIDES.length, now: index + 1 }}
           style={{
             flexDirection: 'row',
@@ -163,7 +188,7 @@ export function IntroCarousel({ onDone }: { onDone: () => void }): React.ReactEl
         >
           {SLIDES.map((slide, dotIndex) => (
             <View
-              key={slide.title}
+              key={slide.id}
               style={{
                 width: dotIndex === index ? 20 : 6,
                 height: 6,
@@ -176,7 +201,7 @@ export function IntroCarousel({ onDone }: { onDone: () => void }): React.ReactEl
         </View>
 
         <Button
-          label={isLast ? 'Get started' : 'Continue'}
+          label={isLast ? t('onboarding.getStarted') : t('onboarding.continue')}
           onPress={isLast ? onDone : () => goTo(index + 1)}
         />
 
@@ -190,7 +215,7 @@ export function IntroCarousel({ onDone }: { onDone: () => void }): React.ReactEl
         ) : (
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel="Skip introduction"
+            accessibilityLabel={t('onboarding.skipLabel')}
             onPress={onDone}
             hitSlop={theme.spacing.sm}
             style={({ pressed }) => [
@@ -199,7 +224,7 @@ export function IntroCarousel({ onDone }: { onDone: () => void }): React.ReactEl
             ]}
           >
             <AppText variant="label" color="tertiary">
-              Skip
+              {t('onboarding.skip')}
             </AppText>
           </Pressable>
         )}

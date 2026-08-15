@@ -8,10 +8,10 @@ import { MoneyValue } from '@/components/ui/MoneyValue';
 import { MetricCell, MetricDivider } from '@/components/ui/StatCard';
 import { usageFrequencyShortLabel } from '@/constants/usagePresets';
 import { calculateEstimatedCostPerUse, calculateEstimatedUses } from '@/domain';
+import { formatMonthsAsDuration, useT } from '@/i18n';
 import { useTheme } from '@/theme';
 import type { Cents, UsageFrequencyId } from '@/types/domain';
 import { formatNumber } from '@/utils/currency';
-import { formatMonthsAsDuration } from '@/utils/dates';
 
 /**
  * Live estimate shown while filling in the wishlist form.
@@ -32,6 +32,7 @@ export function EstimatePreview({
   expectedOwnershipMonths: number | null;
 }): React.ReactElement {
   const theme = useTheme();
+  const t = useT();
 
   const estimatedUses = calculateEstimatedUses({
     frequency,
@@ -50,22 +51,22 @@ export function EstimatePreview({
           strokeWidth={theme.sizes.iconStrokeWidth}
         />
         <AppText variant="label" color="secondary">
-          Estimate
+          {t('wishlist.estimateTitle')}
         </AppText>
       </View>
 
       <View style={{ flexDirection: 'row', alignItems: 'stretch', marginTop: theme.spacing.sm }}>
         <MetricCell
-          label="estimated uses"
-          value={estimatedUses == null ? '—' : formatNumber(estimatedUses)}
+          label={t('wishlist.estimatedUses')}
+          value={estimatedUses == null ? t('common.noValue') : formatNumber(estimatedUses)}
         />
         <MetricDivider />
         <MetricCell
-          label="estimated cost / use"
+          label={t('wishlist.estimatedCostPerUse')}
           value={
             costPerUse == null ? (
               <AppText variant="metricSmall" color="tertiary">
-                —
+                {t('common.noValue')}
               </AppText>
             ) : (
               <MoneyValue
@@ -87,8 +88,11 @@ export function EstimatePreview({
         style={{ marginTop: theme.spacing.sm }}
       >
         {frequency && expectedOwnershipMonths
-          ? `${usageFrequencyShortLabel(frequency, customUsesPerMonth)} for ${formatMonthsAsDuration(expectedOwnershipMonths)}`
-          : 'Choose how often you expect to use it and for how long.'}
+          ? t('wishlist.estimateSummary', {
+              frequency: usageFrequencyShortLabel(t, frequency, customUsesPerMonth),
+              duration: formatMonthsAsDuration(t, expectedOwnershipMonths),
+            })
+          : t('wishlist.estimateHint')}
       </AppText>
     </Card>
   );

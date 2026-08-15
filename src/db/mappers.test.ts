@@ -8,8 +8,6 @@ import {
   mapRecurringCommitment,
   mapUsageEvent,
   mapWishlistItem,
-  parseReasonTags,
-  serializeReasonTags,
   type AppSettingsRow,
   type PurchaseExpenseRow,
   type PurchaseWithStatsRow,
@@ -34,6 +32,7 @@ function settingsRow(overrides: Partial<AppSettingsRow> = {}): AppSettingsRow {
   return {
     currency_code: 'EUR',
     theme_mode: 'system',
+    language: 'system',
     monthly_net_income_cents: 165_000,
     monthly_savings_target_cents: null,
     onboarding_completed: 1,
@@ -72,7 +71,6 @@ function wishlistRow(overrides: Partial<WishlistItemRow> = {}): WishlistItemRow 
     cooldown_started_at: '2026-08-06T09:00:00.000Z',
     cooldown_ends_at: CREATED_AT,
     status: 'thinking',
-    reason_tags: '["Hobby"]',
     notes: null,
     decided_at: null,
     created_at: CREATED_AT,
@@ -198,7 +196,6 @@ describe('mapWishlistItem', () => {
     expect(item.expectedUsageFrequency).toBe('several_times_week');
     expect(item.expectedOwnershipMonths).toBe(60);
     expect(item.status).toBe('thinking');
-    expect(item.reasonTags).toEqual(['Hobby']);
   });
 
   it('reads back every usage preset the app defines', () => {
@@ -244,14 +241,6 @@ describe('mapWishlistItem', () => {
 
     expect(item.expectedOwnershipMonths).toBe(12);
     expect(item.cooldownDays).toBe(7);
-  });
-
-  it('degrades malformed reason tags to none instead of throwing', () => {
-    expect(mapWishlistItem(wishlistRow({ reason_tags: 'not json' })).reasonTags).toEqual([]);
-    expect(mapWishlistItem(wishlistRow({ reason_tags: '{"a":1}' })).reasonTags).toEqual([]);
-    expect(mapWishlistItem(wishlistRow({ reason_tags: '["Hobby",7,null]' })).reasonTags).toEqual([
-      'Hobby',
-    ]);
   });
 });
 
@@ -343,19 +332,5 @@ describe('mapPurchaseExpense', () => {
 
   it('never lets a non-finite amount into the real-cost total', () => {
     expect(mapPurchaseExpense(expenseRow({ amount_cents: Number.NaN })).amountCents).toBe(0);
-  });
-});
-
-describe('reason tags', () => {
-  it('round-trip through storage unchanged', () => {
-    const tags = ['Hobby', 'Work'];
-
-    expect(parseReasonTags(serializeReasonTags(tags))).toEqual(tags);
-  });
-
-  it('reads an empty or absent value as no tags', () => {
-    expect(parseReasonTags(serializeReasonTags([]))).toEqual([]);
-    expect(parseReasonTags(null)).toEqual([]);
-    expect(parseReasonTags('')).toEqual([]);
   });
 });

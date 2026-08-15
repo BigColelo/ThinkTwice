@@ -33,15 +33,16 @@ comes from the manifest through it (`src/features/settings/appVersion.ts`).
 
 All first-party, all installed at the version Expo pins for SDK 57.
 
-| Package              | Used for                                                                | Platform notes                                                                                                      |
-| -------------------- | ----------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
-| `expo-sqlite`        | The entire local database. All persistent domain data.                  | iOS/Android natively; web via a WebAssembly build (see `metro.config.js`).                                          |
-| `expo-notifications` | Optional local reminders when a reflection period ends.                 | iOS, and Android in a development build. Isolated in `src/notifications`; a no-op on web and in Expo Go on Android. |
-| `expo-image`         | Rendering item photos, with caching and a transition.                   | All platforms.                                                                                                      |
-| `expo-image-picker`  | Choosing a photo for an item.                                           | All platforms; permissions requested contextually.                                                                  |
-| `expo-file-system`   | Copying a picked photo into app-owned storage so it survives a restart. | iOS/Android. Skipped on web, where the picked URL is used directly.                                                 |
-| `expo-splash-screen` | Holding the splash screen until the database has opened.                | iOS/Android.                                                                                                        |
-| `expo-haptics`       | A light tap when a use is recorded — the app's most repeated action.    | iOS/Android; guarded on web.                                                                                        |
+| Package              | Used for                                                                         | Platform notes                                                                                                      |
+| -------------------- | -------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| `expo-sqlite`        | The entire local database. All persistent domain data.                           | iOS/Android natively; web via a WebAssembly build (see `metro.config.js`).                                          |
+| `expo-notifications` | Optional local reminders when a reflection period ends.                          | iOS, and Android in a development build. Isolated in `src/notifications`; a no-op on web and in Expo Go on Android. |
+| `expo-image`         | Rendering item photos, with caching and a transition.                            | All platforms.                                                                                                      |
+| `expo-image-picker`  | Choosing a photo for an item.                                                    | All platforms; permissions requested contextually.                                                                  |
+| `expo-file-system`   | Copying a picked photo into app-owned storage so it survives a restart.          | iOS/Android. Skipped on web, where the picked URL is used directly.                                                 |
+| `expo-splash-screen` | Holding the splash screen until the database has opened.                         | iOS/Android.                                                                                                        |
+| `expo-haptics`       | A light tap when a use is recorded — the app's most repeated action.             | iOS/Android; guarded on web.                                                                                        |
+| `expo-localization`  | Reading the device's language, so the app opens in it before anything is chosen. | All platforms.                                                                                                      |
 
 **Why not implement these ourselves:** each one wraps a native platform API. There is no
 JavaScript-only equivalent, and reimplementing them would mean ejecting from the managed workflow.
@@ -119,7 +120,37 @@ also tree-shakeable, so only the handful of functions used are bundled.
 **Why not Moment.js:** deprecated, mutable, and far larger.
 
 **Note:** date _formatting_ does not use date-fns. Presentation goes through `Intl.DateTimeFormat`
-so it follows the device locale without bundling locale data.
+so it follows the locale of the chosen language without bundling locale data.
+
+**Platforms:** pure JavaScript, all three.
+
+---
+
+### `i18next`
+
+**Used for:** the six-language interface — key lookup, plural selection, interpolation and the
+fallback to English for a key a catalogue is missing.
+
+**Why required:** the plural rules. Italian, French and Spanish each resolve three plural
+categories and Arabic six, so "6 days remaining" cannot be built by appending an `s`, and the
+correct form depends on the count in ways that differ per language. `i18next` resolves them through
+`Intl.PluralRules`, which is the same table ICU uses.
+
+**Why not ourselves:** the lookup and interpolation would be a hundred lines; the plural resolution
+and the fallback chain would not, and both are places to be subtly wrong in a language the author
+does not read.
+
+**Why not `react-i18next`:** it was tried and removed. Its job is to subscribe components to
+i18next's `languageChanged` event, and that event fires synchronously — so switching language while
+the inner provider rendered called `setState` on the database gate mounted above it, which React
+refuses. `I18nProvider` hands `t` down through its own context instead, which is both the ordinary
+React data flow and one dependency fewer. See `src/i18n/I18nProvider.tsx`.
+
+**Note:** the catalogues are plain TypeScript objects in `src/i18n/locales`, bundled rather than
+fetched — the app has no network in its data path, so every language has to work in airplane mode.
+Formatting is _not_ delegated to i18next: `{{count, number}}` and `{{value, date}}` route back
+through the app's own `formatNumber` and `formatDate`, so `src/utils/currency.ts` stays the only
+module that turns a number into text.
 
 **Platforms:** pure JavaScript, all three.
 
@@ -168,6 +199,8 @@ Some things were deliberately not made into dependencies:
 - **Charts** (`src/components/charts`) — see `react-native-svg` above.
 - **App icons** (`scripts/generate-app-icons.js`) — generated from geometry so the repository
   contains no imported artwork and the icons can always be rebuilt.
-- **State management** — React Context for settings and theme, a small invalidation bus for
+- **Locale data** — the language-to-locale mapping is a six-entry table in `src/i18n/languages.ts`.
+  A locale-data package would bundle month names and number formats the platform already has.
+- **State management** — React Context for settings, theme and language, a small invalidation bus for
   database reads, and local state everywhere else. Redux or an equivalent would be infrastructure
   without a problem to solve at this size.

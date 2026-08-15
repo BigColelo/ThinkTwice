@@ -1,5 +1,7 @@
 import type { Cents, CurrencyCode } from '@/types/domain';
 
+import { getLocale } from './locale';
+
 /**
  * The single place where money becomes text, and where text becomes money.
  *
@@ -7,7 +9,7 @@ import type { Cents, CurrencyCode } from '@/types/domain';
  * - Storage and arithmetic use integer cents. Nothing in the app holds a
  *   floating-point euro amount.
  * - Presentation uses `Intl.NumberFormat` so grouping, decimal separators and
- *   symbol placement follow the device locale.
+ *   symbol placement follow the locale of the chosen language (`src/utils/locale`).
  */
 
 const MINOR_UNITS_PER_MAJOR = 100;
@@ -34,28 +36,8 @@ export const CURRENCY_LABELS: Record<CurrencyCode, string> = {
   CHF: 'Swiss franc (CHF)',
 };
 
-/**
- * Resolved once. `Intl` is available on Hermes and on web; the fallback keeps
- * the app usable on any runtime where locale resolution fails.
- */
-let cachedLocale: string | null = null;
-
-export function getLocale(): string {
-  if (cachedLocale) return cachedLocale;
-  try {
-    cachedLocale = new Intl.NumberFormat().resolvedOptions().locale || 'en-GB';
-  } catch {
-    cachedLocale = 'en-GB';
-  }
-  return cachedLocale;
-}
-
-/** Test seam — lets unit tests pin a locale instead of depending on the runner's. */
-export function setLocaleForTesting(locale: string | null): void {
-  cachedLocale = locale;
-  formatterCache.clear();
-}
-
+// `Intl` is available on Hermes and on web; every call below still falls back
+// to a hand-formatted figure so a runtime without full ICU stays usable.
 const formatterCache = new Map<string, Intl.NumberFormat>();
 
 function getFormatter(currency: CurrencyCode, minimumFractionDigits: number): Intl.NumberFormat {
@@ -145,15 +127,35 @@ export function formatMoneyCompact(cents: Cents, options: FormatMoneyOptions = {
   }
 }
 
-/** Returns just the currency symbol, for input adornments. */
-export function currencySymbol(currency: CurrencyCode = 'EUR'): string {
+/** Where the symbol sits relative to the amount in the active locale. */
+export type CurrencyAdornment = {
+  symbol: string;
+  /** `en-GB` writes `€17.99`, `it-IT` writes `17,99 €`. */
+  position: 'prefix' | 'suffix';
+};
+
+/**
+ * The currency symbol and the side it belongs on, for input adornments.
+ *
+ * The position is read from the locale rather than assumed: putting `€` in front
+ * of the amount is right in English and wrong in Italian, German, French and
+ * Spanish, where it follows the figure.
+ */
+export function currencyAdornment(currency: CurrencyCode = 'EUR'): CurrencyAdornment {
   try {
     const parts = new Intl.NumberFormat(getLocale(), { style: 'currency', currency }).formatToParts(
       0,
     );
-    return parts.find((part) => part.type === 'currency')?.value ?? currency;
+    const symbolIndex = parts.findIndex((part) => part.type === 'currency');
+    const numberIndex = parts.findIndex((part) => part.type === 'integer');
+
+    return {
+      symbol: parts[symbolIndex]?.value ?? currency,
+      position:
+        symbolIndex >= 0 && numberIndex >= 0 && symbolIndex > numberIndex ? 'suffix' : 'prefix',
+    };
   } catch {
-    return currency;
+    return { symbol: currency, position: 'prefix' };
   }
 }
 

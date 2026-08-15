@@ -2,6 +2,7 @@ import { isRunningInExpoGo } from 'expo';
 import type { NotificationResponse } from 'expo-notifications';
 import { Platform } from 'react-native';
 
+import { t } from '@/i18n';
 import type { WishlistItem } from '@/types/domain';
 import { parseIso } from '@/utils/dates';
 
@@ -100,7 +101,7 @@ export function configureNotificationHandling(): void {
     if (Platform.OS === 'android') {
       void notifications
         .setNotificationChannelAsync(CHANNEL_ID, {
-          name: 'Reflection reminders',
+          name: t('notifications.channelName'),
           importance: notifications.AndroidImportance.DEFAULT,
           lightColor: '#6D3FF3',
           vibrationPattern: [0, 200],
@@ -108,6 +109,24 @@ export function configureNotificationHandling(): void {
         .catch(() => undefined);
     }
   });
+}
+
+/** Re-applies the channel name in the current language. Android only; a no-op elsewhere. */
+async function renameNotificationChannel(): Promise<void> {
+  if (Platform.OS !== 'android') return;
+  const notifications = await loadNotifications();
+  if (!notifications) return;
+
+  try {
+    await notifications.setNotificationChannelAsync(CHANNEL_ID, {
+      name: t('notifications.channelName'),
+      importance: notifications.AndroidImportance.DEFAULT,
+      lightColor: '#6D3FF3',
+      vibrationPattern: [0, 200],
+    });
+  } catch {
+    // A channel that keeps its old name is not worth failing a language change.
+  }
 }
 
 /** The item a tapped reminder refers to. */
@@ -226,9 +245,9 @@ export async function scheduleCooldownReminder(
     await notifications.scheduleNotificationAsync({
       identifier: notificationIdFor(item.id),
       content: {
-        title: 'Time to decide',
+        title: t('notifications.cooldownTitle'),
         // Neutral by design: the reminder prompts a decision, it does not push one.
-        body: `Your reflection period for ${item.name} is over.`,
+        body: t('notifications.cooldownBody', { name: item.name }),
         data: { wishlistItemId: item.id },
         ...(Platform.OS === 'android' ? { channelId: CHANNEL_ID } : {}),
       },
@@ -269,12 +288,21 @@ export async function cancelAllCooldownReminders(): Promise<void> {
 
 /**
  * Re-schedules reminders for every item still in a reflection period.
- * Used after the user enables reminders, so existing items are covered too.
+ *
+ * Used after the user enables reminders, so existing items are covered too, and
+ * after a language change: a reminder's title and body are handed to the
+ * operating system when it is scheduled and never read again, so a period that
+ * runs for weeks would otherwise still fire in the previous language.
  */
 export async function rescheduleAllCooldownReminders(
   items: readonly Pick<WishlistItem, 'id' | 'name' | 'cooldownEndsAt' | 'status'>[],
 ): Promise<number> {
   if (!areLocalNotificationsSupported()) return 0;
+
+  // The Android channel name is set once at launch, so it carries the language
+  // the app started in. Setting it again with the same id renames the existing
+  // channel rather than creating a second one.
+  await renameNotificationChannel();
 
   await cancelAllCooldownReminders();
 

@@ -94,17 +94,3 @@ export function classifyImpact(availableRatio: number | null): ImpactLevel {
   if (availableRatio <= IMPACT_MODERATE_MAX_RATIO) return 'moderate';
   return 'high';
 }
-
-/** Neutral, non-judgemental label for an impact level. */
-export function impactLevelLabel(level: ImpactLevel): string {
-  switch (level) {
-    case 'low':
-      return 'Low';
-    case 'moderate':
-      return 'Moderate';
-    case 'high':
-      return 'High';
-    case 'unknown':
-      return 'Not available';
-  }
-}

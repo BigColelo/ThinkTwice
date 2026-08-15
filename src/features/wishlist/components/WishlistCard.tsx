@@ -7,7 +7,9 @@ import { PressableCard } from '@/components/ui/Card';
 import { MoneyValue } from '@/components/ui/MoneyValue';
 import { Thumbnail } from '@/components/ui/Thumbnail';
 import { getPurchaseCategory } from '@/constants/categories';
-import { calculateCooldownState, formatCooldownRemainingShort } from '@/domain';
+import { calculateCooldownState, cooldownRemaining } from '@/domain';
+import { cooldownRemainingShortText } from '@/features/wishlist/cooldownText';
+import { useT } from '@/i18n';
 import { useTheme } from '@/theme';
 import type { WishlistItem } from '@/types/domain';
 
@@ -24,16 +26,17 @@ export function WishlistCard({
   onPress: () => void;
 }): React.ReactElement {
   const theme = useTheme();
+  const t = useT();
   const category = getPurchaseCategory(item.categoryId);
   const cooldown = calculateCooldownState(item);
-  const remaining = formatCooldownRemainingShort(cooldown);
+  const remaining = cooldownRemainingShortText(t, cooldownRemaining(cooldown));
 
   return (
     <PressableCard
       onPress={onPress}
       padding={theme.spacing.sm}
-      accessibilityLabel={`${item.name}, ${remaining}`}
-      accessibilityHint="Opens this item"
+      accessibilityLabel={`${item.name}${t('common.listSeparator')}${remaining}`}
+      accessibilityHint={t('wishlist.openItemHint')}
     >
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing.sm }}>
         <Thumbnail

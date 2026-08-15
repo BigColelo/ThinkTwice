@@ -4,11 +4,8 @@ import {
   calendarDaysBetween,
   calendarMonthsBetween,
   formatDate,
-  formatDuration,
-  formatMonthsAsDuration,
   parseIso,
   parseIsoDate,
-  pluralize,
   toIsoDate,
 } from './dates';
 
@@ -64,48 +61,6 @@ describe('calendar arithmetic', () => {
   });
 });
 
-describe('formatDuration', () => {
-  it('describes a short period in days', () => {
-    expect(formatDuration(0, 3)).toBe('3 days');
-    expect(formatDuration(0, 1)).toBe('1 day');
-    expect(formatDuration(0, 0)).toBe('today');
-  });
-
-  it('switches to weeks between two weeks and a month', () => {
-    expect(formatDuration(0, 20)).toBe('2 weeks');
-  });
-
-  it('describes months and years', () => {
-    expect(formatDuration(8, 240)).toBe('8 months');
-    expect(formatDuration(12, 365)).toBe('1 year');
-    expect(formatDuration(27, 830)).toBe('2 years 3 months');
-  });
-
-  it('returns a placeholder for an impossible duration', () => {
-    expect(formatDuration(0, -5)).toBe('—');
-  });
-});
-
-describe('formatMonthsAsDuration', () => {
-  it('prefers years when the duration divides evenly', () => {
-    expect(formatMonthsAsDuration(60)).toBe('5 years');
-    expect(formatMonthsAsDuration(12)).toBe('1 year');
-  });
-
-  it('uses months below two years', () => {
-    expect(formatMonthsAsDuration(18)).toBe('18 months');
-  });
-
-  it('combines years and months above two years', () => {
-    expect(formatMonthsAsDuration(27)).toBe('2 years 3 months');
-  });
-
-  it('returns a placeholder for a non-positive duration', () => {
-    expect(formatMonthsAsDuration(0)).toBe('—');
-    expect(formatMonthsAsDuration(Number.NaN)).toBe('—');
-  });
-});
-
 describe('formatDate', () => {
   it('formats a calendar date for display', () => {
     expect(formatDate('2026-08-13')).toBe('13 Aug 2026');
@@ -114,23 +69,5 @@ describe('formatDate', () => {
   it('shows a placeholder rather than "Invalid Date"', () => {
     expect(formatDate('nonsense')).toBe('—');
     expect(formatDate(null)).toBe('—');
-  });
-});
-
-describe('pluralize', () => {
-  it('pluralises everything except one', () => {
-    expect(pluralize(1, 'use')).toBe('1 use');
-    expect(pluralize(0, 'use')).toBe('0 uses');
-    expect(pluralize(58, 'use')).toBe('58 uses');
-  });
-
-  it('groups a large count like every other number in the app', () => {
-    // Daily use over five years. "1820 uses" would be the only ungrouped
-    // thousands figure on screen.
-    expect(pluralize(1_820, 'use')).toBe('1,820 uses');
-  });
-
-  it('renders a dash rather than NaN for a count it cannot use', () => {
-    expect(pluralize(Number.NaN, 'use')).toBe('— uses');
   });
 });

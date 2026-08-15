@@ -15,6 +15,9 @@ buy. It gives you three things at three moments:
 
 Every figure is presented neutrally. There is no "you can afford this" and no "bad purchase".
 
+It ships in six languages — English, Italiano, Deutsch, Français, Español, العربية — and the one you
+choose drives the dates, amounts and number formats as well as the words.
+
 ---
 
 ## Independence
@@ -125,7 +128,15 @@ deliberately does not build any of it.
 
 Money is always an integer number of minor units (cents), never a float. Fields are suffixed
 `Cents`. Formatting and parsing live in `src/utils/currency.ts` and nowhere else; presentation goes
-through `Intl.NumberFormat`, so grouping and separators follow the device locale.
+through `Intl.NumberFormat`, so grouping, separators and the side the symbol sits on all follow the
+locale of the chosen language — `€1,650` in English, `1.650 €` in German.
+
+### Language
+
+Six languages, chosen in Settings or inherited from the device. The choice drives the copy and every
+`Intl` format together, so a screen is never half translated. Catalogues are plain TypeScript objects
+in `src/i18n/locales`, bundled rather than fetched, because the app has to work in airplane mode.
+Arabic is laid out right to left, which React Native applies on the next launch.
 
 ### Time
 
@@ -161,6 +172,7 @@ src/
     brand/              the ThinkTwice mark
   features/             per-feature components, hooks, schemas, services
   domain/               pure calculations (money, recurring, wishlist, purchase, insights)
+  i18n/                 the six catalogues, the provider, locale mapping and RTL
   db/                   database, migrations, repositories, mappers
   notifications/        local cooldown reminders, behind an adapter
   theme/                tokens and ThemeProvider

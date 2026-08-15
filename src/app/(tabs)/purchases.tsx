@@ -11,6 +11,7 @@ import { ErrorState, LoadingState } from '@/components/ui/StateViews';
 import { PURCHASE_SORTS, type PurchaseSort } from '@/db/repositories';
 import { PurchaseCard } from '@/features/purchases/components/PurchaseCard';
 import { usePurchases } from '@/features/purchases/hooks/usePurchases';
+import { useT } from '@/i18n';
 import { useTheme } from '@/theme';
 import type { PurchaseWithStats } from '@/types/domain';
 
@@ -20,6 +21,7 @@ import type { PurchaseWithStats } from '@/types/domain';
  */
 export default function PurchasesScreen(): React.ReactElement {
   const theme = useTheme();
+  const t = useT();
   const router = useRouter();
   const [sort, setSort] = useState<PurchaseSort>('recent');
 
@@ -37,11 +39,11 @@ export default function PurchasesScreen(): React.ReactElement {
 
   return (
     <>
-      <ScreenHeader title="Purchases" />
+      <ScreenHeader title={t('purchases.listTitle')} />
 
       {error ? (
         <Screen scroll edgeBottom={false}>
-          <ErrorState description="Your purchases could not be read." onRetry={refetch} />
+          <ErrorState description={t('purchases.listError')} onRetry={refetch} />
         </Screen>
       ) : isLoading ? (
         <Screen>
@@ -51,9 +53,12 @@ export default function PurchasesScreen(): React.ReactElement {
         <Screen scroll edgeBottom={false}>
           <EmptyState
             icon={ShoppingBag}
-            title="Nothing tracked yet"
-            description="Add something you own to start recording uses and see what it really costs."
-            action={{ label: 'Add a purchase', onPress: () => router.push('/add/purchase') }}
+            title={t('purchases.emptyTitle')}
+            description={t('purchases.emptyDescription')}
+            action={{
+              label: t('purchases.emptyAction'),
+              onPress: () => router.push('/add/purchase'),
+            }}
           />
         </Screen>
       ) : (
@@ -87,6 +92,7 @@ function SortBar({
   count: number;
 }): React.ReactElement {
   const theme = useTheme();
+  const t = useT();
 
   // Sorting only becomes useful once there is something to reorder.
   if (count < 2) return <View style={{ height: theme.spacing.xs }} />;
@@ -94,7 +100,7 @@ function SortBar({
   return (
     <View
       accessibilityRole="radiogroup"
-      accessibilityLabel="Sort purchases"
+      accessibilityLabel={t('purchases.sort.label')}
       style={{
         flexDirection: 'row',
         flexWrap: 'wrap',
@@ -104,11 +110,11 @@ function SortBar({
     >
       {PURCHASE_SORTS.map((option) => (
         <Chip
-          key={option.id}
-          label={option.label}
+          key={option}
+          label={t(`purchases.sort.${option}`)}
           size="sm"
-          selected={option.id === sort}
-          onPress={() => onChange(option.id)}
+          selected={option === sort}
+          onPress={() => onChange(option)}
         />
       ))}
     </View>

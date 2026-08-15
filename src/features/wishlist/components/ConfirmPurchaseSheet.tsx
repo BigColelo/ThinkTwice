@@ -1,5 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { Modal, Pressable, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -9,11 +9,12 @@ import { Button } from '@/components/ui/Button';
 import { DateField } from '@/components/ui/DateField';
 import { MoneyField } from '@/components/ui/MoneyField';
 import {
-  confirmedPurchaseSchema,
+  buildConfirmedPurchaseSchema,
   type ConfirmedPurchaseFormInput,
   type ConfirmedPurchaseFormValues,
 } from '@/features/purchases/schemas/purchaseSchema';
 import type { ConvertToPurchaseOptions } from '@/features/wishlist/services/wishlistActions';
+import { useT } from '@/i18n';
 import { useTheme } from '@/theme';
 import type { WishlistItem } from '@/types/domain';
 import { todayIsoDate } from '@/utils/dates';
@@ -44,17 +45,21 @@ export function ConfirmPurchaseSheet({
   onConfirm: (options: Required<ConvertToPurchaseOptions>) => Promise<void>;
 }): React.ReactElement {
   const theme = useTheme();
+  const t = useT();
   const insets = useSafeAreaInsets();
 
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+
+  // Rebuilt when the language changes: the messages it carries are copy.
+  const schema = useMemo(() => buildConfirmedPurchaseSchema(t), [t]);
 
   const { control, handleSubmit, reset } = useForm<
     ConfirmedPurchaseFormInput,
     unknown,
     ConfirmedPurchaseFormValues
   >({
-    resolver: zodResolver(confirmedPurchaseSchema),
+    resolver: zodResolver(schema),
     mode: 'onTouched',
     defaultValues: {
       purchaseDate: todayIsoDate(),
@@ -77,7 +82,7 @@ export function ConfirmPurchaseSheet({
         actualPriceCents: values.purchasePriceCents,
       });
     } catch {
-      setSaveError('This could not be saved. Please try again.');
+      setSaveError(t('wishlist.confirmPurchase.saveError'));
     } finally {
       setIsSaving(false);
     }
@@ -94,7 +99,7 @@ export function ConfirmPurchaseSheet({
       <View style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: theme.colors.scrim }}>
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="Close"
+          accessibilityLabel={t('common.close')}
           onPress={close}
           style={{ flex: 1 }}
         />
@@ -129,10 +134,10 @@ export function ConfirmPurchaseSheet({
             keyboardShouldPersistTaps="handled"
           >
             <AppText variant="title" accessibilityRole="header">
-              Add to your purchases
+              {t('wishlist.confirmPurchase.title')}
             </AppText>
             <AppText variant="caption" color="secondary">
-              {`${item.name} moves to your purchases, where you can track how much you use it. Its cost per use is worked out from what you actually paid.`}
+              {t('wishlist.confirmPurchase.description', { name: item.name })}
             </AppText>
 
             <Controller
@@ -140,9 +145,9 @@ export function ConfirmPurchaseSheet({
               name="purchasePriceCents"
               render={({ field, fieldState }) => (
                 <MoneyField
-                  label="What you paid"
+                  label={t('wishlist.confirmPurchase.priceLabel')}
                   required
-                  hint="Prefilled with the price you were considering. Change it if you paid something else."
+                  hint={t('wishlist.confirmPurchase.priceHint')}
                   valueCents={field.value}
                   onChangeCents={field.onChange}
                   error={fieldState.error?.message}
@@ -155,12 +160,12 @@ export function ConfirmPurchaseSheet({
               name="purchaseDate"
               render={({ field, fieldState }) => (
                 <DateField
-                  label="When did you buy it?"
+                  label={t('wishlist.confirmPurchase.dateLabel')}
                   required
                   value={field.value}
                   onChange={field.onChange}
                   error={fieldState.error?.message}
-                  hint="Used to work out how long you have owned it."
+                  hint={t('wishlist.confirmPurchase.dateHint')}
                 />
               )}
             />
@@ -173,14 +178,14 @@ export function ConfirmPurchaseSheet({
 
             <View style={{ flexDirection: 'row', gap: theme.spacing.sm }}>
               <Button
-                label="Cancel"
+                label={t('common.cancel')}
                 variant="secondary"
                 onPress={close}
                 style={{ flex: 1 }}
                 disabled={isSaving}
               />
               <Button
-                label="I bought it"
+                label={t('wishlist.iBoughtIt')}
                 onPress={onSubmit}
                 loading={isSaving}
                 style={{ flex: 1 }}

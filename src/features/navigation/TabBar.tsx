@@ -6,6 +6,7 @@ import { Platform, Pressable, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AppText } from '@/components/ui/AppText';
+import { type TranslationKey, useT } from '@/i18n';
 import { useTheme } from '@/theme';
 
 /**
@@ -22,19 +23,20 @@ const TAB_BAR_HEIGHT = 56;
 
 type TabDefinition = {
   name: string;
-  label: string;
+  labelKey: TranslationKey;
   icon: LucideIcon;
 };
 
 const TABS: readonly TabDefinition[] = [
-  { name: 'index', label: 'Home', icon: House },
-  { name: 'money', label: 'Money', icon: Wallet },
-  { name: 'purchases', label: 'Purchases', icon: ShoppingBag },
-  { name: 'insights', label: 'Insights', icon: ChartPie },
+  { name: 'index', labelKey: 'navigation.home', icon: House },
+  { name: 'money', labelKey: 'navigation.money', icon: Wallet },
+  { name: 'purchases', labelKey: 'navigation.purchases', icon: ShoppingBag },
+  { name: 'insights', labelKey: 'navigation.insights', icon: ChartPie },
 ];
 
 export function TabBar({ state, navigation }: BottomTabBarProps): React.ReactElement {
   const theme = useTheme();
+  const t = useT();
   const insets = useSafeAreaInsets();
   const router = useRouter();
 
@@ -50,7 +52,7 @@ export function TabBar({ state, navigation }: BottomTabBarProps): React.ReactEle
         key={tab.name}
         accessibilityRole="tab"
         accessibilityState={{ selected: isFocused }}
-        accessibilityLabel={tab.label}
+        accessibilityLabel={t(tab.labelKey)}
         onPress={() => {
           const event = navigation.emit({
             type: 'tabPress',
@@ -71,7 +73,7 @@ export function TabBar({ state, navigation }: BottomTabBarProps): React.ReactEle
       >
         <Icon size={theme.sizes.icon.md} color={color} strokeWidth={isFocused ? 2.4 : 2} />
         <AppText variant="caption" style={{ color, fontSize: 10, lineHeight: 13 }}>
-          {tab.label}
+          {t(tab.labelKey)}
         </AppText>
       </Pressable>
     );
@@ -96,8 +98,8 @@ export function TabBar({ state, navigation }: BottomTabBarProps): React.ReactEle
       <View style={{ width: 68, alignItems: 'center', justifyContent: 'center' }}>
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="Add an item"
-          accessibilityHint="Opens the flow to add something you want to buy or already own"
+          accessibilityLabel={t('navigation.add')}
+          accessibilityHint={t('navigation.addHint')}
           onPress={() => router.push('/add')}
           style={({ pressed }) => [
             {

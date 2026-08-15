@@ -1,3 +1,5 @@
+import { applyLanguage, SUPPORTED_LANGUAGES } from '@/i18n';
+
 import {
   centsToInputString,
   formatMoney,
@@ -5,8 +7,8 @@ import {
   formatNumber,
   formatPercent,
   parseMoneyInput,
-  setLocaleForTesting,
 } from './currency';
+import { setActiveLocale } from './locale';
 
 describe('formatMoney', () => {
   it('hides decimals on round amounts and shows them otherwise', () => {
@@ -44,8 +46,8 @@ describe('formatMoney', () => {
     expect(formatMoney(1_799, { currency: 'GBP' })).toBe('£17.99');
   });
 
-  it('follows the device locale', () => {
-    setLocaleForTesting('de-DE');
+  it('follows the active locale', () => {
+    setActiveLocale('de-DE');
     // Locale output uses a non-breaking space before the symbol; normalise it so
     // the assertion is about grouping and separators, not about whitespace bytes.
     const normalise = (value: string): string => value.replace(/\s/g, ' ');
@@ -115,6 +117,22 @@ describe('parseMoneyInput', () => {
     for (const cents of [0, 5, 99, 1_799, 165_000, 1_234_56]) {
       expect(parseMoneyInput(centsToInputString(cents))).toBe(cents);
     }
+  });
+
+  it('round-trips in every language the app ships', () => {
+    // What a money field does on blur: format the stored cents into text, parse
+    // the text back. If a locale emits a decimal separator or a digit the parser
+    // does not read, the field clears itself and the amount is silently lost —
+    // which is exactly what `ar` does unless its numbering system is pinned to
+    // Latin digits.
+    for (const language of SUPPORTED_LANGUAGES) {
+      applyLanguage(language);
+      for (const cents of [1, 99, 1_799, 165_000, 1_234_56]) {
+        expect([language, parseMoneyInput(centsToInputString(cents))]).toEqual([language, cents]);
+      }
+    }
+
+    applyLanguage('en');
   });
 });
 

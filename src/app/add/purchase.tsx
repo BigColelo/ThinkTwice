@@ -7,6 +7,7 @@ import type { NewPurchase } from '@/db/repositories';
 import { useGoBack } from '@/features/navigation/useGoBack';
 import { OwnedPurchaseForm } from '@/features/purchases/components/OwnedPurchaseForm';
 import { createOwnedPurchase } from '@/features/purchases/services/purchaseActions';
+import { useT } from '@/i18n';
 
 /**
  * "Something I already own." The fields live in `OwnedPurchaseForm`, which the
@@ -14,6 +15,7 @@ import { createOwnedPurchase } from '@/features/purchases/services/purchaseActio
  */
 export default function AddOwnedPurchaseScreen(): React.ReactElement {
   const router = useRouter();
+  const t = useT();
   const goBack = useGoBack('/');
   const repositories = useRepositories();
 
@@ -28,8 +30,8 @@ export default function AddOwnedPurchaseScreen(): React.ReactElement {
 
   return (
     <>
-      <ScreenHeader title="Something I already own" onBack={goBack} />
-      <OwnedPurchaseForm submitLabel="Add purchase" onSubmit={handleSubmit} />
+      <ScreenHeader title={t('add.alreadyOwn')} onBack={goBack} />
+      <OwnedPurchaseForm submitLabel={t('add.addPurchase')} onSubmit={handleSubmit} />
     </>
   );
 }

@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/Button';
 import { MoneyField } from '@/components/ui/MoneyField';
 import { Screen } from '@/components/ui/Screen';
 import { useSettings } from '@/features/settings/SettingsProvider';
+import { useT } from '@/i18n';
 import { useTheme } from '@/theme';
 import type { Cents } from '@/types/domain';
 
@@ -16,6 +17,7 @@ import type { Cents } from '@/types/domain';
  */
 export function IncomeSetupStep({ onBack }: { onBack: () => void }): React.ReactElement {
   const theme = useTheme();
+  const t = useT();
   const router = useRouter();
   const { updateSettings } = useSettings();
 
@@ -33,7 +35,7 @@ export function IncomeSetupStep({ onBack }: { onBack: () => void }): React.React
       });
       router.replace('/');
     } catch {
-      setSaveError('Your setup could not be saved. Please try again.');
+      setSaveError(t('onboarding.saveError'));
       setIsSaving(false);
     }
   };
@@ -41,17 +43,16 @@ export function IncomeSetupStep({ onBack }: { onBack: () => void }): React.React
   return (
     <Screen scroll avoidKeyboard>
       <AppText variant="display" style={{ marginTop: theme.spacing.xl }}>
-        One number to start
+        {t('onboarding.incomeTitle')}
       </AppText>
       <AppText variant="body" color="secondary" style={{ marginTop: theme.spacing.sm }}>
-        Your monthly net income is what lets ThinkTwice put a price in context. You can add it later
-        instead, and add your recurring commitments whenever you like.
+        {t('onboarding.incomeBody')}
       </AppText>
 
       <View style={{ marginTop: theme.spacing.xxl, gap: theme.spacing.md }}>
         <MoneyField
-          label="Monthly net income"
-          hint="What actually reaches your account each month."
+          label={t('onboarding.incomeLabel')}
+          hint={t('onboarding.incomeHint')}
           valueCents={incomeCents}
           onChangeCents={setIncomeCents}
         />
@@ -63,19 +64,25 @@ export function IncomeSetupStep({ onBack }: { onBack: () => void }): React.React
         ) : null}
 
         <Button
-          label="Continue"
+          label={t('onboarding.continue')}
           onPress={() => finish(true)}
           loading={isSaving}
           disabled={incomeCents == null}
         />
         <Button
-          label="Skip for now"
+          label={t('onboarding.skipForNow')}
           variant="ghost"
           size="md"
           onPress={() => finish(false)}
           disabled={isSaving}
         />
-        <Button label="Back" variant="ghost" size="sm" onPress={onBack} disabled={isSaving} />
+        <Button
+          label={t('onboarding.back')}
+          variant="ghost"
+          size="sm"
+          onPress={onBack}
+          disabled={isSaving}
+        />
       </View>
     </Screen>
   );

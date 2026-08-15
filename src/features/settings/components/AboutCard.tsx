@@ -5,6 +5,7 @@ import { View } from 'react-native';
 import { AppText } from '@/components/ui/AppText';
 import { Card } from '@/components/ui/Card';
 import { IconTile } from '@/components/ui/IconTile';
+import { useT } from '@/i18n';
 import { useTheme } from '@/theme';
 
 /**
@@ -16,21 +17,21 @@ import { useTheme } from '@/theme';
 
 export function AboutCard({ version }: { version: string | null }): React.ReactElement {
   const theme = useTheme();
+  const t = useT();
 
   return (
     <Card padding={theme.spacing.md}>
       <View style={{ flexDirection: 'row', gap: theme.spacing.sm }}>
         <IconTile icon={ShieldCheck} tint="teal" />
         <View style={{ flex: 1 }}>
-          <AppText variant="bodyStrong">ThinkTwice</AppText>
+          <AppText variant="bodyStrong">{t('settings.about.appName')}</AppText>
           {version ? (
             <AppText variant="caption" color="tertiary" style={{ marginTop: 2 }}>
-              {`Version ${version}`}
+              {t('settings.about.version', { version })}
             </AppText>
           ) : null}
           <AppText variant="caption" color="secondary" style={{ marginTop: 2 }}>
-            An independent personal project. It helps you understand the impact of a purchase before
-            you make it, and what it really costs afterwards. It never tells you what to buy.
+            {t('settings.about.body')}
           </AppText>
         </View>
       </View>

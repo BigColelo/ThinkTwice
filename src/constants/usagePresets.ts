@@ -1,3 +1,6 @@
+import type { TFunction } from 'i18next';
+
+import type { TranslationKey } from '@/i18n';
 import type { UsageFrequencyId } from '@/types/domain';
 
 /**
@@ -17,9 +20,9 @@ export const MONTHS_PER_YEAR = 12;
 
 export type UsagePreset = {
   id: UsageFrequencyId;
-  label: string;
+  labelKey: TranslationKey;
   /** Shown under the label to make the assumption visible. */
-  detail: string;
+  detailKey: TranslationKey;
   /**
    * Uses per month. `null` for `custom`, where the user supplies the rate.
    */
@@ -47,44 +50,44 @@ export const USAGE_FREQUENCY_IDS = [
 export const USAGE_PRESETS: readonly UsagePreset[] = [
   {
     id: 'daily',
-    label: 'Daily',
-    detail: 'About once a day',
+    labelKey: 'usage.daily',
+    detailKey: 'usage.detail.daily',
     usesPerMonth: 7 * WEEKS_PER_MONTH, // ≈30.3
   },
   {
     id: 'several_times_week',
-    label: 'Several times per week',
-    detail: '2–3 times per week (midpoint: 2.5)',
+    labelKey: 'usage.several_times_week',
+    detailKey: 'usage.detail.several_times_week',
     usesPerMonth: 2.5 * WEEKS_PER_MONTH, // ≈10.8
   },
   {
     id: 'weekly',
-    label: 'Weekly',
-    detail: 'About once a week',
+    labelKey: 'usage.weekly',
+    detailKey: 'usage.detail.weekly',
     usesPerMonth: 1 * WEEKS_PER_MONTH, // ≈4.3
   },
   {
     id: 'several_times_month',
-    label: 'Several times per month',
-    detail: '2–3 times per month (midpoint: 2.5)',
+    labelKey: 'usage.several_times_month',
+    detailKey: 'usage.detail.several_times_month',
     usesPerMonth: 2.5,
   },
   {
     id: 'monthly',
-    label: 'Monthly',
-    detail: 'About once a month',
+    labelKey: 'usage.monthly',
+    detailKey: 'usage.detail.monthly',
     usesPerMonth: 1,
   },
   {
     id: 'occasionally',
-    label: 'Occasionally',
-    detail: 'A few times a year (4 per year)',
+    labelKey: 'usage.occasionally',
+    detailKey: 'usage.detail.occasionally',
     usesPerMonth: 4 / MONTHS_PER_YEAR, // ≈0.33
   },
   {
     id: 'custom',
-    label: 'Custom',
-    detail: 'Set your own number of uses per month',
+    labelKey: 'usage.custom',
+    detailKey: 'usage.detail.custom',
     usesPerMonth: null,
   },
 ];
@@ -99,22 +102,29 @@ export function getUsagePreset(id: UsageFrequencyId): UsagePreset | undefined {
 
 export const DEFAULT_USAGE_FREQUENCY: UsageFrequencyId = 'weekly';
 
-/** Short label for chips and list rows, e.g. `2–3 times per week`. */
+/**
+ * Short label for chips and list rows, e.g. `2–3 times per week`.
+ *
+ * Takes `t` rather than importing it, so a component holds the translation
+ * function it was re-rendered with. The two ranged presets get a shorter form
+ * without the midpoint, which belongs on the form where the choice is made, not
+ * on a chip summarising it afterwards.
+ */
 export function usageFrequencyShortLabel(
+  t: TFunction,
   id: UsageFrequencyId | null,
   customUsesPerMonth: number | null,
 ): string {
-  if (!id) return 'Not set';
+  if (!id) return t('common.notSet');
   if (id === 'custom') {
-    if (customUsesPerMonth == null || !Number.isFinite(customUsesPerMonth)) return 'Custom';
-    const rounded = Math.round(customUsesPerMonth * 10) / 10;
-    return `${rounded} ${rounded === 1 ? 'use' : 'uses'} per month`;
+    if (customUsesPerMonth == null || !Number.isFinite(customUsesPerMonth))
+      return t('usage.custom');
+    return t('usage.customRate', { count: Math.round(customUsesPerMonth * 10) / 10 });
   }
+
   const preset = getUsagePreset(id);
-  if (!preset) return 'Not set';
-  return preset.id === 'several_times_week'
-    ? '2–3 times per week'
-    : preset.id === 'several_times_month'
-      ? '2–3 times per month'
-      : preset.label;
+  if (!preset) return t('common.notSet');
+  if (preset.id === 'several_times_week') return t('usage.short.several_times_week');
+  if (preset.id === 'several_times_month') return t('usage.short.several_times_month');
+  return t(preset.labelKey);
 }

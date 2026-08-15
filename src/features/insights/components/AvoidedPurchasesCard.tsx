@@ -5,9 +5,9 @@ import { AppText } from '@/components/ui/AppText';
 import { Card } from '@/components/ui/Card';
 import { MoneyValue } from '@/components/ui/MoneyValue';
 import { MetricCell, MetricDivider } from '@/components/ui/StatCard';
+import { useT } from '@/i18n';
 import { useTheme } from '@/theme';
 import type { Cents } from '@/types/domain';
-import { pluralize } from '@/utils/dates';
 
 /**
  * What the user decided against, and what it would have cost.
@@ -26,12 +26,13 @@ export function AvoidedPurchasesCard({
   totalCents: Cents;
 }): React.ReactElement {
   const theme = useTheme();
+  const t = useT();
 
   return (
     <Card padding={theme.spacing.md}>
       <View style={{ flexDirection: 'row', alignItems: 'stretch' }}>
         <MetricCell
-          label="would have cost"
+          label={t('insights.avoidedTotal')}
           value={
             <MoneyValue
               cents={totalCents}
@@ -42,7 +43,7 @@ export function AvoidedPurchasesCard({
           }
         />
         <MetricDivider />
-        <MetricCell label="decided against" value={pluralize(count, 'item')} />
+        <MetricCell label={t('insights.avoidedCountLabel')} value={t('units.item', { count })} />
       </View>
 
       <View
@@ -54,8 +55,7 @@ export function AvoidedPurchasesCard({
       />
 
       <AppText variant="caption" color="secondary">
-        What these items would have cost. ThinkTwice does not count it as money saved — only as
-        money that did not go to these.
+        {t('insights.avoidedCaption')}
       </AppText>
     </Card>
   );

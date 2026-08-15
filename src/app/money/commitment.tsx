@@ -1,6 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useLocalSearchParams } from 'expo-router';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Controller, useForm, useWatch } from 'react-hook-form';
 import { Switch, View } from 'react-native';
 
@@ -22,11 +22,12 @@ import {
   calculateMonthlyCommitmentEquivalent,
 } from '@/domain';
 import {
-  commitmentSchema,
+  buildCommitmentSchema,
   type CommitmentFormInput,
   type CommitmentFormValues,
 } from '@/features/money/schemas/commitmentSchema';
 import { useGoBack } from '@/features/navigation/useGoBack';
+import { useT } from '@/i18n';
 import { useTheme } from '@/theme';
 import { confirm } from '@/utils/confirm';
 
@@ -39,6 +40,7 @@ import { confirm } from '@/utils/confirm';
  */
 export default function CommitmentFormScreen(): React.ReactElement {
   const theme = useTheme();
+  const t = useT();
   const repositories = useRepositories();
   const { id } = useLocalSearchParams<{ id?: string }>();
   const goBack = useGoBack('/money');
@@ -48,12 +50,15 @@ export default function CommitmentFormScreen(): React.ReactElement {
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
 
+  // Rebuilt when the language changes: the messages it carries are copy.
+  const schema = useMemo(() => buildCommitmentSchema(t), [t]);
+
   const { control, handleSubmit, reset } = useForm<
     CommitmentFormInput,
     unknown,
     CommitmentFormValues
   >({
-    resolver: zodResolver(commitmentSchema),
+    resolver: zodResolver(schema),
     mode: 'onTouched',
     defaultValues: {
       name: '',
@@ -105,7 +110,7 @@ export default function CommitmentFormScreen(): React.ReactElement {
       invalidate('commitments');
       goBack();
     } catch {
-      setSaveError('This commitment could not be saved. Please try again.');
+      setSaveError(t('money.commitment.saveError'));
       setIsSaving(false);
     }
   });
@@ -113,9 +118,9 @@ export default function CommitmentFormScreen(): React.ReactElement {
   const handleDelete = async (): Promise<void> => {
     if (!id) return;
     const confirmed = await confirm({
-      title: 'Delete this commitment?',
-      message: 'It will no longer be subtracted from your monthly income.',
-      confirmLabel: 'Delete',
+      title: t('money.commitment.deleteTitle'),
+      message: t('money.commitment.deleteMessage'),
+      confirmLabel: t('common.delete'),
       destructive: true,
     });
     if (!confirmed) return;
@@ -133,8 +138,8 @@ export default function CommitmentFormScreen(): React.ReactElement {
   return (
     <>
       <ScreenHeader
-        title={isEditing ? 'Edit commitment' : 'Add commitment'}
-        textAction={{ label: 'Cancel', onPress: goBack }}
+        title={isEditing ? t('money.commitment.editTitle') : t('money.commitment.addTitle')}
+        textAction={{ label: t('common.cancel'), onPress: goBack }}
       />
 
       <Screen
@@ -142,7 +147,7 @@ export default function CommitmentFormScreen(): React.ReactElement {
         avoidKeyboard
         footer={
           <Button
-            label={isEditing ? 'Save changes' : 'Add commitment'}
+            label={isEditing ? t('money.commitment.saveChanges') : t('money.commitment.addTitle')}
             onPress={onSubmit}
             loading={isSaving}
             disabled={isLoading}
@@ -155,9 +160,9 @@ export default function CommitmentFormScreen(): React.ReactElement {
             name="name"
             render={({ field, fieldState }) => (
               <TextField
-                label="Name"
+                label={t('money.commitment.nameLabel')}
                 required
-                placeholder="Rent, Netflix, gym…"
+                placeholder={t('money.commitment.namePlaceholder')}
                 value={field.value}
                 onChangeText={field.onChange}
                 onBlur={field.onBlur}
@@ -172,9 +177,9 @@ export default function CommitmentFormScreen(): React.ReactElement {
             name="amountCents"
             render={({ field, fieldState }) => (
               <MoneyField
-                label="Amount"
+                label={t('money.commitment.amountLabel')}
                 required
-                hint="Enter what you are billed, not a monthly average."
+                hint={t('money.commitment.amountHint')}
                 valueCents={field.value}
                 onChangeCents={field.onChange}
                 error={fieldState.error?.message}
@@ -187,10 +192,10 @@ export default function CommitmentFormScreen(): React.ReactElement {
             name="frequency"
             render={({ field, fieldState }) => (
               <ChipSelect
-                label="How often are you billed?"
+                label={t('money.commitment.frequencyLabel')}
                 options={COMMITMENT_FREQUENCIES.map((option) => ({
                   value: option.id,
-                  label: option.label,
+                  label: t(option.labelKey),
                 }))}
                 value={field.value}
                 onChange={field.onChange}
@@ -204,10 +209,10 @@ export default function CommitmentFormScreen(): React.ReactElement {
             name="categoryId"
             render={({ field, fieldState }) => (
               <ChipSelect
-                label="Category"
+                label={t('money.commitment.categoryLabel')}
                 options={COMMITMENT_CATEGORIES.map((category) => ({
                   value: category.id,
-                  label: category.label,
+                  label: t(category.labelKey),
                   icon: category.icon,
                 }))}
                 value={field.value}
@@ -231,14 +236,13 @@ export default function CommitmentFormScreen(): React.ReactElement {
                     }}
                   >
                     <View style={{ flex: 1 }}>
-                      <AppText variant="bodyStrong">Counts towards your month</AppText>
+                      <AppText variant="bodyStrong">{t('money.commitment.activeLabel')}</AppText>
                       <AppText variant="caption" color="secondary" style={{ marginTop: 2 }}>
-                        Turn this off to pause the commitment. It stays in your list and keeps its
-                        history, but stops being subtracted from your income.
+                        {t('money.commitment.activeHint')}
                       </AppText>
                     </View>
                     <Switch
-                      accessibilityLabel="Counts towards your month"
+                      accessibilityLabel={t('money.commitment.activeLabel')}
                       value={field.value}
                       onValueChange={field.onChange}
                       trackColor={{
@@ -255,7 +259,7 @@ export default function CommitmentFormScreen(): React.ReactElement {
           {frequency !== 'monthly' && amountCents > 0 ? (
             <Card variant="muted" padding={theme.spacing.md}>
               <AppText variant="label" color="secondary">
-                Monthly equivalent
+                {t('money.commitment.monthlyEquivalent')}
               </AppText>
               <View
                 style={{
@@ -265,13 +269,17 @@ export default function CommitmentFormScreen(): React.ReactElement {
                   marginTop: theme.spacing.xxs,
                 }}
               >
-                <MoneyValue cents={monthlyEquivalent} variant="metricSmall" suffix=" / month" />
+                <MoneyValue
+                  cents={monthlyEquivalent}
+                  variant="metricSmall"
+                  suffix={` ${t('units.perMonth')}`}
+                />
               </View>
               <MoneyValue
                 cents={annualEquivalent}
                 variant="caption"
                 color="secondary"
-                suffix=" / year"
+                suffix={` ${t('units.perYear')}`}
                 style={{ marginTop: 2 }}
               />
             </Card>
@@ -285,7 +293,7 @@ export default function CommitmentFormScreen(): React.ReactElement {
 
           {isEditing ? (
             <Button
-              label="Delete commitment"
+              label={t('money.commitment.delete')}
               variant="destructive"
               size="md"
               onPress={handleDelete}

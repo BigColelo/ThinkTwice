@@ -16,8 +16,9 @@ import { calculateTotalAnnualCommitments } from '@/domain';
 import { CommitmentRow } from '@/features/money/components/CommitmentRow';
 import { MonthlyOverviewCard } from '@/features/money/components/MonthlyOverviewCard';
 import { useMonthlyFinances } from '@/features/money/hooks/useMonthlyFinances';
-import { monthlyIncomeSchema } from '@/features/money/schemas/commitmentSchema';
+import { buildMonthlyIncomeSchema } from '@/features/money/schemas/commitmentSchema';
 import { useSettings } from '@/features/settings/SettingsProvider';
+import { useT } from '@/i18n';
 import { useTheme } from '@/theme';
 import type { Cents } from '@/types/domain';
 
@@ -27,6 +28,7 @@ import type { Cents } from '@/types/domain';
  */
 export default function MoneyScreen(): React.ReactElement {
   const theme = useTheme();
+  const t = useT();
   const router = useRouter();
   const { finances, commitments, pausedCommitments, isLoading, error, refetch } =
     useMonthlyFinances();
@@ -37,20 +39,17 @@ export default function MoneyScreen(): React.ReactElement {
   return (
     <>
       <ScreenHeader
-        title="Money"
+        title={t('money.title')}
         action={{
           icon: Settings,
-          accessibilityLabel: 'Settings',
+          accessibilityLabel: t('money.settingsLabel'),
           onPress: () => router.push('/settings'),
         }}
       />
 
       <Screen scroll edgeBottom={false}>
         {error ? (
-          <ErrorState
-            description="Your financial setup could not be read from this device."
-            onRetry={refetch}
-          />
+          <ErrorState description={t('money.error')} onRetry={refetch} />
         ) : isLoading ? (
           <LoadingState />
         ) : (
@@ -64,13 +63,16 @@ export default function MoneyScreen(): React.ReactElement {
             <View style={{ height: theme.spacing.xl }} />
 
             <SectionHeader
-              title="Recurring commitments"
+              title={t('money.recurringCommitments')}
               subtitle={
                 hasAnyCommitment
-                  ? `${commitments.length} active${
-                      pausedCommitments.length > 0 ? `, ${pausedCommitments.length} paused` : ''
-                    }`
-                  : 'Rent, utilities, subscriptions, insurance'
+                  ? pausedCommitments.length > 0
+                    ? t('money.activeAndPausedCount', {
+                        count: commitments.length,
+                        paused: pausedCommitments.length,
+                      })
+                    : t('money.activeCount', { count: commitments.length })
+                  : t('money.commitmentsHint')
               }
             />
 
@@ -110,19 +112,19 @@ export default function MoneyScreen(): React.ReactElement {
                   }}
                 >
                   <AppText variant="caption" color="secondary">
-                    Total
+                    {t('money.total')}
                   </AppText>
                   <View style={{ alignItems: 'flex-end' }}>
                     <MoneyValue
                       cents={finances.commitmentsCents}
                       variant="bodyStrong"
-                      suffix=" / month"
+                      suffix={` ${t('units.perMonth')}`}
                     />
                     <MoneyValue
                       cents={annualCommitments}
                       variant="caption"
                       color="secondary"
-                      suffix=" / year"
+                      suffix={` ${t('units.perYear')}`}
                     />
                   </View>
                 </View>
@@ -138,10 +140,10 @@ export default function MoneyScreen(): React.ReactElement {
                     strokeWidth={theme.sizes.iconStrokeWidth}
                   />
                   <AppText variant="subheading" align="center">
-                    No commitments yet
+                    {t('money.commitmentsEmptyTitle')}
                   </AppText>
                   <AppText variant="caption" color="secondary" align="center">
-                    Add the bills you pay on a regular schedule to see what stays available.
+                    {t('money.commitmentsEmptyDescription')}
                   </AppText>
                 </View>
               </Card>
@@ -151,8 +153,8 @@ export default function MoneyScreen(): React.ReactElement {
               <>
                 <View style={{ height: theme.spacing.lg }} />
                 <SectionHeader
-                  title="Paused"
-                  subtitle="Kept in your list, left out of every total"
+                  title={t('money.pausedTitle')}
+                  subtitle={t('money.pausedSubtitle')}
                 />
                 <Card padding={theme.spacing.md}>
                   {pausedCommitments.map((commitment, index) => (
@@ -181,8 +183,8 @@ export default function MoneyScreen(): React.ReactElement {
             <PressableCard
               variant="outline"
               onPress={() => router.push('/money/commitment')}
-              accessibilityLabel="Add commitment"
-              accessibilityHint="Opens the form to add a recurring commitment"
+              accessibilityLabel={t('money.addCommitment')}
+              accessibilityHint={t('money.addCommitmentHint')}
               padding={theme.spacing.sm}
             >
               <View
@@ -200,7 +202,7 @@ export default function MoneyScreen(): React.ReactElement {
                   strokeWidth={theme.sizes.iconStrokeWidth}
                 />
                 <AppText variant="button" color="accent">
-                  Add commitment
+                  {t('money.addCommitment')}
                 </AppText>
               </View>
             </PressableCard>
@@ -230,6 +232,7 @@ function editableIncome(cents: Cents): Cents | null {
  */
 function IncomeEditor(): React.ReactElement {
   const theme = useTheme();
+  const t = useT();
   const { settings, updateSettings } = useSettings();
 
   const [incomeCents, setIncomeCents] = useState<Cents | null>(
@@ -270,7 +273,7 @@ function IncomeEditor(): React.ReactElement {
     // The parser guarantees integer cents or nothing, but not that the figure
     // makes sense: a pasted minus sign or an extra zero would otherwise be
     // stored and quietly distort every derived number.
-    const parsed = monthlyIncomeSchema.safeParse({
+    const parsed = buildMonthlyIncomeSchema(t).safeParse({
       monthlyNetIncomeCents: incomeCents ?? 0,
       monthlySavingsTargetCents: savingsCents,
     });
@@ -291,7 +294,7 @@ function IncomeEditor(): React.ReactElement {
     try {
       await updateSettings(parsed.data);
     } catch {
-      setSaveError('Your changes could not be saved. Please try again.');
+      setSaveError(t('money.saveError'));
     } finally {
       setIsSaving(false);
     }
@@ -299,19 +302,19 @@ function IncomeEditor(): React.ReactElement {
 
   return (
     <Card padding={theme.spacing.md}>
-      <AppText variant="heading">Your monthly setup</AppText>
+      <AppText variant="heading">{t('money.setupTitle')}</AppText>
 
       <View style={{ marginTop: theme.spacing.md, gap: theme.spacing.md }}>
         <MoneyField
-          label="Monthly net income"
-          hint="What actually reaches your account each month."
+          label={t('money.incomeLabel')}
+          hint={t('money.incomeHint')}
           valueCents={incomeCents}
           onChangeCents={setIncomeCents}
           error={fieldErrors.income}
         />
         <MoneyField
-          label="Monthly savings target"
-          hint="Optional. Kept separate from your commitments."
+          label={t('money.savingsLabel')}
+          hint={t('money.savingsHint')}
           valueCents={savingsCents}
           onChangeCents={setSavingsCents}
           error={fieldErrors.savings}
@@ -324,7 +327,7 @@ function IncomeEditor(): React.ReactElement {
         ) : null}
 
         {hasChanges ? (
-          <Button label="Save changes" onPress={save} loading={isSaving} size="md" />
+          <Button label={t('money.saveChanges')} onPress={save} loading={isSaving} size="md" />
         ) : null}
       </View>
     </Card>

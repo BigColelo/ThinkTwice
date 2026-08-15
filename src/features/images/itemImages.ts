@@ -23,7 +23,7 @@ export type PickImageResult =
   | { status: 'picked'; uri: string }
   | { status: 'cancelled' }
   | { status: 'permission_denied' }
-  | { status: 'failed'; message: string };
+  | { status: 'failed' };
 
 /**
  * Opens the photo library and returns the picked URI as-is.
@@ -53,11 +53,11 @@ export async function pickItemImage(): Promise<PickImageResult> {
     if (!asset) return { status: 'cancelled' };
 
     return { status: 'picked', uri: asset.uri };
-  } catch (error) {
-    return {
-      status: 'failed',
-      message: error instanceof Error ? error.message : 'The photo could not be added.',
-    };
+  } catch {
+    // The reason is not reported: the picker's own message is a system string
+    // in the device's language, which is not necessarily the app's, and there is
+    // nothing the user can do differently either way.
+    return { status: 'failed' };
   }
 }
 
