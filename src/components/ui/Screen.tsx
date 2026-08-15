@@ -29,7 +29,7 @@ export type ScreenProps = {
   scroll?: boolean;
   /** Applies the app's horizontal gutter. */
   padded?: boolean;
-  /** Adds bottom safe-area padding to scroll content. */
+  /** Adds bottom safe-area padding to the content, scrolling or not. */
   edgeBottom?: boolean;
   /** Sticky content pinned above the bottom inset, e.g. a primary action pair. */
   footer?: React.ReactNode;
@@ -65,8 +65,8 @@ export function Screen({
   const backgroundColor = background === 'surface' ? theme.colors.surface : theme.colors.background;
 
   const horizontalPadding = padded ? theme.screenPadding : 0;
-  // A footer sits below the scroll view and owns the bottom inset itself, so
-  // adding it to the content as well would leave a gap above the footer.
+  // A footer sits below the content and owns the bottom inset itself, so adding
+  // it to the content as well would leave a gap above the footer.
   const bottomPadding = footer
     ? theme.spacing.lg
     : (edgeBottom ? insets.bottom : 0) + theme.spacing.lg;
@@ -104,6 +104,9 @@ export function Screen({
         {
           flex: 1,
           paddingHorizontal: horizontalPadding,
+          // A screen that lays itself out needs the inset as much as a scrolling
+          // one: without it the last row sits under the home indicator.
+          paddingBottom: bottomPadding,
         },
         contentContainerStyle,
       ]}

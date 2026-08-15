@@ -25,6 +25,7 @@ import {
   isDecided,
 } from '@/domain';
 import { useMonthlyFinances } from '@/features/money/hooks/useMonthlyFinances';
+import { useDeleteAndLeave } from '@/features/navigation/useDeleteAndLeave';
 import { useGoBack } from '@/features/navigation/useGoBack';
 import { ConfirmPurchaseSheet } from '@/features/wishlist/components/ConfirmPurchaseSheet';
 import { CooldownCard } from '@/features/wishlist/components/CooldownCard';
@@ -56,7 +57,10 @@ export default function WishlistDetailScreen(): React.ReactElement {
   const { id } = useLocalSearchParams<{ id: string }>();
   const goBack = useGoBack('/wishlist');
 
-  const { data: item, isLoading, error, refetch } = useWishlistItem(id);
+  const { data: liveItem, isLoading, error, refetch } = useWishlistItem(id);
+  // Deleting removes the row this screen reads, so it keeps the copy it was
+  // showing until the navigation away has finished.
+  const { data: item, isDeleting, remove } = useDeleteAndLeave(liveItem, goBack);
   const { finances } = useMonthlyFinances();
 
   const [isConfirmingPurchase, setIsConfirmingPurchase] = useState(false);
@@ -117,8 +121,12 @@ export default function WishlistDetailScreen(): React.ReactElement {
     const confirmed = await confirm(wishlistDeleteConfirmation(item.status));
     if (!confirmed) return;
 
-    await deleteWishlistItem(repositories, item);
-    goBack();
+    setActionError(null);
+    try {
+      await remove(() => deleteWishlistItem(repositories, item));
+    } catch {
+      setActionError('This could not be deleted. Please try again.');
+    }
   };
 
   if (isLoading) {
@@ -306,6 +314,7 @@ export default function WishlistDetailScreen(): React.ReactElement {
           label="Delete this item"
           variant="destructive"
           icon={Trash2}
+          loading={isDeleting}
           onPress={handleDelete}
         />
       </Screen>

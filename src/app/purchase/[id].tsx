@@ -3,6 +3,7 @@ import { Calendar, Pencil, Plus, Repeat, Trash2 } from 'lucide-react-native';
 import React, { useCallback, useState } from 'react';
 import { View } from 'react-native';
 
+import { AppText } from '@/components/ui/AppText';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Chip } from '@/components/ui/Chip';
@@ -12,6 +13,7 @@ import { SectionHeader } from '@/components/ui/SectionHeader';
 import { ErrorState, LoadingState } from '@/components/ui/StateViews';
 import { usageFrequencyShortLabel } from '@/constants/usagePresets';
 import { useRepositories } from '@/db/DatabaseProvider';
+import { useDeleteAndLeave } from '@/features/navigation/useDeleteAndLeave';
 import { useGoBack } from '@/features/navigation/useGoBack';
 import { ExpenseSheet } from '@/features/purchases/components/ExpenseSheet';
 import { ExpensesSection } from '@/features/purchases/components/ExpensesSection';
@@ -50,12 +52,16 @@ export default function PurchaseDetailScreen(): React.ReactElement {
   const repositories = useRepositories();
   const { id } = useLocalSearchParams<{ id: string }>();
 
-  const { data, isLoading, error, refetch } = usePurchaseDetail(id);
+  const { data: liveData, isLoading, error, refetch } = usePurchaseDetail(id);
   // `null` while closed; an empty object while adding; the expense while correcting.
   const [expenseSheet, setExpenseSheet] = useState<{ expense?: PurchaseExpense } | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
   // Opened from a link with no history behind it, "back" means the list this
   // purchase belongs to.
   const goBack = useGoBack('/purchases');
+  // Deleting removes the row this screen reads, so it keeps the copy it was
+  // showing until the navigation away has finished.
+  const { data, isDeleting, remove } = useDeleteAndLeave(liveData, goBack);
 
   const purchaseId = data?.purchase.id;
   const editingExpense = expenseSheet?.expense;
@@ -107,8 +113,12 @@ export default function PurchaseDetailScreen(): React.ReactElement {
     });
     if (!confirmed) return;
 
-    await deletePurchase(repositories, data.purchase);
-    goBack();
+    setActionError(null);
+    try {
+      await remove(() => deletePurchase(repositories, data.purchase));
+    } catch {
+      setActionError('This could not be deleted. Please try again.');
+    }
   };
 
   if (isLoading) {
@@ -221,11 +231,23 @@ export default function PurchaseDetailScreen(): React.ReactElement {
           </>
         ) : null}
 
+        {actionError ? (
+          <AppText
+            variant="caption"
+            color="danger"
+            accessibilityRole="alert"
+            style={{ marginTop: theme.spacing.md }}
+          >
+            {actionError}
+          </AppText>
+        ) : null}
+
         <View style={{ height: theme.spacing.xl }} />
         <Button
           label="Delete this purchase"
           variant="destructive"
           icon={Trash2}
+          loading={isDeleting}
           onPress={handleDelete}
         />
       </Screen>

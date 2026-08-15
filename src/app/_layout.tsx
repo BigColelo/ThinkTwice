@@ -2,7 +2,7 @@ import { Stack, useRouter, useSegments } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import React, { useEffect } from 'react';
-import { View } from 'react-native';
+import { StatusBar as SystemStatusBar, View } from 'react-native';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AppText } from '@/components/ui/AppText';
@@ -121,6 +121,13 @@ function AppChrome({
 
       {/* Always light: the icons sit on the accent, never on the page. */}
       <StatusBar style="light" />
+      {/* The same accent, handed to the system instead of painted, for the
+          platforms that do not lay the app out behind the status bar: there the
+          top inset is zero, so the strip above collapses and the brand would
+          simply vanish. The two never both apply — this prop is ignored from
+          Android 15 on, which is exactly where edge-to-edge makes the strip
+          real. */}
+      <SystemStatusBar backgroundColor={theme.colors.accent.base} />
       <Stack
         screenOptions={{
           headerShown: false,
