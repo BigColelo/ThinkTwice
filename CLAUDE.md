@@ -31,7 +31,7 @@ npx jest -t 'cost per use'
 npx jest --coverage      # collected from src/domain, src/utils, src/db only
 ```
 
-`npm run verify` is green as a baseline (16 suites / 219 tests) — treat a failure as caused by the
+`npm run verify` is green as a baseline (45 suites / 504 tests) — treat a failure as caused by the
 current change.
 
 ## Architecture
