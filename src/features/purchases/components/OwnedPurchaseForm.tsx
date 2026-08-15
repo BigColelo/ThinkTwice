@@ -18,6 +18,7 @@ import type { NewPurchase } from '@/db/repositories';
 import { ImagePickerField } from '@/features/images/ImagePickerField';
 import {
   ownedPurchaseSchema,
+  type OwnedPurchaseFormInput,
   type OwnedPurchaseFormValues,
 } from '@/features/purchases/schemas/purchaseSchema';
 import { useTheme } from '@/theme';
@@ -56,12 +57,18 @@ export function OwnedPurchaseForm({
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
 
-  const { control, handleSubmit, setValue, formState } = useForm<OwnedPurchaseFormValues>({
+  const { control, handleSubmit, setValue, formState } = useForm<
+    OwnedPurchaseFormInput,
+    unknown,
+    OwnedPurchaseFormValues
+  >({
     resolver: zodResolver(ownedPurchaseSchema),
     mode: 'onTouched',
     defaultValues: {
       name: purchase?.name ?? '',
-      purchasePriceCents: purchase?.purchasePriceCents ?? 0,
+      // Empty rather than zero: what was paid is the user's to enter, and a
+      // leading zero cannot be typed over.
+      purchasePriceCents: purchase?.purchasePriceCents ?? null,
       purchaseDate: purchase?.purchaseDate ?? todayIsoDate(),
       categoryId: purchase?.categoryId ?? DEFAULT_PURCHASE_CATEGORY_ID,
       imageUri: purchase?.imageUri ?? null,
@@ -134,7 +141,7 @@ export function OwnedPurchaseForm({
               label="Purchase price"
               required
               valueCents={field.value}
-              onChangeCents={(cents) => field.onChange(cents ?? 0)}
+              onChangeCents={field.onChange}
               error={fieldState.error?.message}
             />
           )}

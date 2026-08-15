@@ -34,6 +34,8 @@ describe('ExpenseSheet, adding', () => {
 
     expect(screen.getByText('New expense')).toBeTruthy();
     expect(screen.getByLabelText(/^Date: /)).toBeTruthy();
+    // Empty means empty: the amount is not prefilled with a zero to type over.
+    expect(screen.queryByDisplayValue('0')).toBeNull();
     // Removing is not offered for something that does not exist yet.
     expect(screen.queryByText('Remove expense')).toBeNull();
   });

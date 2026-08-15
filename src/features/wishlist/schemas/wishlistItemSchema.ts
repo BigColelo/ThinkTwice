@@ -3,10 +3,17 @@ import { z } from 'zod';
 import { MAX_OWNERSHIP_MONTHS, MIN_OWNERSHIP_MONTHS } from '@/constants/ownership';
 import { USAGE_FREQUENCY_IDS } from '@/constants/usagePresets';
 import { MAX_COOLDOWN_DAYS, MIN_COOLDOWN_DAYS } from '@/domain';
+import { requiredAmount } from '@/features/forms/requiredAmount';
 
 /** Validation for the "something I want to buy" form. */
 
 const MAX_PRICE_CENTS = 100_000_000;
+
+const priceCents = z
+  .number({ error: 'Enter a price.' })
+  .int()
+  .positive('Enter a price greater than zero.')
+  .max(MAX_PRICE_CENTS, 'That price looks too large.');
 
 export const wishlistItemSchema = z
   .object({
@@ -18,12 +25,9 @@ export const wishlistItemSchema = z
     // A price of zero is refused rather than accepted as "unknown": it would
     // travel through the impact calculation as a real figure and label an item
     // whose price was never entered as low impact, 0% of income. In this app
-    // what cannot be computed is `null`, never zero.
-    priceCents: z
-      .number({ error: 'Enter a price.' })
-      .int()
-      .positive('Enter a price greater than zero.')
-      .max(MAX_PRICE_CENTS, 'That price looks too large.'),
+    // what cannot be computed is `null`, never zero — which is also how the
+    // field itself starts, empty rather than at zero.
+    priceCents: requiredAmount(priceCents),
     categoryId: z.string().min(1, 'Choose a category.'),
     imageUri: z.string().nullable(),
 
@@ -58,7 +62,11 @@ export const wishlistItemSchema = z
     },
   );
 
+/** What a valid form produces — the price is a number by the time it gets here. */
 export type WishlistItemFormValues = z.infer<typeof wishlistItemSchema>;
+
+/** What the form holds while it is being filled in: an empty price is `null`. */
+export type WishlistItemFormInput = z.input<typeof wishlistItemSchema>;
 
 /** Reason tags offered on the form. Free text is intentionally not supported in V1. */
 export const REASON_TAGS: readonly string[] = [

@@ -2,6 +2,7 @@ import { z } from 'zod';
 
 import { MAX_OWNERSHIP_MONTHS, MIN_OWNERSHIP_MONTHS } from '@/constants/ownership';
 import { USAGE_FREQUENCY_IDS } from '@/constants/usagePresets';
+import { requiredAmount } from '@/features/forms/requiredAmount';
 import type { ExpenseType } from '@/types/domain';
 import { parseIsoDate, toIsoDate } from '@/utils/dates';
 
@@ -10,6 +11,12 @@ import { parseIsoDate, toIsoDate } from '@/utils/dates';
 const MAX_AMOUNT_CENTS = 100_000_000;
 
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
+
+const purchasePriceCents = z
+  .number({ error: 'Enter what you paid.' })
+  .int()
+  .min(0, 'The price cannot be negative.')
+  .max(MAX_AMOUNT_CENTS, 'That price looks too large.');
 
 /**
  * The fields of the owned-purchase form, before the cross-field rule below.
@@ -23,11 +30,7 @@ const ownedPurchaseFields = z.object({
     .trim()
     .min(1, 'Give this item a name.')
     .max(80, 'Keep the name under 80 characters.'),
-  purchasePriceCents: z
-    .number({ error: 'Enter what you paid.' })
-    .int()
-    .min(0, 'The price cannot be negative.')
-    .max(MAX_AMOUNT_CENTS, 'That price looks too large.'),
+  purchasePriceCents: requiredAmount(purchasePriceCents),
   purchaseDate: z
     .string()
     .regex(ISO_DATE, 'Choose a purchase date.')
@@ -75,7 +78,11 @@ export const ownedPurchaseSchema = ownedPurchaseFields.refine(
   },
 );
 
+/** What a valid form produces — the price is a number by the time it gets here. */
 export type OwnedPurchaseFormValues = z.infer<typeof ownedPurchaseSchema>;
+
+/** What the form holds while it is being filled in: an empty price is `null`. */
+export type OwnedPurchaseFormInput = z.input<typeof ownedPurchaseSchema>;
 
 /**
  * The two things a wishlist item cannot know when it becomes a purchase: when it
@@ -89,6 +96,8 @@ export const confirmedPurchaseSchema = ownedPurchaseFields.pick({
 
 export type ConfirmedPurchaseFormValues = z.infer<typeof confirmedPurchaseSchema>;
 
+export type ConfirmedPurchaseFormInput = z.input<typeof confirmedPurchaseSchema>;
+
 const EXPENSE_TYPES = [
   'accessory',
   'maintenance',
@@ -97,22 +106,28 @@ const EXPENSE_TYPES = [
   'other',
 ] as const satisfies readonly ExpenseType[];
 
+const expenseAmountCents = z
+  .number({ error: 'Enter an amount.' })
+  .int()
+  .min(0, 'The amount cannot be negative.')
+  .max(MAX_AMOUNT_CENTS, 'That amount looks too large.');
+
 export const purchaseExpenseSchema = z.object({
   name: z
     .string()
     .trim()
     .min(1, 'Give this expense a name.')
     .max(60, 'Keep the name under 60 characters.'),
-  amountCents: z
-    .number({ error: 'Enter an amount.' })
-    .int()
-    .min(0, 'The amount cannot be negative.')
-    .max(MAX_AMOUNT_CENTS, 'That amount looks too large.'),
+  amountCents: requiredAmount(expenseAmountCents),
   expenseType: z.enum(EXPENSE_TYPES),
   date: z.string().regex(ISO_DATE, 'Choose a date.'),
 });
 
+/** What a valid form produces — the amount is a number by the time it gets here. */
 export type PurchaseExpenseFormValues = z.infer<typeof purchaseExpenseSchema>;
+
+/** What the form holds while it is being filled in: an empty amount is `null`. */
+export type PurchaseExpenseFormInput = z.input<typeof purchaseExpenseSchema>;
 
 export const EXPENSE_TYPE_LABELS: Record<ExpenseType, string> = {
   accessory: 'Accessory',

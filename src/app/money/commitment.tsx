@@ -23,6 +23,7 @@ import {
 } from '@/domain';
 import {
   commitmentSchema,
+  type CommitmentFormInput,
   type CommitmentFormValues,
 } from '@/features/money/schemas/commitmentSchema';
 import { useGoBack } from '@/features/navigation/useGoBack';
@@ -47,12 +48,18 @@ export default function CommitmentFormScreen(): React.ReactElement {
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
 
-  const { control, handleSubmit, reset } = useForm<CommitmentFormValues>({
+  const { control, handleSubmit, reset } = useForm<
+    CommitmentFormInput,
+    unknown,
+    CommitmentFormValues
+  >({
     resolver: zodResolver(commitmentSchema),
     mode: 'onTouched',
     defaultValues: {
       name: '',
-      amountCents: 0,
+      // Empty rather than zero: the amount is the user's to enter, and a leading
+      // zero cannot be typed over.
+      amountCents: null,
       frequency: DEFAULT_COMMITMENT_FREQUENCY,
       categoryId: DEFAULT_COMMITMENT_CATEGORY_ID,
       isActive: true,
@@ -169,7 +176,7 @@ export default function CommitmentFormScreen(): React.ReactElement {
                 required
                 hint="Enter what you are billed, not a monthly average."
                 valueCents={field.value}
-                onChangeCents={(cents) => field.onChange(cents ?? 0)}
+                onChangeCents={field.onChange}
                 error={fieldState.error?.message}
               />
             )}

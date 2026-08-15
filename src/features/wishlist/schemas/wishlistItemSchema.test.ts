@@ -66,10 +66,16 @@ describe('name', () => {
 });
 
 describe('price', () => {
-  it('refuses zero, which is what an untouched price field parses to', () => {
+  it('refuses zero, even typed deliberately', () => {
     // Zero would otherwise reach the impact calculation as a real figure and
     // describe an item with no price as low impact, 0% of income.
     expect(errorsOf(values({ priceCents: 0 })).priceCents).toBe('Enter a price greater than zero.');
+  });
+
+  it('refuses an empty field, and says it is missing rather than too small', () => {
+    // `null` is what the form holds until a price is typed — the field starts
+    // empty rather than at a zero nobody entered.
+    expect(errorsOf(values({ priceCents: null })).priceCents).toBe('Enter a price.');
   });
 
   it('refuses a negative price', () => {

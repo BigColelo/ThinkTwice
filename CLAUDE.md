@@ -31,7 +31,7 @@ npx jest -t 'cost per use'
 npx jest --coverage      # collected from src/domain, src/utils, src/db only
 ```
 
-`npm run verify` is green as a baseline (46 suites / 508 tests) — treat a failure as caused by the
+`npm run verify` is green as a baseline (47 suites / 518 tests) — treat a failure as caused by the
 current change.
 
 ## Architecture
@@ -114,7 +114,10 @@ These are enforced by tests; breaking one is a regression even if it typechecks.
   module that formats or parses money; components render `<MoneyValue cents={…} />` (which applies
   the active currency from settings) and never call `Intl` or `formatMoney` directly. Derived rates
   stay fractional and are rounded once, at display time. `parseMoneyInput` returns `null`, never
-  `NaN`.
+  `NaN`. An empty `MoneyField` is `null`, never `0` — a form holds `null` until an amount is typed
+  (`requiredAmount` in `src/features/forms` turns that into the field's required message), because a
+  prefilled zero is a figure the user never entered and cannot be typed over: `0,01` is a valid
+  amount, so the leading zero survives the next keystroke as `05`.
 - **Divide with `safeDivide`** (`src/utils/numbers.ts`), which returns `null` for a zero or
   non-finite denominator. Income, available money and usage counts are legitimately zero.
 - **Time**: ISO-8601 UTC strings for instants, `YYYY-MM-DD` for calendar-only values, nothing

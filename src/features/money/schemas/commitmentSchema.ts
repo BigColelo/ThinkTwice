@@ -1,5 +1,6 @@
 import { z } from 'zod';
 
+import { requiredAmount } from '@/features/forms/requiredAmount';
 import type { CommitmentFrequency } from '@/types/domain';
 
 /**
@@ -20,24 +21,30 @@ const FREQUENCIES = [
 /** One million euro a month is well beyond any real commitment; it catches slips. */
 const MAX_AMOUNT_CENTS = 100_000_000;
 
+const amountCents = z
+  .number({ error: 'Enter an amount.' })
+  .int()
+  .min(0, 'The amount cannot be negative.')
+  .max(MAX_AMOUNT_CENTS, 'That amount looks too large.');
+
 export const commitmentSchema = z.object({
   name: z
     .string()
     .trim()
     .min(1, 'Give this commitment a name.')
     .max(60, 'Keep the name under 60 characters.'),
-  amountCents: z
-    .number({ error: 'Enter an amount.' })
-    .int()
-    .min(0, 'The amount cannot be negative.')
-    .max(MAX_AMOUNT_CENTS, 'That amount looks too large.'),
+  amountCents: requiredAmount(amountCents),
   frequency: z.enum(FREQUENCIES),
   categoryId: z.string().min(1, 'Choose a category.'),
   /** Paused commitments stay in the list but stop counting towards the month. */
   isActive: z.boolean(),
 });
 
+/** What a valid form produces — the amount is a number by the time it gets here. */
 export type CommitmentFormValues = z.infer<typeof commitmentSchema>;
+
+/** What the form holds while it is being filled in: an empty amount is `null`. */
+export type CommitmentFormInput = z.input<typeof commitmentSchema>;
 
 /** Validation for the income and savings-target fields on the Money screen. */
 export const monthlyIncomeSchema = z.object({

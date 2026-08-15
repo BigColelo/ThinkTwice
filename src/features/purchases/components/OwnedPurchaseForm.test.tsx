@@ -17,9 +17,10 @@ jest.mock('@/features/images/itemImages', () => ({
  * The shared add/edit form for something already owned.
  *
  * Two things are worth holding in place: a price of zero is accepted here (a gift
- * is a real way to own something, unlike a wishlist item with no price typed), and
- * an edit sends every field back — including the optional expectation — so saving
- * a correction cannot quietly drop what it did not touch.
+ * is a real way to own something, unlike a wishlist item with no price typed) but
+ * has to be typed rather than inherited from an empty field, and an edit sends
+ * every field back — including the optional expectation — so saving a correction
+ * cannot quietly drop what it did not touch.
  */
 
 function purchase(overrides: Partial<Purchase> = {}): Purchase {
@@ -60,11 +61,26 @@ describe('OwnedPurchaseForm, adding', () => {
     expect(onSubmit).not.toHaveBeenCalled();
   });
 
+  it('starts with an empty price and asks for one rather than assuming zero', async () => {
+    const onSubmit = jest.fn(async (_values: NewPurchase) => undefined);
+    await renderWithProviders(<OwnedPurchaseForm submitLabel="Add purchase" onSubmit={onSubmit} />);
+
+    expect(screen.queryByDisplayValue('0')).toBeNull();
+
+    await fireEvent.changeText(screen.getByLabelText('Name'), 'Hand-me-down kettle');
+    await fireEvent.press(screen.getByText('Add purchase'));
+
+    expect(screen.getByText('Enter what you paid.')).toBeTruthy();
+    expect(onSubmit).not.toHaveBeenCalled();
+  });
+
   it('accepts a price of zero, because a gift is a real way to own something', async () => {
     const onSubmit = jest.fn(async (_values: NewPurchase) => undefined);
     await renderWithProviders(<OwnedPurchaseForm submitLabel="Add purchase" onSubmit={onSubmit} />);
 
     await fireEvent.changeText(screen.getByLabelText('Name'), 'Hand-me-down kettle');
+    // Typed, not inherited: nothing paid is something the user states.
+    await fireEvent.changeText(screen.getByLabelText('Purchase price'), '0');
     await fireEvent.press(screen.getByText('Add purchase'));
 
     expect(onSubmit).toHaveBeenCalledTimes(1);

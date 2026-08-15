@@ -77,7 +77,8 @@ describe('WishlistItemForm, adding', () => {
     await fireEvent.press(screen.getByText('Start thinking'));
 
     expect(screen.getByText('Give this item a name.')).toBeTruthy();
-    expect(screen.getByText('Enter a price greater than zero.')).toBeTruthy();
+    // An empty field is a missing price, not a price of zero.
+    expect(screen.getByText('Enter a price.')).toBeTruthy();
     expect(onSubmit).not.toHaveBeenCalled();
   });
 

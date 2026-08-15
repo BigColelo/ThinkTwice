@@ -10,6 +10,7 @@ import { DateField } from '@/components/ui/DateField';
 import { MoneyField } from '@/components/ui/MoneyField';
 import {
   confirmedPurchaseSchema,
+  type ConfirmedPurchaseFormInput,
   type ConfirmedPurchaseFormValues,
 } from '@/features/purchases/schemas/purchaseSchema';
 import type { ConvertToPurchaseOptions } from '@/features/wishlist/services/wishlistActions';
@@ -48,7 +49,11 @@ export function ConfirmPurchaseSheet({
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
 
-  const { control, handleSubmit, reset } = useForm<ConfirmedPurchaseFormValues>({
+  const { control, handleSubmit, reset } = useForm<
+    ConfirmedPurchaseFormInput,
+    unknown,
+    ConfirmedPurchaseFormValues
+  >({
     resolver: zodResolver(confirmedPurchaseSchema),
     mode: 'onTouched',
     defaultValues: {
@@ -139,7 +144,7 @@ export function ConfirmPurchaseSheet({
                   required
                   hint="Prefilled with the price you were considering. Change it if you paid something else."
                   valueCents={field.value}
-                  onChangeCents={(cents) => field.onChange(cents ?? 0)}
+                  onChangeCents={field.onChange}
                   error={fieldState.error?.message}
                 />
               )}

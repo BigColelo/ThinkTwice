@@ -17,6 +17,7 @@ import { todayIsoDate } from '@/utils/dates';
 import {
   EXPENSE_TYPE_LABELS,
   purchaseExpenseSchema,
+  type PurchaseExpenseFormInput,
   type PurchaseExpenseFormValues,
 } from '../schemas/purchaseSchema';
 
@@ -55,12 +56,18 @@ export function ExpenseSheet({
   const [isDeleting, setIsDeleting] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
 
-  const { control, handleSubmit, reset } = useForm<PurchaseExpenseFormValues>({
+  const { control, handleSubmit, reset } = useForm<
+    PurchaseExpenseFormInput,
+    unknown,
+    PurchaseExpenseFormValues
+  >({
     resolver: zodResolver(purchaseExpenseSchema),
     mode: 'onTouched',
     defaultValues: {
       name: expense?.name ?? '',
-      amountCents: expense?.amountCents ?? 0,
+      // Empty rather than zero: the amount is the user's to enter, and a leading
+      // zero cannot be typed over.
+      amountCents: expense?.amountCents ?? null,
       expenseType: expense?.expenseType ?? 'accessory',
       date: expense?.date ?? todayIsoDate(),
     },
@@ -178,7 +185,7 @@ export function ExpenseSheet({
                   label="Amount"
                   required
                   valueCents={field.value}
-                  onChangeCents={(cents) => field.onChange(cents ?? 0)}
+                  onChangeCents={field.onChange}
                   error={fieldState.error?.message}
                 />
               )}

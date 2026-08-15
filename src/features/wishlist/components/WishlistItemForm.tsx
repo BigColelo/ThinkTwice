@@ -29,6 +29,7 @@ import { PurchaseImpactCard } from '@/features/wishlist/components/PurchaseImpac
 import {
   REASON_TAGS,
   wishlistItemSchema,
+  type WishlistItemFormInput,
   type WishlistItemFormValues,
 } from '@/features/wishlist/schemas/wishlistItemSchema';
 import type { CreateWishlistItemInput } from '@/features/wishlist/services/wishlistActions';
@@ -75,12 +76,18 @@ export function WishlistItemForm({
     () => item != null && item.cooldownDays !== suggestCooldownDays(item.priceCents, finances).days,
   );
 
-  const { control, handleSubmit, setValue, formState } = useForm<WishlistItemFormValues>({
+  const { control, handleSubmit, setValue, formState } = useForm<
+    WishlistItemFormInput,
+    unknown,
+    WishlistItemFormValues
+  >({
     resolver: zodResolver(wishlistItemSchema),
     mode: 'onTouched',
     defaultValues: {
       name: item?.name ?? '',
-      priceCents: item?.priceCents ?? 0,
+      // Empty rather than zero: a price the user has not typed yet is not a
+      // price of nothing, and a leading zero cannot be typed over.
+      priceCents: item?.priceCents ?? null,
       categoryId: item?.categoryId ?? DEFAULT_PURCHASE_CATEGORY_ID,
       imageUri: item?.imageUri ?? null,
       expectedUsageFrequency: item?.expectedUsageFrequency ?? DEFAULT_USAGE_FREQUENCY,
@@ -176,11 +183,8 @@ export function WishlistItemForm({
             <MoneyField
               label="Price"
               required
-              // Zero is what an empty field parses to, and it is not a valid
-              // price — so it shows as empty rather than as a figure the user
-              // never typed.
-              valueCents={field.value === 0 ? null : field.value}
-              onChangeCents={(cents) => field.onChange(cents ?? 0)}
+              valueCents={field.value}
+              onChangeCents={field.onChange}
               error={fieldState.error?.message}
             />
           )}

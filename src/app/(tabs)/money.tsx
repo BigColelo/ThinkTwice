@@ -212,6 +212,16 @@ export default function MoneyScreen(): React.ReactElement {
 }
 
 /**
+ * Zero income is how "not set yet" is stored — onboarding can be skipped, and
+ * nothing derived from it can be computed until there is a figure. The field
+ * shows that as empty rather than as a zero the user never typed, and clearing
+ * the field means the same thing again.
+ */
+function editableIncome(cents: Cents): Cents | null {
+  return cents === 0 ? null : cents;
+}
+
+/**
  * Inline editing for income and the savings target.
  *
  * Both are single numbers, so a dedicated form screen would add a navigation
@@ -222,7 +232,9 @@ function IncomeEditor(): React.ReactElement {
   const theme = useTheme();
   const { settings, updateSettings } = useSettings();
 
-  const [incomeCents, setIncomeCents] = useState<Cents | null>(settings.monthlyNetIncomeCents);
+  const [incomeCents, setIncomeCents] = useState<Cents | null>(
+    editableIncome(settings.monthlyNetIncomeCents),
+  );
   const [savingsCents, setSavingsCents] = useState<Cents | null>(
     settings.monthlySavingsTargetCents,
   );
@@ -246,12 +258,12 @@ function IncomeEditor(): React.ReactElement {
       income: settings.monthlyNetIncomeCents,
       savings: settings.monthlySavingsTargetCents,
     });
-    setIncomeCents(settings.monthlyNetIncomeCents);
+    setIncomeCents(editableIncome(settings.monthlyNetIncomeCents));
     setSavingsCents(settings.monthlySavingsTargetCents);
   }
 
   const hasChanges =
-    incomeCents !== settings.monthlyNetIncomeCents ||
+    (incomeCents ?? 0) !== settings.monthlyNetIncomeCents ||
     savingsCents !== settings.monthlySavingsTargetCents;
 
   const save = async (): Promise<void> => {

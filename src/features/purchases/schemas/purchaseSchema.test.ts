@@ -68,6 +68,15 @@ describe('ownedPurchaseSchema, the item itself', () => {
     );
   });
 
+  it('still asks for a price when the field was left empty', () => {
+    // `null` is what the form holds until something is typed. Zero being valid
+    // here is exactly why the empty field cannot default to it: it would record
+    // a gift the user never said anything about.
+    expect(
+      errorsOf(ownedPurchaseSchema, ownedValues({ purchasePriceCents: null })).purchasePriceCents,
+    ).toBe('Enter what you paid.');
+  });
+
   it('still refuses a negative or fractional price', () => {
     expect(
       errorsOf(ownedPurchaseSchema, ownedValues({ purchasePriceCents: -1 })).purchasePriceCents,
@@ -200,6 +209,12 @@ describe('purchaseExpenseSchema', () => {
   it('refuses a negative amount, which would lower the real cost', () => {
     expect(errorsOf(purchaseExpenseSchema, expense({ amountCents: -500 })).amountCents).toBe(
       'The amount cannot be negative.',
+    );
+  });
+
+  it('asks for an amount when the field was left empty', () => {
+    expect(errorsOf(purchaseExpenseSchema, expense({ amountCents: null })).amountCents).toBe(
+      'Enter an amount.',
     );
   });
 });
