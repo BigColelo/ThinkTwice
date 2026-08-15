@@ -3,7 +3,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import React, { useEffect } from 'react';
 import { View } from 'react-native';
-import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AppText } from '@/components/ui/AppText';
 import { ErrorState, LoadingState } from '@/components/ui/StateViews';
@@ -106,13 +106,21 @@ function AppChrome({
   onboardingCompleted: boolean;
 }): React.ReactElement {
   const theme = useTheme();
+  const insets = useSafeAreaInsets();
 
   useOnboardingRedirect(isSettingsLoading, onboardingCompleted);
   useReminderRouting();
 
   return (
-    <>
-      <StatusBar style={theme.isDark ? 'light' : 'dark'} />
+    <View style={{ flex: 1, backgroundColor: theme.colors.background }}>
+      {/* The strip behind the status bar is the app's accent, in both schemes: it
+          is the one piece of chrome present on every screen, so it carries the
+          brand instead of each screen painting its own top edge. Owning it here
+          is also why no screen adds the top inset itself. */}
+      <View style={{ height: insets.top, backgroundColor: theme.colors.accent.base }} />
+
+      {/* Always light: the icons sit on the accent, never on the page. */}
+      <StatusBar style="light" />
       <Stack
         screenOptions={{
           headerShown: false,
@@ -139,7 +147,7 @@ function AppChrome({
         />
         <Stack.Screen name="settings/index" />
       </Stack>
-    </>
+    </View>
   );
 }
 

@@ -29,8 +29,6 @@ export type ScreenProps = {
   scroll?: boolean;
   /** Applies the app's horizontal gutter. */
   padded?: boolean;
-  /** Adds top safe-area padding. Off when a header already handles it. */
-  edgeTop?: boolean;
   /** Adds bottom safe-area padding to scroll content. */
   edgeBottom?: boolean;
   /** Sticky content pinned above the bottom inset, e.g. a primary action pair. */
@@ -49,7 +47,6 @@ export function Screen({
   children,
   scroll = false,
   padded = true,
-  edgeTop = false,
   edgeBottom = true,
   footer,
   avoidKeyboard = false,
@@ -81,7 +78,6 @@ export function Screen({
       contentContainerStyle={[
         {
           paddingHorizontal: horizontalPadding,
-          paddingTop: edgeTop ? insets.top + theme.spacing.xs : 0,
           paddingBottom: bottomPadding,
         },
         contentContainerStyle,
@@ -108,7 +104,6 @@ export function Screen({
         {
           flex: 1,
           paddingHorizontal: horizontalPadding,
-          paddingTop: edgeTop ? insets.top + theme.spacing.xs : 0,
         },
         contentContainerStyle,
       ]}

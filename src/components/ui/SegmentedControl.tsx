@@ -11,6 +11,9 @@ import { AppText } from './AppText';
  * colour alone.
  */
 
+/** The track's inset around each segment, and the gap between them. */
+const TRACK_PADDING = 3;
+
 export type SegmentedOption<T extends string> = {
   value: T;
   label: string;
@@ -37,10 +40,13 @@ export function SegmentedControl<T extends string>({
   const theme = useTheme();
   const height = size === 'sm' ? theme.sizes.control.sm : theme.sizes.control.md;
 
-  // Segments are inset by the track's padding, so the visible one is shorter than
-  // the control. The slop is vertical only: horizontally the segments touch, and
-  // widening them there would hand taps to the neighbour.
-  const verticalSlop = Math.max(0, (theme.sizes.minTouchTarget - (height - 6)) / 2);
+  // The track insets every segment by this much, top and bottom, which is what
+  // leaves room for the selected one to sit inside it.
+  const segmentHeight = height - TRACK_PADDING * 2;
+
+  // The slop is vertical only: horizontally the segments touch, and widening them
+  // there would hand taps to the neighbour.
+  const verticalSlop = Math.max(0, (theme.sizes.minTouchTarget - segmentHeight) / 2);
 
   return (
     <View
@@ -51,8 +57,8 @@ export function SegmentedControl<T extends string>({
           flexDirection: 'row',
           backgroundColor: theme.colors.surfaceMuted,
           borderRadius: theme.radius.md,
-          padding: 3,
-          gap: 3,
+          padding: TRACK_PADDING,
+          gap: TRACK_PADDING,
         },
         style,
       ]}
@@ -70,7 +76,7 @@ export function SegmentedControl<T extends string>({
             style={({ pressed }) => [
               {
                 flex: 1,
-                height: height - 6,
+                height: segmentHeight,
                 alignItems: 'center',
                 justifyContent: 'center',
                 borderRadius: theme.radius.sm,

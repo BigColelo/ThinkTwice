@@ -44,7 +44,7 @@ describe('ItemImage', () => {
     await fireEvent(screen.getByTestId('hero'), 'error', {
       nativeEvent: { error: 'file not found' },
     });
-    view.rerender(<ItemImage uri={PHOTO} testID="hero" />);
+    await view.rerender(<ItemImage uri={PHOTO} testID="hero" />);
 
     expect(screen.queryByTestId('hero')).toBeNull();
   });

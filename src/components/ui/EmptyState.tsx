@@ -71,7 +71,7 @@ export function EmptyState({
         variant="body"
         color="secondary"
         align="center"
-        style={{ marginTop: theme.spacing.xxs, maxWidth: 320 }}
+        style={{ marginTop: theme.spacing.xxs, maxWidth: theme.sizes.readableTextWidth }}
       >
         {description}
       </AppText>

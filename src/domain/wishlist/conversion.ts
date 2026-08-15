@@ -44,11 +44,23 @@ export function buildPurchaseFromWishlistItem(
  * missed background task or a device that was switched off changes nothing.
  * Decided items (`purchased`, `dismissed`) are terminal.
  */
+/**
+ * Whether a decision has already been made about an item.
+ *
+ * `purchased` and `dismissed` are the two terminal states, and several places ask
+ * the same question — whether to offer the decision buttons, whether an edit is
+ * allowed, whether the status is still derived from the clock. Asking it here
+ * keeps the vocabulary of statuses out of the screens.
+ */
+export function isDecided(status: WishlistItem['status']): boolean {
+  return status === 'purchased' || status === 'dismissed';
+}
+
 export function resolveWishlistStatus(
   item: Pick<WishlistItem, 'status' | 'cooldownEndsAt'>,
   now: Date = new Date(),
 ): WishlistItem['status'] {
-  if (item.status === 'purchased' || item.status === 'dismissed') return item.status;
+  if (isDecided(item.status)) return item.status;
 
   const endsAt = Date.parse(item.cooldownEndsAt);
   if (Number.isNaN(endsAt)) return 'ready_to_decide';

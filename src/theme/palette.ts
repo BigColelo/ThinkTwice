@@ -95,7 +95,9 @@ export const blue = {
 // `light`/`dark` are icon colours drawn on the matching `softLight`/`softDark`
 // tile, so each pair clears the 3:1 threshold for non-text content.
 export const tint = {
-  violet: { light: '#6D3FF3', dark: '#9B7BF8', softLight: '#F0EAFE', softDark: '#2A2148' },
+  // The violet tint is the brand accent itself, so it points at the ramp instead
+  // of repeating the hex — the two can never drift apart.
+  violet: { light: purple[500], dark: '#9B7BF8', softLight: '#F0EAFE', softDark: '#2A2148' },
   blue: { light: '#2563EB', dark: '#7BA6F5', softLight: '#E5EEFD', softDark: '#152442' },
   teal: { light: '#0D9488', dark: '#5EC9BE', softLight: '#DCF3F1', softDark: '#0F2E2C' },
   green: { light: '#0E8149', dark: '#5FD69B', softLight: '#DEF4E9', softDark: '#0F2C1F' },

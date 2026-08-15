@@ -116,10 +116,13 @@ export const darkColors: ColorScheme = {
   },
 
   accent: {
+    // `base`, `soft` and `border` are dark-surface mixes with no step in the ramp:
+    // the pure purples are too saturated against a near-black background. The two
+    // values that do exist there are referenced rather than written out again.
     base: '#7C55F5',
-    pressed: '#6D3FF3',
+    pressed: purple[500],
     soft: '#241C42',
-    onSoft: '#B294F8',
+    onSoft: purple[300],
     border: '#3A2C6B',
   },
 

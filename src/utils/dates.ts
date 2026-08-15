@@ -5,7 +5,6 @@ import {
   differenceInCalendarMonths,
   isValid,
   parseISO,
-  startOfDay as startOfDayFn,
 } from 'date-fns';
 
 import type { IsoDate, IsoTimestamp } from '@/types/domain';
@@ -70,10 +69,6 @@ export function addMonths(from: Date, months: number): Date {
   return addMonthsFn(from, months);
 }
 
-export function startOfDay(date: Date): Date {
-  return startOfDayFn(date);
-}
-
 /**
  * Whole calendar days from `from` to `to`. Calendar-based (not 24h-based) so a
  * cooldown that ends "tomorrow" reads as 1 day regardless of the time of day.
@@ -125,17 +120,6 @@ export function formatDateTime(value: string | Date | null | undefined): string 
     }).format(date);
   } catch {
     return date.toISOString();
-  }
-}
-
-/** `August 2026` — month headers. */
-export function formatMonthYear(value: string | Date | null | undefined): string {
-  const date = value instanceof Date ? value : parseIso(value ?? null);
-  if (!date) return '—';
-  try {
-    return getDateFormatter({ month: 'long', year: 'numeric' }).format(date);
-  } catch {
-    return toIsoDate(date);
   }
 }
 

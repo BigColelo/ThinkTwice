@@ -1,6 +1,6 @@
 import type { WishlistItem } from '@/types/domain';
 
-import { buildPurchaseFromWishlistItem, resolveWishlistStatus } from './conversion';
+import { buildPurchaseFromWishlistItem, isDecided, resolveWishlistStatus } from './conversion';
 
 function item(overrides: Partial<WishlistItem> = {}): WishlistItem {
   return {
@@ -54,6 +54,17 @@ describe('buildPurchaseFromWishlistItem', () => {
     );
     expect(draft.expectedUsageFrequency).toBe('custom');
     expect(draft.customUsesPerMonth).toBe(9);
+  });
+});
+
+describe('isDecided', () => {
+  it('separates the two terminal states from the two open ones', () => {
+    // Four places asked this question inline before; they now ask it here, which
+    // is what keeps the status vocabulary out of the screens.
+    expect(isDecided('purchased')).toBe(true);
+    expect(isDecided('dismissed')).toBe(true);
+    expect(isDecided('thinking')).toBe(false);
+    expect(isDecided('ready_to_decide')).toBe(false);
   });
 });
 

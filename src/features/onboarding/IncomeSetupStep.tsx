@@ -39,7 +39,7 @@ export function IncomeSetupStep({ onBack }: { onBack: () => void }): React.React
   };
 
   return (
-    <Screen scroll edgeTop avoidKeyboard>
+    <Screen scroll avoidKeyboard>
       <AppText variant="display" style={{ marginTop: theme.spacing.xl }}>
         One number to start
       </AppText>

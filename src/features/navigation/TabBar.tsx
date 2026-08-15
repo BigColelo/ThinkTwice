@@ -17,7 +17,8 @@ import { useTheme } from '@/theme';
  * icon and selected treatment need to follow the app's own tokens.
  */
 
-export const TAB_BAR_HEIGHT = 56;
+/** Kept module-local: the bar is laid out as a sibling, so no screen reserves it. */
+const TAB_BAR_HEIGHT = 56;
 
 type TabDefinition = {
   name: string;

@@ -5,6 +5,7 @@ import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { ErrorState, LoadingState } from '@/components/ui/StateViews';
 import { useRepositories } from '@/db/DatabaseProvider';
+import { isDecided } from '@/domain';
 import { useMonthlyFinances } from '@/features/money/hooks/useMonthlyFinances';
 import { useGoBack } from '@/features/navigation/useGoBack';
 import { useSettings } from '@/features/settings/SettingsProvider';
@@ -32,7 +33,7 @@ export default function EditWishlistItemScreen(): React.ReactElement {
 
   const { data: item, isLoading, error, refetch } = useWishlistItem(id);
 
-  const isDecided = item?.status === 'purchased' || item?.status === 'dismissed';
+  const decided = item != null && isDecided(item.status);
 
   if (isLoading) {
     return (
@@ -45,19 +46,19 @@ export default function EditWishlistItemScreen(): React.ReactElement {
     );
   }
 
-  if (error || !item || isDecided) {
+  if (error || !item || decided) {
     return (
       <>
         <ScreenHeader title="Edit item" onBack={goBack} />
         <Screen>
           <ErrorState
-            title={isDecided ? 'This item has been decided' : 'Item not found'}
+            title={decided ? 'This item has been decided' : 'Item not found'}
             description={
-              isDecided
+              decided
                 ? 'An item you have decided on is part of your history and is no longer edited.'
                 : 'This item may have been deleted.'
             }
-            onRetry={isDecided ? undefined : refetch}
+            onRetry={decided ? undefined : refetch}
           />
         </Screen>
       </>

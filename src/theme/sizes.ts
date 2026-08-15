@@ -3,6 +3,13 @@ export const sizes = {
   /** iOS HIG / Material minimum tappable area. */
   minTouchTarget: 44,
 
+  /**
+   * Widest a centred paragraph is allowed to get — empty states, error copy, the
+   * onboarding blurbs. A measure, not a layout: past this the eye loses the start
+   * of the next line.
+   */
+  readableTextWidth: 320,
+
   control: {
     sm: 36,
     md: 44,

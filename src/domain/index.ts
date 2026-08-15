@@ -49,6 +49,7 @@ export {
 
 export {
   buildPurchaseFromWishlistItem,
+  isDecided,
   resolveWishlistStatus,
   type ConvertWishlistItemOptions,
   type PurchaseDraft,

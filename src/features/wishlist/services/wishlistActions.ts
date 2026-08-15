@@ -3,6 +3,7 @@ import type { NewWishlistItem, Repositories } from '@/db/repositories';
 import {
   buildPurchaseFromWishlistItem,
   calculateCooldownEnd,
+  isDecided,
   resolveWishlistStatus,
   reviseCooldownForPrice,
   type MonthlyFinances,
@@ -86,7 +87,7 @@ export async function updateWishlistItem(
   input: UpdateWishlistItemInput,
   options: { scheduleReminder: boolean; finances: MonthlyFinances | null },
 ): Promise<WishlistItem> {
-  if (item.status === 'purchased' || item.status === 'dismissed') {
+  if (isDecided(item.status)) {
     throw new Error('A decided item can no longer be edited.');
   }
 

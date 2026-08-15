@@ -2,7 +2,6 @@ import { useRouter } from 'expo-router';
 import { Clock, Plus, Settings, ShoppingBag, Wallet } from 'lucide-react-native';
 import React from 'react';
 import { View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ThinkTwiceWordmark } from '@/components/brand/ThinkTwiceMark';
 import { ProgressRing } from '@/components/charts/ProgressRing';
@@ -32,17 +31,16 @@ import { formatPercent } from '@/utils/currency';
 export default function HomeScreen(): React.ReactElement {
   const theme = useTheme();
   const router = useRouter();
-  const insets = useSafeAreaInsets();
 
   const { finances, isLoading: isLoadingFinances } = useMonthlyFinances();
   const wishlist = useWishlistPreview(3);
   const purchases = useRecentPurchases(3);
 
   return (
-    <Screen scroll edgeTop={false} edgeBottom={false}>
+    <Screen scroll edgeBottom={false}>
       <View
         style={{
-          paddingTop: insets.top + theme.spacing.sm,
+          paddingTop: theme.spacing.sm,
           paddingBottom: theme.spacing.md,
           flexDirection: 'row',
           alignItems: 'center',

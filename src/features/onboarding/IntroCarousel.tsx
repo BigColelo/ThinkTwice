@@ -80,7 +80,7 @@ export function IntroCarousel({ onDone }: { onDone: () => void }): React.ReactEl
   };
 
   return (
-    <Screen padded={false} edgeTop edgeBottom>
+    <Screen padded={false} edgeBottom>
       {/* Fixed above the pager: the mark is the one thing that should not move
           while the content slides past it. */}
       <View style={{ alignItems: 'center', paddingTop: theme.spacing.xl }}>
@@ -140,7 +140,7 @@ export function IntroCarousel({ onDone }: { onDone: () => void }): React.ReactEl
                 variant="body"
                 color="secondary"
                 align="center"
-                style={{ marginTop: theme.spacing.sm, maxWidth: 320 }}
+                style={{ marginTop: theme.spacing.sm, maxWidth: theme.sizes.readableTextWidth }}
               >
                 {slide.body}
               </AppText>

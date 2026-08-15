@@ -58,7 +58,9 @@ describe('Thumbnail', () => {
     const view = await render(PHOTO);
 
     await fireEvent(screen.getByTestId('thumb-image'), 'error', errorEvent());
-    view.rerender(<Thumbnail uri={PHOTO} fallbackIcon={Camera} tint="orange" testID="thumb" />);
+    await view.rerender(
+      <Thumbnail uri={PHOTO} fallbackIcon={Camera} tint="orange" testID="thumb" />,
+    );
 
     expect(screen.queryByTestId('thumb-image', withHidden)).toBeNull();
   });

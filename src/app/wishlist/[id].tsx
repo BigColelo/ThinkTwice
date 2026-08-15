@@ -22,6 +22,7 @@ import {
   calculateEstimatedCostPerUse,
   calculateEstimatedUses,
   calculatePurchaseImpact,
+  isDecided,
 } from '@/domain';
 import { useMonthlyFinances } from '@/features/money/hooks/useMonthlyFinances';
 import { useGoBack } from '@/features/navigation/useGoBack';
@@ -147,7 +148,7 @@ export default function WishlistDetailScreen(): React.ReactElement {
   }
 
   const category = getPurchaseCategory(item.categoryId);
-  const isDecided = item.status === 'purchased' || item.status === 'dismissed';
+  const decided = isDecided(item.status);
 
   return (
     <>
@@ -157,7 +158,7 @@ export default function WishlistDetailScreen(): React.ReactElement {
         // Editing is the trailing action; deleting sits at the end of the screen,
         // where an irreversible choice is harder to tap by accident.
         action={
-          isDecided
+          decided
             ? undefined
             : {
                 icon: Pencil,
@@ -170,7 +171,7 @@ export default function WishlistDetailScreen(): React.ReactElement {
       <Screen
         scroll
         footer={
-          isDecided ? undefined : (
+          decided ? undefined : (
             <View style={{ flexDirection: 'row', gap: theme.spacing.sm }}>
               <Button
                 label="I don't want it anymore"
@@ -201,7 +202,7 @@ export default function WishlistDetailScreen(): React.ReactElement {
           <Chip label={category.label} icon={category.icon} tint={category.tint} />
         </View>
 
-        {isDecided ? (
+        {decided ? (
           <View style={{ marginTop: theme.spacing.md }}>
             <Chip
               label={item.status === 'purchased' ? 'You bought this' : 'You decided against this'}

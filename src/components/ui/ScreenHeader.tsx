@@ -1,7 +1,6 @@
 import { ChevronLeft, type LucideIcon } from 'lucide-react-native';
 import React from 'react';
 import { Pressable, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useTheme } from '@/theme';
 
@@ -37,8 +36,6 @@ export type ScreenHeaderProps = {
   };
   /** Draws a hairline under the header — used when content scrolls beneath it. */
   bordered?: boolean;
-  /** Adds top safe-area padding. */
-  edgeTop?: boolean;
 };
 
 export function ScreenHeader({
@@ -49,15 +46,13 @@ export function ScreenHeader({
   textAction,
   leadingAction,
   bordered = false,
-  edgeTop = true,
 }: ScreenHeaderProps): React.ReactElement {
   const theme = useTheme();
-  const insets = useSafeAreaInsets();
 
   return (
     <View
       style={{
-        paddingTop: edgeTop ? insets.top : 0,
+        // The accent strip at the root owns the top inset; the header starts below it.
         backgroundColor: theme.colors.background,
         borderBottomWidth: bordered ? theme.sizes.hairline : 0,
         borderBottomColor: theme.colors.divider,
