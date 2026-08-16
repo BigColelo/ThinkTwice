@@ -30,7 +30,13 @@ export default function AddOwnedPurchaseScreen(): React.ReactElement {
 
   return (
     <>
-      <ScreenHeader title={t('add.alreadyOwn')} onBack={goBack} />
+      {/* A text action rather than a chevron: the form is presented as a sheet,
+          and it is dismissed rather than popped. Same control as the other
+          modal form in the app, `money/commitment`. */}
+      <ScreenHeader
+        title={t('add.alreadyOwn')}
+        textAction={{ label: t('common.cancel'), onPress: goBack }}
+      />
       <OwnedPurchaseForm submitLabel={t('add.addPurchase')} onSubmit={handleSubmit} />
     </>
   );

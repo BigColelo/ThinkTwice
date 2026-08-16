@@ -1,4 +1,4 @@
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 import React from 'react';
 
 import { Screen } from '@/components/ui/Screen';
@@ -20,11 +20,12 @@ import { useT } from '@/i18n';
  * on the next read.
  */
 export default function EditPurchaseScreen(): React.ReactElement {
-  const router = useRouter();
   const t = useT();
   const repositories = useRepositories();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const goBack = useGoBack('/purchases');
+  // Both leaving and saving land on the item being edited, which is where the
+  // screen was opened from; the fallback only applies to a link straight here.
+  const goBack = useGoBack(`/purchase/${id}`);
 
   const { data, isLoading, error, refetch } = usePurchaseDetail(id);
 
@@ -58,7 +59,7 @@ export default function EditPurchaseScreen(): React.ReactElement {
 
   const handleSubmit = async (values: NewPurchase): Promise<void> => {
     await updatePurchase(repositories, purchase, values);
-    router.replace(`/purchase/${purchase.id}`);
+    goBack();
   };
 
   return (

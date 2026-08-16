@@ -91,7 +91,15 @@ export default function AddItemScreen(): React.ReactElement {
                   <PressableCard
                     key={entry.key}
                     padding={theme.spacing.sm}
-                    onPress={() => router.push(entry.href)}
+                    // A recent item is content, not a step of the add flow.
+                    // Leaving the sheet first keeps its detail screen a card —
+                    // the same thing it is from Home — instead of a third sheet
+                    // stacked on this one, and makes "back" from it lead to
+                    // Home rather than into a flow that is over.
+                    onPress={() => {
+                      if (router.canDismiss()) router.dismissAll();
+                      router.push(entry.href);
+                    }}
                     accessibilityLabel={t('add.entryLabel', {
                       name: entry.name,
                       caption: entry.caption,

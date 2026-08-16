@@ -148,16 +148,36 @@ function AppChrome({
           headerShown: false,
           contentStyle: { backgroundColor: theme.colors.background },
           animation: 'slide_from_right',
+          // A replace in this app is always a step back or sideways, never
+          // deeper: the fallback in `useGoBack` when there is nothing to pop, a
+          // form closing onto the item it just saved, an item that stopped being
+          // a wishlist entry. Expo Router defaults this to `push`, which makes
+          // the back control move the screen forwards. Read from the screen
+          // being replaced *in*, so declaring it once here covers every target.
+          animationTypeForReplace: 'pop',
         }}
       >
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="onboarding" options={{ animation: 'fade', gestureEnabled: false }} />
+        {/* The add flow is a sheet from every entrance, declared rather than
+            left implicit. Expo Router marks every screen after a modal as a
+            modal too — it has to, since a screen presented with `push` would go
+            into the stack *behind* the sheet and never be seen — so a form with
+            no options would be a card when opened from Home and a sheet when
+            opened from the tab bar, and as an implicit modal it would animate
+            sideways while dismissing downwards. Saying it once fixes both. */}
         <Stack.Screen
           name="add/index"
           options={{ presentation: 'modal', animation: 'slide_from_bottom' }}
         />
-        <Stack.Screen name="add/wishlist" />
-        <Stack.Screen name="add/purchase" />
+        <Stack.Screen
+          name="add/wishlist"
+          options={{ presentation: 'modal', animation: 'slide_from_bottom' }}
+        />
+        <Stack.Screen
+          name="add/purchase"
+          options={{ presentation: 'modal', animation: 'slide_from_bottom' }}
+        />
         <Stack.Screen name="wishlist/index" />
         <Stack.Screen name="wishlist/[id]" />
         <Stack.Screen name="wishlist/edit/[id]" />

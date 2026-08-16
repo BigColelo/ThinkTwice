@@ -1,4 +1,4 @@
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 import React from 'react';
 
 import { Screen } from '@/components/ui/Screen';
@@ -25,13 +25,14 @@ import { useT } from '@/i18n';
  * price moves its end date while keeping the day it started.
  */
 export default function EditWishlistItemScreen(): React.ReactElement {
-  const router = useRouter();
   const t = useT();
   const repositories = useRepositories();
   const { settings } = useSettings();
   const { finances } = useMonthlyFinances();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const goBack = useGoBack('/wishlist');
+  // Both leaving and saving land on the item being edited, which is where the
+  // screen was opened from; the fallback only applies to a link straight here.
+  const goBack = useGoBack(`/wishlist/${id}`);
 
   const { data: item, isLoading, error, refetch } = useWishlistItem(id);
 
@@ -72,7 +73,7 @@ export default function EditWishlistItemScreen(): React.ReactElement {
     });
 
     // Back to the item, which now shows the revised period.
-    router.replace(`/wishlist/${item.id}`);
+    goBack();
   };
 
   return (
