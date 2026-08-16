@@ -1,4 +1,4 @@
-import { ChartPie, TrendingDown, TrendingUp } from 'lucide-react-native';
+import { ChartPie, Settings, TrendingDown, TrendingUp } from 'lucide-react-native';
 import React, { useState } from 'react';
 import { View } from 'react-native';
 
@@ -38,7 +38,14 @@ export default function InsightsScreen(): React.ReactElement {
 
   return (
     <>
-      <ScreenHeader title={t('insights.title')} />
+      <ScreenHeader
+        title={t('insights.title')}
+        action={{
+          icon: Settings,
+          accessibilityLabel: t('common.settings'),
+          onPress: () => router.push('/settings'),
+        }}
+      />
 
       <Screen scroll edgeBottom={false}>
         <SegmentedControl

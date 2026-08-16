@@ -17,6 +17,7 @@ export const it = {
     close: 'Chiudi',
     delete: 'Elimina',
     done: 'Fatto',
+    settings: 'Impostazioni',
     loading: 'Caricamento',
     tryAgain: 'Riprova',
     somethingWentWrong: 'Qualcosa è andato storto',
@@ -383,7 +384,6 @@ export const it = {
 
   money: {
     title: 'Denaro',
-    settingsLabel: 'Impostazioni',
     error: 'Non è stato possibile leggere la tua situazione economica da questo dispositivo.',
     setupTitle: 'La tua situazione mensile',
     incomeLabel: 'Reddito netto mensile',
@@ -617,7 +617,6 @@ export const it = {
 
   home: {
     greeting: 'Ecco il tuo quadro generale',
-    settingsLabel: 'Impostazioni',
     seeAll: 'Vedi tutto',
     addItem: 'Aggiungi un elemento',
     thinkingAbout: 'In valutazione',

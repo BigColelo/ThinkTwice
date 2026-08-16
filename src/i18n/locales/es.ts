@@ -14,6 +14,7 @@ export const es = {
     close: 'Cerrar',
     delete: 'Eliminar',
     done: 'Hecho',
+    settings: 'Ajustes',
     loading: 'Cargando',
     tryAgain: 'Reintentar',
     somethingWentWrong: 'Algo ha salido mal',
@@ -378,7 +379,6 @@ export const es = {
 
   money: {
     title: 'Dinero',
-    settingsLabel: 'Ajustes',
     error: 'No se ha podido leer tu situación económica desde este dispositivo.',
     setupTitle: 'Tu mes en resumen',
     incomeLabel: 'Ingresos netos mensuales',
@@ -614,7 +614,6 @@ export const es = {
 
   home: {
     greeting: 'Este es tu resumen',
-    settingsLabel: 'Ajustes',
     seeAll: 'Ver todo',
     addItem: 'Añadir un elemento',
     thinkingAbout: 'En valoración',

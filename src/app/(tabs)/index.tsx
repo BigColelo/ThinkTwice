@@ -57,7 +57,7 @@ export default function HomeScreen(): React.ReactElement {
         </View>
         <IconButton
           icon={Settings}
-          accessibilityLabel={t('home.settingsLabel')}
+          accessibilityLabel={t('common.settings')}
           onPress={() => router.push('/settings')}
         />
       </View>

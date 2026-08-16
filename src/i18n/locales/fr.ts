@@ -14,6 +14,7 @@ export const fr = {
     close: 'Fermer',
     delete: 'Supprimer',
     done: 'Terminé',
+    settings: 'Réglages',
     loading: 'Chargement',
     tryAgain: 'Réessayer',
     somethingWentWrong: 'Quelque chose s’est mal passé',
@@ -380,7 +381,6 @@ export const fr = {
 
   money: {
     title: 'Argent',
-    settingsLabel: 'Réglages',
     error: 'Ta situation financière n’a pas pu être lue depuis cet appareil.',
     setupTitle: 'Ton mois en résumé',
     incomeLabel: 'Revenu net mensuel',
@@ -613,7 +613,6 @@ export const fr = {
 
   home: {
     greeting: 'Voici ton aperçu',
-    settingsLabel: 'Réglages',
     seeAll: 'Tout voir',
     addItem: 'Ajouter un élément',
     thinkingAbout: 'En réflexion',

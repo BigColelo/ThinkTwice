@@ -42,7 +42,7 @@ export default function MoneyScreen(): React.ReactElement {
         title={t('money.title')}
         action={{
           icon: Settings,
-          accessibilityLabel: t('money.settingsLabel'),
+          accessibilityLabel: t('common.settings'),
           onPress: () => router.push('/settings'),
         }}
       />

@@ -19,6 +19,7 @@ export const en = {
     close: 'Close',
     delete: 'Delete',
     done: 'Done',
+    settings: 'Settings',
     loading: 'Loading',
     tryAgain: 'Try again',
     somethingWentWrong: 'Something went wrong',
@@ -391,7 +392,6 @@ export const en = {
 
   money: {
     title: 'Money',
-    settingsLabel: 'Settings',
     error: 'Your financial setup could not be read from this device.',
     setupTitle: 'Your monthly setup',
     incomeLabel: 'Monthly net income',
@@ -619,7 +619,6 @@ export const en = {
 
   home: {
     greeting: 'Here’s your overview',
-    settingsLabel: 'Settings',
     seeAll: 'See all',
     addItem: 'Add an item',
     thinkingAbout: 'Thinking about',

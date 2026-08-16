@@ -1,4 +1,4 @@
-import { ShoppingBag } from 'lucide-react-native';
+import { Settings, ShoppingBag } from 'lucide-react-native';
 import React, { useCallback, useState } from 'react';
 import { FlatList, View } from 'react-native';
 
@@ -39,7 +39,14 @@ export default function PurchasesScreen(): React.ReactElement {
 
   return (
     <>
-      <ScreenHeader title={t('purchases.listTitle')} />
+      <ScreenHeader
+        title={t('purchases.listTitle')}
+        action={{
+          icon: Settings,
+          accessibilityLabel: t('common.settings'),
+          onPress: () => router.push('/settings'),
+        }}
+      />
 
       {error ? (
         <Screen scroll edgeBottom={false}>

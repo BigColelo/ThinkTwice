@@ -12,6 +12,7 @@ export const de = {
     close: 'Schließen',
     delete: 'Löschen',
     done: 'Fertig',
+    settings: 'Einstellungen',
     loading: 'Wird geladen',
     tryAgain: 'Erneut versuchen',
     somethingWentWrong: 'Etwas ist schiefgelaufen',
@@ -366,7 +367,6 @@ export const de = {
 
   money: {
     title: 'Geld',
-    settingsLabel: 'Einstellungen',
     error: 'Deine Finanzübersicht konnte auf diesem Gerät nicht gelesen werden.',
     setupTitle: 'Dein Monat im Überblick',
     incomeLabel: 'Monatliches Nettoeinkommen',
@@ -594,7 +594,6 @@ export const de = {
 
   home: {
     greeting: 'Hier ist dein Überblick',
-    settingsLabel: 'Einstellungen',
     seeAll: 'Alle ansehen',
     addItem: 'Eintrag hinzufügen',
     thinkingAbout: 'In Überlegung',

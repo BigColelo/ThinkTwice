@@ -22,6 +22,7 @@ export const ar = {
     close: 'إغلاق',
     delete: 'حذف',
     done: 'تم',
+    settings: 'الإعدادات',
     loading: 'جارٍ التحميل',
     tryAgain: 'إعادة المحاولة',
     somethingWentWrong: 'حدث خطأ ما',
@@ -418,7 +419,6 @@ export const ar = {
 
   money: {
     title: 'المال',
-    settingsLabel: 'الإعدادات',
     error: 'تعذّرت قراءة وضعك المالي من هذا الجهاز.',
     setupTitle: 'شهرك باختصار',
     incomeLabel: 'الدخل الشهري الصافي',
@@ -658,7 +658,6 @@ export const ar = {
 
   home: {
     greeting: 'هذه نظرتك العامة',
-    settingsLabel: 'الإعدادات',
     seeAll: 'عرض الكل',
     addItem: 'إضافة عنصر',
     thinkingAbout: 'قيد التفكير',
