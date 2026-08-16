@@ -1,4 +1,3 @@
-import { useRouter } from 'expo-router';
 import { Heart, Package } from 'lucide-react-native';
 import React from 'react';
 import { View } from 'react-native';
@@ -11,6 +10,7 @@ import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { SectionHeader } from '@/components/ui/SectionHeader';
 import { Thumbnail } from '@/components/ui/Thumbnail';
 import { getPurchaseCategory } from '@/constants/categories';
+import { useAppRouter } from '@/features/navigation/useAppRouter';
 import { useGoBack } from '@/features/navigation/useGoBack';
 import { useRecentPurchases } from '@/features/purchases/hooks/usePurchases';
 import { useWishlistPreview } from '@/features/wishlist/hooks/useWishlist';
@@ -25,7 +25,7 @@ import { useTheme } from '@/theme';
 export default function AddItemScreen(): React.ReactElement {
   const theme = useTheme();
   const t = useT();
-  const router = useRouter();
+  const router = useAppRouter();
   const goBack = useGoBack('/');
 
   const wishlist = useWishlistPreview(2);

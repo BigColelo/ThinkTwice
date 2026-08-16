@@ -1,9 +1,9 @@
-import { useRouter } from 'expo-router';
 import React from 'react';
 
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { useRepositories } from '@/db/DatabaseProvider';
 import { useMonthlyFinances } from '@/features/money/hooks/useMonthlyFinances';
+import { useAppRouter } from '@/features/navigation/useAppRouter';
 import { useGoBack } from '@/features/navigation/useGoBack';
 import { useSettings } from '@/features/settings/SettingsProvider';
 import { WishlistItemForm } from '@/features/wishlist/components/WishlistItemForm';
@@ -18,7 +18,7 @@ import { useT } from '@/i18n';
  * edit screen shares; this screen owns what saving means.
  */
 export default function AddWishlistItemScreen(): React.ReactElement {
-  const router = useRouter();
+  const router = useAppRouter();
   const t = useT();
   const goBack = useGoBack('/');
   const repositories = useRepositories();

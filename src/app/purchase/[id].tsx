@@ -1,4 +1,4 @@
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 import { Calendar, Pencil, Plus, Repeat, Trash2 } from 'lucide-react-native';
 import React, { useCallback, useState } from 'react';
 import { View } from 'react-native';
@@ -13,6 +13,7 @@ import { SectionHeader } from '@/components/ui/SectionHeader';
 import { ErrorState, LoadingState } from '@/components/ui/StateViews';
 import { usageFrequencyShortLabel } from '@/constants/usagePresets';
 import { useRepositories } from '@/db/DatabaseProvider';
+import { useAppRouter } from '@/features/navigation/useAppRouter';
 import { useDeleteAndLeave } from '@/features/navigation/useDeleteAndLeave';
 import { useGoBack } from '@/features/navigation/useGoBack';
 import { ExpenseSheet } from '@/features/purchases/components/ExpenseSheet';
@@ -49,7 +50,7 @@ import { formatNumber } from '@/utils/currency';
 export default function PurchaseDetailScreen(): React.ReactElement {
   const theme = useTheme();
   const t = useT();
-  const router = useRouter();
+  const router = useAppRouter();
   const repositories = useRepositories();
   const { id } = useLocalSearchParams<{ id: string }>();
 

@@ -1,4 +1,3 @@
-import { useRouter } from 'expo-router';
 import { ShoppingBag } from 'lucide-react-native';
 import React, { useCallback, useState } from 'react';
 import { FlatList, View } from 'react-native';
@@ -9,6 +8,7 @@ import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { ErrorState, LoadingState } from '@/components/ui/StateViews';
 import { PURCHASE_SORTS, type PurchaseSort } from '@/db/repositories';
+import { useAppRouter } from '@/features/navigation/useAppRouter';
 import { PurchaseCard } from '@/features/purchases/components/PurchaseCard';
 import { usePurchases } from '@/features/purchases/hooks/usePurchases';
 import { useT } from '@/i18n';
@@ -22,7 +22,7 @@ import type { PurchaseWithStats } from '@/types/domain';
 export default function PurchasesScreen(): React.ReactElement {
   const theme = useTheme();
   const t = useT();
-  const router = useRouter();
+  const router = useAppRouter();
   const [sort, setSort] = useState<PurchaseSort>('recent');
 
   const { data, isLoading, error, refetch, isRefreshing } = usePurchases(sort);

@@ -1,9 +1,9 @@
-import { useRouter } from 'expo-router';
 import React from 'react';
 
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { useRepositories } from '@/db/DatabaseProvider';
 import type { NewPurchase } from '@/db/repositories';
+import { useAppRouter } from '@/features/navigation/useAppRouter';
 import { useGoBack } from '@/features/navigation/useGoBack';
 import { OwnedPurchaseForm } from '@/features/purchases/components/OwnedPurchaseForm';
 import { createOwnedPurchase } from '@/features/purchases/services/purchaseActions';
@@ -14,7 +14,7 @@ import { useT } from '@/i18n';
  * edit screen shares; this screen owns what saving means.
  */
 export default function AddOwnedPurchaseScreen(): React.ReactElement {
-  const router = useRouter();
+  const router = useAppRouter();
   const t = useT();
   const goBack = useGoBack('/');
   const repositories = useRepositories();

@@ -32,7 +32,7 @@ npx jest -t 'cost per use'
 npx jest --coverage      # collected from src/domain, src/utils, src/db only
 ```
 
-`npm run verify` is green as a baseline (53 suites / 599 tests) — treat a failure as caused by the
+`npm run verify` is green as a baseline (55 suites / 612 tests) — treat a failure as caused by the
 current change.
 
 ## Architecture
@@ -93,6 +93,16 @@ Because every route is URL-addressable, any screen can be the first history entr
 URL, tapped reminder). Never call `router.back()` directly in a screen — use `useGoBack(fallback)`
 from `@/features/navigation/useGoBack`, which falls back to a real destination when there is nothing
 to pop. Passing the parent route as the fallback (`useGoBack('/purchases')`) is the norm.
+
+**Navigate with `useAppRouter()`, never with `useRouter()`** — `no-restricted-imports` enforces it,
+and `@/features/navigation/useAppRouter` is the only file exempt. A handler that navigates is not
+idempotent: where the JS thread is busy nothing moves, the tap looks like it missed, and the second
+tap stacks a second copy of the screen. The wrapper sends `push`, `navigate` and `back` through
+`claimNavigation` (`navigationLock.ts`), which drops anything arriving within 500 ms of an accepted
+navigation — a window measured from when the handler _ran_, so the queued taps of a stalled thread
+all land inside it. A guard inside a button could not do this: two taps on two different rows are the
+same bug and only a shared lock catches both. `replace` and `dismiss*` are deliberately left
+unguarded, for the reasons documented in that file — do not "fix" them.
 
 ### Persistence rules
 

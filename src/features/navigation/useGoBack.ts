@@ -1,5 +1,6 @@
-import { useRouter } from 'expo-router';
 import { useCallback } from 'react';
+
+import { useAppRouter } from './useAppRouter';
 
 /**
  * A back action that always leads somewhere.
@@ -12,10 +13,10 @@ import { useCallback } from 'react';
  * honest, at no cost to the normal in-app path.
  */
 
-type Href = Parameters<ReturnType<typeof useRouter>['replace']>[0];
+type Href = Parameters<ReturnType<typeof useAppRouter>['replace']>[0];
 
 export function useGoBack(fallback: Href = '/'): () => void {
-  const router = useRouter();
+  const router = useAppRouter();
 
   return useCallback(() => {
     if (router.canGoBack()) router.back();

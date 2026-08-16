@@ -37,6 +37,28 @@ module.exports = [
     },
   },
   {
+    // Navigation goes through one wrapper, which drops the duplicate a repeated
+    // tap produces. The wrapper itself is the one place allowed to reach for the
+    // real thing.
+    files: ['src/**/*.ts', 'src/**/*.tsx'],
+    ignores: ['src/features/navigation/useAppRouter.ts'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          paths: [
+            {
+              name: 'expo-router',
+              importNames: ['useRouter', 'router'],
+              message:
+                "Use `useAppRouter()` from '@/features/navigation/useAppRouter': it drops the second of two navigations fired by one repeated tap.",
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
     // The @typescript-eslint plugin is only registered for TypeScript files by
     // the Expo config, so rules from it must be scoped the same way.
     files: ['**/*.ts', '**/*.tsx'],

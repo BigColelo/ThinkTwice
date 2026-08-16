@@ -1,4 +1,3 @@
-import { useRouter } from 'expo-router';
 import { Clock } from 'lucide-react-native';
 import React from 'react';
 import { View } from 'react-native';
@@ -8,6 +7,7 @@ import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { SectionHeader } from '@/components/ui/SectionHeader';
 import { ErrorState, LoadingState } from '@/components/ui/StateViews';
+import { useAppRouter } from '@/features/navigation/useAppRouter';
 import { useGoBack } from '@/features/navigation/useGoBack';
 import { WishlistCard } from '@/features/wishlist/components/WishlistCard';
 import { useWishlist } from '@/features/wishlist/hooks/useWishlist';
@@ -22,7 +22,7 @@ import { useTheme } from '@/theme';
 export default function WishlistScreen(): React.ReactElement {
   const theme = useTheme();
   const t = useT();
-  const router = useRouter();
+  const router = useAppRouter();
   const { thinking, readyToDecide, isLoading, error, refetch } = useWishlist();
   const goBack = useGoBack();
 

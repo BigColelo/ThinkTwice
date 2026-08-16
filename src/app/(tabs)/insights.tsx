@@ -1,4 +1,3 @@
-import { useRouter } from 'expo-router';
 import { ChartPie, TrendingDown, TrendingUp } from 'lucide-react-native';
 import React, { useState } from 'react';
 import { View } from 'react-native';
@@ -19,6 +18,7 @@ import { getPurchaseCategory } from '@/constants/categories';
 import { INSIGHTS_RANGES, type InsightsRange, type ValueHighlight } from '@/domain';
 import { AvoidedPurchasesCard } from '@/features/insights/components/AvoidedPurchasesCard';
 import { useInsights } from '@/features/insights/hooks/useInsights';
+import { useAppRouter } from '@/features/navigation/useAppRouter';
 import { useT } from '@/i18n';
 import { useTheme } from '@/theme';
 
@@ -31,7 +31,7 @@ import { useTheme } from '@/theme';
 export default function InsightsScreen(): React.ReactElement {
   const theme = useTheme();
   const t = useT();
-  const router = useRouter();
+  const router = useAppRouter();
   const [range, setRange] = useState<InsightsRange>('this_year');
 
   const { summary, isLoading, error, refetch } = useInsights(range);

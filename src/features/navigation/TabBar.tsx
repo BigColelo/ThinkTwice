@@ -1,4 +1,3 @@
-import { useRouter } from 'expo-router';
 import type { BottomTabBarProps } from 'expo-router/tabs';
 import { ChartPie, House, Plus, ShoppingBag, Wallet, type LucideIcon } from 'lucide-react-native';
 import React from 'react';
@@ -8,6 +7,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppText } from '@/components/ui/AppText';
 import { type TranslationKey, useT } from '@/i18n';
 import { useTheme } from '@/theme';
+
+import { useAppRouter } from './useAppRouter';
 
 /**
  * The bottom bar from the design: four destinations either side of a raised
@@ -38,7 +39,7 @@ export function TabBar({ state, navigation }: BottomTabBarProps): React.ReactEle
   const theme = useTheme();
   const t = useT();
   const insets = useSafeAreaInsets();
-  const router = useRouter();
+  const router = useAppRouter();
 
   const activeRouteName = state.routes[state.index]?.name;
 

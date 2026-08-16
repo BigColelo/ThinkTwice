@@ -1,4 +1,4 @@
-import { Stack, useRouter, useSegments } from 'expo-router';
+import { Stack, useSegments } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import React, { useEffect } from 'react';
@@ -8,6 +8,7 @@ import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-cont
 import { AppText } from '@/components/ui/AppText';
 import { ErrorState, LoadingState } from '@/components/ui/StateViews';
 import { DatabaseProvider, useDatabaseState, useRetryDatabase } from '@/db/DatabaseProvider';
+import { useAppRouter } from '@/features/navigation/useAppRouter';
 import { SettingsProvider, useSettings } from '@/features/settings/SettingsProvider';
 import { I18nProvider, useT } from '@/i18n';
 import {
@@ -204,7 +205,7 @@ function AppChrome({
  * subscription is a no-op.
  */
 function useReminderRouting(): void {
-  const router = useRouter();
+  const router = useAppRouter();
 
   useEffect(
     () =>
@@ -222,7 +223,7 @@ function useReminderRouting(): void {
  */
 function useOnboardingRedirect(isLoading: boolean, onboardingCompleted: boolean): void {
   const segments = useSegments();
-  const router = useRouter();
+  const router = useAppRouter();
 
   useEffect(() => {
     if (isLoading) return;

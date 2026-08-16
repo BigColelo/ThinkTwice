@@ -1,4 +1,4 @@
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 import { Calendar, Pencil, Repeat, Trash2 } from 'lucide-react-native';
 import React, { useMemo, useState } from 'react';
 import { View } from 'react-native';
@@ -25,6 +25,7 @@ import {
   isDecided,
 } from '@/domain';
 import { useMonthlyFinances } from '@/features/money/hooks/useMonthlyFinances';
+import { useAppRouter } from '@/features/navigation/useAppRouter';
 import { useDeleteAndLeave } from '@/features/navigation/useDeleteAndLeave';
 import { useGoBack } from '@/features/navigation/useGoBack';
 import { ConfirmPurchaseSheet } from '@/features/wishlist/components/ConfirmPurchaseSheet';
@@ -53,7 +54,7 @@ import { formatNumber } from '@/utils/currency';
 export default function WishlistDetailScreen(): React.ReactElement {
   const theme = useTheme();
   const t = useT();
-  const router = useRouter();
+  const router = useAppRouter();
   const repositories = useRepositories();
   const { id } = useLocalSearchParams<{ id: string }>();
   const goBack = useGoBack('/wishlist');

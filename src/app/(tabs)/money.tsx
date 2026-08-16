@@ -1,4 +1,3 @@
-import { useRouter } from 'expo-router';
 import { Plus, Receipt, Settings } from 'lucide-react-native';
 import React, { useState } from 'react';
 import { View } from 'react-native';
@@ -17,6 +16,7 @@ import { CommitmentRow } from '@/features/money/components/CommitmentRow';
 import { MonthlyOverviewCard } from '@/features/money/components/MonthlyOverviewCard';
 import { useMonthlyFinances } from '@/features/money/hooks/useMonthlyFinances';
 import { buildMonthlyIncomeSchema } from '@/features/money/schemas/commitmentSchema';
+import { useAppRouter } from '@/features/navigation/useAppRouter';
 import { useSettings } from '@/features/settings/SettingsProvider';
 import { useT } from '@/i18n';
 import { useTheme } from '@/theme';
@@ -29,7 +29,7 @@ import type { Cents } from '@/types/domain';
 export default function MoneyScreen(): React.ReactElement {
   const theme = useTheme();
   const t = useT();
-  const router = useRouter();
+  const router = useAppRouter();
   const { finances, commitments, pausedCommitments, isLoading, error, refetch } =
     useMonthlyFinances();
 

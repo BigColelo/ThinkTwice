@@ -1,4 +1,3 @@
-import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { View } from 'react-native';
 
@@ -6,6 +5,7 @@ import { AppText } from '@/components/ui/AppText';
 import { Button } from '@/components/ui/Button';
 import { MoneyField } from '@/components/ui/MoneyField';
 import { Screen } from '@/components/ui/Screen';
+import { useAppRouter } from '@/features/navigation/useAppRouter';
 import { useSettings } from '@/features/settings/SettingsProvider';
 import { useT } from '@/i18n';
 import { useTheme } from '@/theme';
@@ -18,7 +18,7 @@ import type { Cents } from '@/types/domain';
 export function IncomeSetupStep({ onBack }: { onBack: () => void }): React.ReactElement {
   const theme = useTheme();
   const t = useT();
-  const router = useRouter();
+  const router = useAppRouter();
   const { updateSettings } = useSettings();
 
   const [incomeCents, setIncomeCents] = useState<Cents | null>(null);

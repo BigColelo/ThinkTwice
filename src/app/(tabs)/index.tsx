@@ -1,4 +1,3 @@
-import { useRouter } from 'expo-router';
 import { Clock, Plus, Settings, ShoppingBag, Wallet } from 'lucide-react-native';
 import React from 'react';
 import { View } from 'react-native';
@@ -16,6 +15,7 @@ import { MetricCell, MetricDivider } from '@/components/ui/StatCard';
 import { LoadingState } from '@/components/ui/StateViews';
 import type { MonthlyFinances } from '@/domain';
 import { useMonthlyFinances } from '@/features/money/hooks/useMonthlyFinances';
+import { useAppRouter } from '@/features/navigation/useAppRouter';
 import { PurchaseCard } from '@/features/purchases/components/PurchaseCard';
 import { useRecentPurchases } from '@/features/purchases/hooks/usePurchases';
 import { WishlistCard } from '@/features/wishlist/components/WishlistCard';
@@ -32,7 +32,7 @@ import { formatPercent } from '@/utils/currency';
 export default function HomeScreen(): React.ReactElement {
   const theme = useTheme();
   const t = useT();
-  const router = useRouter();
+  const router = useAppRouter();
 
   const { finances, isLoading: isLoadingFinances } = useMonthlyFinances();
   const wishlist = useWishlistPreview(3);
@@ -144,7 +144,7 @@ export default function HomeScreen(): React.ReactElement {
 function AvailableCard({ finances }: { finances: MonthlyFinances }): React.ReactElement {
   const theme = useTheme();
   const t = useT();
-  const router = useRouter();
+  const router = useAppRouter();
 
   if (!finances.isIncomeConfigured) {
     return (

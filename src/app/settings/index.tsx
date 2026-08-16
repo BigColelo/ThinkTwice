@@ -1,4 +1,3 @@
-import { useRouter } from 'expo-router';
 import {
   Bell,
   Database,
@@ -28,6 +27,7 @@ import { invalidate } from '@/db/dataRevisions';
 import { isDevSeedAvailable, seedDevelopmentData } from '@/db/devSeed';
 import { LATEST_SCHEMA_VERSION } from '@/db/migrations';
 import { deleteAllItemImages } from '@/features/images/itemImages';
+import { useAppRouter } from '@/features/navigation/useAppRouter';
 import { useGoBack } from '@/features/navigation/useGoBack';
 import { appVersion } from '@/features/settings/appVersion';
 import { AboutCard } from '@/features/settings/components/AboutCard';
@@ -52,7 +52,7 @@ import { CURRENCY_LABELS, SUPPORTED_CURRENCIES } from '@/utils/currency';
 export default function SettingsScreen(): React.ReactElement {
   const theme = useTheme();
   const t = useT();
-  const router = useRouter();
+  const router = useAppRouter();
   const { settings, updateSettings, reloadSettings } = useSettings();
   const database = useDatabase();
   const repositories = useRepositories();
