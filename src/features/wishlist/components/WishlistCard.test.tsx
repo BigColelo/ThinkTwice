@@ -43,7 +43,7 @@ describe('WishlistCard', () => {
     await renderWithProviders(<WishlistCard item={item()} onPress={jest.fn()} />);
 
     expect(screen.getByText('Camera')).toBeTruthy();
-    expect(screen.getByText('€1,799')).toBeTruthy();
+    expect(screen.getByText('EUR 1,799')).toBeTruthy();
     expect(screen.getByText('6 days left')).toBeTruthy();
   });
 
@@ -87,7 +87,7 @@ describe('WishlistCard', () => {
     await renderWithProviders(<WishlistCard item={item({ name: longName })} onPress={jest.fn()} />);
 
     expect(screen.getByText(longName).props.numberOfLines).toBe(1);
-    expect(screen.getByText('€1,799')).toBeTruthy();
+    expect(screen.getByText('EUR 1,799')).toBeTruthy();
     expect(screen.getByText('6 days left')).toBeTruthy();
   });
 });

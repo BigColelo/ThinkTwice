@@ -53,6 +53,21 @@ the `Cents` suffix so a euro value cannot be assigned by accident. SQLite stores
 Components never call `Intl` directly — they render `<MoneyValue cents={…} />`, which applies the
 active currency from settings. Changing how money looks is a change in one file.
 
+**Codes, not symbols.** Every amount is labelled with its ISO 4217 code — `EUR 1,650` in English,
+`1650 EUR` in Italian. The app offers forty-six currencies and there is no complete symbol set behind
+them: ICU renders CHF as `CHF`, USD as `US$` outside `en-US`, GBP as `£GB` in French, and the
+Arab-state currencies as their code in every locale but `ar`. Symbols for some and codes for the rest
+would look like a rendering failure, and the code is also the one label that is never ambiguous
+between two dollars or three pounds. The corollary is that the app shows no `€` anywhere.
+
+**One hundredth of the major unit, for all of them.** KWD, BHD, OMR, JOD, LYD and TND are defined
+with three decimals and DJF, KMF, IQD, SOS, SYP and LBP with none; all twelve are displayed here with
+two. That is not an oversight. Amounts are stored as minor units and are never converted, so
+switching currency has to relabel a figure and must never change it — 165000 reads `EUR 1,650` and,
+after a switch, `KWD 1,650`. Honouring each ISO exponent instead would move the decimal point on
+money the user had already entered, which is a silent edit to their own records. `MINOR_UNITS_PER_MAJOR`
+therefore stays a constant, and the choice is asserted in `currency.test.ts`.
+
 **Derived rates are not rounded early.** A cost per use is `safeDivide(cents, uses)` and may be
 `276.769…`. It is carried as a fractional number of cents and rounded once, by `formatMoney`, at
 display time. Rounding it at the source would compound error through the insights averages.
@@ -278,7 +293,7 @@ the failure mode this design is arranged to make impossible.
 `LANGUAGE_LOCALES` maps each to the tag `Intl` formats with. The two are separate because they answer
 different questions: i18next picks plural forms from the short code (six categories for Arabic, three
 for Italian, French and Spanish, two for English and German), while grouping, decimal separators,
-month names and currency-symbol placement come from the full tag. Arabic is pinned to
+month names and the side the currency code sits on come from the full tag. Arabic is pinned to
 `ar-u-ca-gregory-nu-latn` for two concrete reasons — ICU resolves plain `ar` to the Umm al-Qura
 calendar in some regions, which would print a year the stored ISO date does not mean; and it emits
 Arabic-Indic digits, which `centsToInputString` would put into a money field whose parser reads only
@@ -356,7 +371,7 @@ have.
 ## 12. Deliberate non-goals
 
 Kept in mind only so nothing forecloses them: cloud sync, accounts, export/backup, custom
-categories, more currencies, advanced insights.
+categories, currency conversion, advanced insights.
 
 The two decisions that keep those open are the repository boundary and the fact that every user-
 facing string is in the UI layer rather than inside a domain function. The second of those is what

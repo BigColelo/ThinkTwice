@@ -1,5 +1,6 @@
 import {
   Bell,
+  Coins,
   Database,
   Euro,
   Globe,
@@ -21,6 +22,7 @@ import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { SectionHeader } from '@/components/ui/SectionHeader';
 import { SegmentedControl } from '@/components/ui/SegmentedControl';
+import { getCurrency } from '@/constants/currencies';
 import { resetAllData } from '@/db/database';
 import { useDatabase, useRepositories } from '@/db/DatabaseProvider';
 import { invalidate } from '@/db/dataRevisions';
@@ -41,9 +43,8 @@ import {
   rescheduleAllCooldownReminders,
 } from '@/notifications/cooldownNotifications';
 import { useTheme } from '@/theme';
-import type { CurrencyCode, ThemeMode } from '@/types/domain';
+import type { ThemeMode } from '@/types/domain';
 import { confirm } from '@/utils/confirm';
-import { CURRENCY_LABELS, SUPPORTED_CURRENCIES } from '@/utils/currency';
 
 /**
  * Appearance, currency, reminders, and the controls that let the user take
@@ -206,34 +207,13 @@ export default function SettingsScreen(): React.ReactElement {
         <View style={{ height: theme.spacing.xl }} />
         <SectionHeader title={t('settings.currency.title')} />
         <Card padding={theme.spacing.md}>
-          {/* A choice is offered only when there is one to make. Widening
-              SUPPORTED_CURRENCIES brings the control back on its own. */}
-          {SUPPORTED_CURRENCIES.length > 1 ? (
-            <>
-              <SegmentedControl<CurrencyCode>
-                accessibilityLabel={t('settings.currency.title')}
-                options={SUPPORTED_CURRENCIES.map((code) => ({ value: code, label: code }))}
-                value={settings.currencyCode}
-                onChange={(code) => void updateSettings({ currencyCode: code })}
-                size="sm"
-              />
-              <AppText variant="caption" color="tertiary" style={{ marginTop: theme.spacing.sm }}>
-                {t('settings.currency.changeNote', {
-                  currency: CURRENCY_LABELS[settings.currencyCode],
-                })}
-              </AppText>
-            </>
-          ) : (
-            <>
-              <AppText variant="bodyStrong">{CURRENCY_LABELS[settings.currencyCode]}</AppText>
-              <AppText variant="caption" color="secondary" style={{ marginTop: 2 }}>
-                {t('settings.currency.onlyOne')}
-              </AppText>
-              <AppText variant="caption" color="tertiary" style={{ marginTop: theme.spacing.sm }}>
-                {t('settings.currency.notConverted')}
-              </AppText>
-            </>
-          )}
+          <ListRow
+            leading={<IconTile icon={Coins} tint="amber" />}
+            title={t('settings.currency.row')}
+            subtitle={t(getCurrency(settings.currencyCode).nameKey)}
+            onPress={() => router.push('/settings/currency')}
+            showChevron
+          />
         </Card>
 
         <View style={{ height: theme.spacing.xl }} />

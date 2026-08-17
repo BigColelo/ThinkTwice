@@ -1,3 +1,4 @@
+import { SUPPORTED_CURRENCIES } from '@/constants/currencies';
 import { USAGE_PRESETS } from '@/constants/usagePresets';
 
 import {
@@ -136,10 +137,20 @@ describe('mapAppSettings', () => {
     expect(settings.onboardingCompleted).toBe(true);
   });
 
+  it('reads back a currency the app offers', () => {
+    // The list is wide now, and a stored choice has to survive the mapper as it
+    // was written or the user would find it reset on every launch.
+    expect(mapAppSettings(settingsRow({ currency_code: 'SAR' })).currencyCode).toBe('SAR');
+    expect(mapAppSettings(settingsRow({ currency_code: 'KWD' })).currencyCode).toBe('KWD');
+  });
+
   it('falls back to EUR for a currency the app does not offer', () => {
-    // A code stored by another build would otherwise leave the user looking at
-    // a symbol with no control to change it back.
-    expect(mapAppSettings(settingsRow({ currency_code: 'USD' })).currencyCode).toBe('EUR');
+    // Still the point of the check: a code stored by another build, or a
+    // hand-edited row, would otherwise leave the user looking at a code with no
+    // control to change it back. The guard fails first and loudly if JPY is
+    // ever added, rather than letting the assertion below fail mysteriously.
+    expect(SUPPORTED_CURRENCIES).not.toContain('JPY');
+    expect(mapAppSettings(settingsRow({ currency_code: 'JPY' })).currencyCode).toBe('EUR');
     expect(mapAppSettings(settingsRow({ currency_code: 'nonsense' })).currencyCode).toBe('EUR');
   });
 

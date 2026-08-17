@@ -25,7 +25,7 @@ describe('EstimatePreview', () => {
     );
 
     expect(screen.getByText('650')).toBeTruthy();
-    expect(screen.getByText('€2.77')).toBeTruthy();
+    expect(screen.getByText('EUR 2.77')).toBeTruthy();
     // The inputs behind the figure are printed with it, so it reads as arithmetic.
     expect(screen.getByText('2–3 times per week for 5 years')).toBeTruthy();
   });
@@ -42,7 +42,7 @@ describe('EstimatePreview', () => {
       />,
     );
 
-    expect(screen.getByText('€0.36')).toBeTruthy();
+    expect(screen.getByText('EUR 0.36')).toBeTruthy();
     expect(screen.getByText('Daily for 5 years')).toBeTruthy();
   });
 
@@ -57,7 +57,7 @@ describe('EstimatePreview', () => {
     );
 
     expect(screen.getByText('24')).toBeTruthy();
-    expect(screen.getByText('€5.00')).toBeTruthy();
+    expect(screen.getByText('EUR 5.00')).toBeTruthy();
     expect(screen.getByText('2 uses per month for 1 year')).toBeTruthy();
   });
 
@@ -75,7 +75,7 @@ describe('EstimatePreview', () => {
     expect(
       screen.getByText('Choose how often you expect to use it and for how long.'),
     ).toBeTruthy();
-    expect(screen.queryByText(/NaN|Infinity|€0.00/)).toBeNull();
+    expect(screen.queryByText(/NaN|Infinity|EUR 0\.00/)).toBeNull();
   });
 
   it('shows no cost per use until a price has been entered', async () => {
@@ -105,6 +105,6 @@ describe('EstimatePreview', () => {
     );
 
     expect(screen.getByText('650')).toBeTruthy();
-    expect(screen.getByText('€2.77')).toBeTruthy();
+    expect(screen.getByText('EUR 2.77')).toBeTruthy();
   });
 });

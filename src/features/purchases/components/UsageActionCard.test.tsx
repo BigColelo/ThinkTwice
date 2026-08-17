@@ -49,7 +49,7 @@ describe('UsageActionCard', () => {
     );
 
     expect(screen.getByText('1,820')).toBeTruthy();
-    expect(screen.getByText('€0.36')).toBeTruthy();
+    expect(screen.getByText('EUR 0.36')).toBeTruthy();
     expect(screen.getByText('1,820 uses recorded so far')).toBeTruthy();
   });
 

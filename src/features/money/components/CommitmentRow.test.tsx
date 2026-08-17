@@ -30,7 +30,7 @@ describe('CommitmentRow', () => {
     await renderWithProviders(<CommitmentRow commitment={commitment()} onPress={jest.fn()} />);
 
     expect(screen.getByText('Rent')).toBeTruthy();
-    expect(screen.getByText('€600')).toBeTruthy();
+    expect(screen.getByText('EUR 600')).toBeTruthy();
     expect(screen.getByLabelText('Rent, Housing, Monthly')).toBeTruthy();
     expect(screen.queryByText(/Paused/)).toBeNull();
   });
@@ -44,7 +44,7 @@ describe('CommitmentRow', () => {
     );
 
     // €240 a quarter is €80 a month, so a quarterly charge is never read as one.
-    expect(screen.getByText('€80 / month')).toBeTruthy();
+    expect(screen.getByText('EUR 80 / month')).toBeTruthy();
   });
 
   it('says a paused commitment is paused, in the row and to a screen reader', async () => {
@@ -55,6 +55,6 @@ describe('CommitmentRow', () => {
     expect(screen.getByText('Paused · Housing')).toBeTruthy();
     expect(screen.getByLabelText('Rent, Housing, Monthly, paused')).toBeTruthy();
     // The amount is still printed: it is what the user pays when they resume.
-    expect(screen.getByText('€600')).toBeTruthy();
+    expect(screen.getByText('EUR 600')).toBeTruthy();
   });
 });

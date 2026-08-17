@@ -32,7 +32,7 @@ describe('ExpensesSection', () => {
 
     expect(screen.getByText('Descaler')).toBeTruthy();
     expect(screen.getByText('Maintenance · 13 Aug 2026')).toBeTruthy();
-    expect(screen.getByText('€12')).toBeTruthy();
+    expect(screen.getByText('EUR 12')).toBeTruthy();
     expect(screen.getByText('1 recorded')).toBeTruthy();
   });
 

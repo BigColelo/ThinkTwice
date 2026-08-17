@@ -62,8 +62,8 @@ export function MoneyField({
       required={required}
       hint={hint}
       error={error}
-      prefix={adornment.position === 'prefix' ? adornment.symbol : undefined}
-      suffix={adornment.position === 'suffix' ? adornment.symbol : undefined}
+      prefix={adornment.position === 'prefix' ? adornment.code : undefined}
+      suffix={adornment.position === 'suffix' ? adornment.code : undefined}
       value={text}
       placeholder={placeholder}
       autoFocus={autoFocus}

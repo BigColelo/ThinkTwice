@@ -189,6 +189,7 @@ function AppChrome({
           options={{ presentation: 'modal', animation: 'slide_from_bottom' }}
         />
         <Stack.Screen name="settings/index" />
+        <Stack.Screen name="settings/currency" />
         <Stack.Screen name="settings/language" />
       </Stack>
     </View>

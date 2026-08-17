@@ -129,8 +129,17 @@ These are enforced by tests; breaking one is a regression even if it typechecks.
   (`requiredAmount` in `src/features/forms` turns that into the field's required message), because a
   prefilled zero is a figure the user never entered and cannot be typed over: `0,01` is a valid
   amount, so the leading zero survives the next keystroke as `05`.
-  `MoneyField` reads the symbol _and the side it belongs on_ from the locale (`currencyAdornment`):
-  `€17.99` in English, `17,99 €` in Italian, German, French and Spanish.
+  **The currency is always its ISO code, never a symbol** (`currencyDisplay: 'code'`): there is no
+  complete symbol set to render — ICU writes CHF as `CHF`, USD as `US$` outside `en-US` and most
+  Arab-state currencies as their code in every locale but `ar` — so half a screen in symbols and half
+  in codes would read as a bug. `MoneyField` reads the code _and the side it belongs on_ from the
+  locale (`currencyAdornment`): `EUR 17.99` in English, `17,99 EUR` in the other five. ICU separates
+  the code from the amount with a **non-breaking** space, which matters when asserting on the output.
+- **Every currency the app offers is 1/100 of its major unit**, including the six ISO defines with
+  three decimals (KWD, BHD, OMR, JOD, LYD, TND) and the six with none. `MINOR_UNITS_PER_MAJOR` stays
+  a constant on purpose: amounts are never converted, so switching currency must relabel a figure and
+  never change it. The list lives in `src/constants/currencies.ts`, one entry per code with the
+  translation key of its name and the picker section it belongs to.
 - **Divide with `safeDivide`** (`src/utils/numbers.ts`), which returns `null` for a zero or
   non-finite denominator. Income, available money and usage counts are legitimately zero.
 - **Time**: ISO-8601 UTC strings for instants, `YYYY-MM-DD` for calendar-only values, nothing
@@ -210,8 +219,11 @@ pattern.
 - Tests are colocated as `*.test.ts` / `*.test.tsx` next to the code they cover. Coverage is
   concentrated in `src/domain`, `src/utils` and `src/db`.
 - `jest.setup.ts` pins the language to English before every test, which pins the locale to `en-GB`
-  with it, so assertions on copy, formatted money and dates are stable. Expect `€1,799` / `17.99`
-  formatting in expectations. A test that switches language must switch it back.
+  with it, so assertions on copy, formatted money and dates are stable. Expect `EUR 1,799` / `17.99`
+  formatting in expectations — and note the space between code and amount is U+00A0. Component tests
+  can write a plain space, because RNTL's default normaliser collapses whitespace on both sides;
+  `currency.test.ts` compares with bare `toBe` and has to spell the non-breaking space out. A test
+  that switches language must switch it back.
 - Component tests use `renderWithProviders` from `@/test/renderWithProviders` — **await it** — which
   supplies theme, settings, language and safe-area context but _no database_. Pass `settings` to vary
   currency or income, and `language` to exercise a translation or a right-to-left layout.

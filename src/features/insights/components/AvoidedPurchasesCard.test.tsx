@@ -14,7 +14,7 @@ describe('AvoidedPurchasesCard', () => {
   it('states what was decided against and what it would have cost', async () => {
     await renderWithProviders(<AvoidedPurchasesCard count={3} totalCents={184_400} />);
 
-    expect(screen.getByText('€1,844')).toBeTruthy();
+    expect(screen.getByText('EUR 1,844')).toBeTruthy();
     expect(screen.getByText('3 items')).toBeTruthy();
     expect(screen.getByText('would have cost')).toBeTruthy();
   });
@@ -39,7 +39,7 @@ describe('AvoidedPurchasesCard', () => {
       themeMode: 'dark',
     });
 
-    expect(screen.getByText('€1,799')).toBeTruthy();
+    expect(screen.getByText('EUR 1,799')).toBeTruthy();
     expect(screen.getByText('1 item')).toBeTruthy();
   });
 });

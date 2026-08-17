@@ -47,11 +47,11 @@ describe('RealCostBreakdown', () => {
       />,
     );
 
-    expect(screen.getByText('€1,799')).toBeTruthy(); // purchase price
-    expect(screen.getByText('+€210')).toBeTruthy(); // accessories
-    expect(screen.getByText('-€950')).toBeTruthy(); // resale value
-    expect(screen.getByText('€1,059')).toBeTruthy(); // current real cost
-    expect(screen.getByText('€18.26')).toBeTruthy(); // real cost per use
+    expect(screen.getByText('EUR 1,799')).toBeTruthy(); // purchase price
+    expect(screen.getByText('+EUR 210')).toBeTruthy(); // accessories
+    expect(screen.getByText('-EUR 950')).toBeTruthy(); // resale value
+    expect(screen.getByText('EUR 1,059')).toBeTruthy(); // current real cost
+    expect(screen.getByText('EUR 18.26')).toBeTruthy(); // real cost per use
   });
 
   it('says there is no usage data instead of dividing by zero', async () => {

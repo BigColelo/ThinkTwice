@@ -72,7 +72,7 @@ export function MoneyValue({
 }
 
 /**
- * `€18.26 / use` — the cost-per-use figure that appears throughout the app.
+ * `EUR 18.26 / use` — the cost-per-use figure that appears throughout the app.
  * Always two decimals, because a rate rounded to whole euros hides the point.
  */
 export function CostPerUse({

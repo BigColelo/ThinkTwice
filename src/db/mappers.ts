@@ -1,3 +1,4 @@
+import { SUPPORTED_CURRENCIES } from '@/constants/currencies';
 import { LANGUAGE_PREFERENCES } from '@/i18n/languages';
 import type {
   AppSettings,
@@ -13,7 +14,6 @@ import type {
   WishlistItem,
   WishlistStatus,
 } from '@/types/domain';
-import { SUPPORTED_CURRENCIES } from '@/utils/currency';
 
 /**
  * SQLite rows ↔ domain entities.
@@ -175,7 +175,7 @@ export function mapAppSettings(row: AppSettingsRow): AppSettings {
   return {
     // Validated against what the app currently offers, not against every code
     // the type allows: a currency stored by another build would otherwise leave
-    // the user looking at a symbol they have no way to change back.
+    // the user looking at a code they have no way to change back.
     currencyCode: oneOf(SUPPORTED_CURRENCIES, row.currency_code, 'EUR'),
     themeMode: oneOf(THEME_MODES, row.theme_mode, 'system'),
     // A language this build no longer ships falls back to the device's, which is

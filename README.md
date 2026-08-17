@@ -128,8 +128,16 @@ deliberately does not build any of it.
 
 Money is always an integer number of minor units (cents), never a float. Fields are suffixed
 `Cents`. Formatting and parsing live in `src/utils/currency.ts` and nowhere else; presentation goes
-through `Intl.NumberFormat`, so grouping, separators and the side the symbol sits on all follow the
-locale of the chosen language — `€1,650` in English, `1.650 €` in German.
+through `Intl.NumberFormat`, so grouping, separators and the side the currency sits on all follow the
+locale of the chosen language — `EUR 1,650` in English, `1.650 EUR` in German.
+
+Forty-six currencies are on offer, picked in Settings → Currency: the Arab states, the euro, the
+dollar, the pound, the Swiss franc, the Commonwealth dollars, the two CFA francs and the Spanish-
+speaking Americas. Every amount is labelled with its ISO code rather than a symbol, because there is
+no complete symbol set to draw on — ICU already writes CHF as `CHF` and most Arab-state currencies as
+their code — and a list half in symbols would read as a bug. Amounts are never converted: choosing
+another currency relabels the figures you entered, it does not translate them, and the app says so
+under the picker.
 
 ### Language
 

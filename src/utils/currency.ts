@@ -7,34 +7,43 @@ import { getLocale } from './locale';
  *
  * Rules:
  * - Storage and arithmetic use integer cents. Nothing in the app holds a
- *   floating-point euro amount.
+ *   floating-point amount.
  * - Presentation uses `Intl.NumberFormat` so grouping, decimal separators and
- *   symbol placement follow the locale of the chosen language (`src/utils/locale`).
+ *   the side the currency sits on follow the locale of the chosen language
+ *   (`src/utils/locale`).
+ * - The currency is always its ISO code, never a symbol. There is no complete
+ *   symbol set to render: ICU writes CHF as `CHF`, USD as `US$` outside
+ *   `en-US`, and most Arab-state currencies as their code in every locale but
+ *   `ar`. Half a list in symbols and half in codes reads as a bug, so it is
+ *   codes for all of them — and a code is also the one label that is never
+ *   ambiguous between two dollars or three pounds.
+ *
+ * One thing to know before asserting on this output: ICU separates the code
+ * from the amount with a **non-breaking** space (U+00A0), not a plain one.
  */
 
+/**
+ * Every currency the app offers is one hundredth of its major unit.
+ *
+ * That is the app's convention rather than the ISO exponent, and the difference
+ * is deliberate. KWD, BHD, OMR, JOD, LYD and TND are defined with three
+ * decimals; DJF, KMF, IQD, SOS, SYP and LBP with none. All twelve are shown
+ * here with two, because amounts are stored as minor units and are **never
+ * converted**: switching currency has to relabel a figure and must never change
+ * it. 165000 minor units reads `EUR 1,650` and, after a switch, `KWD 1,650` —
+ * the same amount under a different name.
+ *
+ * Honouring each ISO exponent instead would move the decimal point on money the
+ * user has already entered, which is a silent edit to their own records.
+ */
 const MINOR_UNITS_PER_MAJOR = 100;
 
 /**
- * The currencies the user can actually choose between.
- *
- * V1 offers EUR only, and deliberately: amounts are stored as minor units and
- * are **never converted**, so a second currency would silently re-label every
- * figure the user has already entered rather than translate it. Offering one
- * means first deciding what happens to that existing money.
- *
- * Everything else in the app already carries a currency code, so widening this
- * list is most of the work — but a currency whose minor unit is not 1/100 (the
- * yen) would additionally require `MINOR_UNITS_PER_MAJOR` to stop being a
- * constant.
+ * The currency is rendered as its ISO 4217 code everywhere, for the reason at
+ * the top of this file. Kept as a module constant rather than an option so no
+ * caller can render half the app in symbols.
  */
-export const SUPPORTED_CURRENCIES: readonly CurrencyCode[] = ['EUR'];
-
-export const CURRENCY_LABELS: Record<CurrencyCode, string> = {
-  EUR: 'Euro (€)',
-  USD: 'US dollar ($)',
-  GBP: 'British pound (£)',
-  CHF: 'Swiss franc (CHF)',
-};
+const CURRENCY_DISPLAY = 'code' as const;
 
 // `Intl` is available on Hermes and on web; every call below still falls back
 // to a hand-formatted figure so a runtime without full ICU stays usable.
@@ -48,6 +57,7 @@ function getFormatter(currency: CurrencyCode, minimumFractionDigits: number): In
   const formatter = new Intl.NumberFormat(getLocale(), {
     style: 'currency',
     currency,
+    currencyDisplay: CURRENCY_DISPLAY,
     minimumFractionDigits,
     maximumFractionDigits: 2,
   });
@@ -73,8 +83,9 @@ export type FormatMoneyOptions = {
 /**
  * Formats integer cents for display.
  *
- * `formatMoney(178900)` → `€1,789` and `formatMoney(1799)` → `€17.99` under
- * `en-GB`; the same values render as `1.789 €` / `17,99 €` under `de-DE`.
+ * `formatMoney(178900)` → `EUR 1,789` and `formatMoney(1799)` → `EUR 17.99`
+ * under `en-GB`; the same values render as `1.789 EUR` / `17,99 EUR` under
+ * `de-DE`. The space is the non-breaking one ICU emits, not a plain space.
  */
 export function formatMoney(cents: Cents, options: FormatMoneyOptions = {}): string {
   const { currency = 'EUR', decimals = 'auto', signDisplay = false } = options;
@@ -82,7 +93,7 @@ export function formatMoney(cents: Cents, options: FormatMoneyOptions = {}): str
   if (!Number.isFinite(cents)) return '—';
 
   // `|| 0` collapses -0 to 0. A tiny negative rate (or a resale value a cent
-  // above the amount spent) would otherwise render as "-€0".
+  // above the amount spent) would otherwise render as "-EUR 0".
   const rounded = Math.round(cents) || 0;
   const isWhole = rounded % MINOR_UNITS_PER_MAJOR === 0;
   const minimumFractionDigits =
@@ -97,7 +108,9 @@ export function formatMoney(cents: Cents, options: FormatMoneyOptions = {}): str
   try {
     text = getFormatter(currency, minimumFractionDigits).format(value);
   } catch {
-    // Extremely defensive: a runtime without full ICU still shows a usable figure.
+    // Extremely defensive: a runtime without full ICU still shows a usable
+    // figure — and one that reads the same way, since the code is the label
+    // either way. Only the side it sits on can differ.
     text = `${value.toFixed(minimumFractionDigits)} ${currency}`;
   }
 
@@ -105,7 +118,7 @@ export function formatMoney(cents: Cents, options: FormatMoneyOptions = {}): str
 }
 
 /**
- * Compact form for dense chart labels: `€4.8k`, `€1.2M`.
+ * Compact form for dense chart labels: `EUR 4.8K`, `EUR 1.2M`.
  * Falls back to the standard format below 10 000 minor units of the major unit.
  */
 export function formatMoneyCompact(cents: Cents, options: FormatMoneyOptions = {}): string {
@@ -119,6 +132,7 @@ export function formatMoneyCompact(cents: Cents, options: FormatMoneyOptions = {
     return new Intl.NumberFormat(getLocale(), {
       style: 'currency',
       currency,
+      currencyDisplay: CURRENCY_DISPLAY,
       notation: 'compact',
       maximumFractionDigits: 1,
     }).format(major);
@@ -127,35 +141,39 @@ export function formatMoneyCompact(cents: Cents, options: FormatMoneyOptions = {
   }
 }
 
-/** Where the symbol sits relative to the amount in the active locale. */
+/** Where the currency code sits relative to the amount in the active locale. */
 export type CurrencyAdornment = {
-  symbol: string;
-  /** `en-GB` writes `€17.99`, `it-IT` writes `17,99 €`. */
+  /** The ISO code, e.g. `EUR`. Never a symbol — see the note at the top. */
+  code: string;
+  /** `en-GB` writes `EUR 17.99`, `it-IT` writes `17,99 EUR`. */
   position: 'prefix' | 'suffix';
 };
 
 /**
- * The currency symbol and the side it belongs on, for input adornments.
+ * The currency code and the side it belongs on, for input adornments.
  *
- * The position is read from the locale rather than assumed: putting `€` in front
- * of the amount is right in English and wrong in Italian, German, French and
- * Spanish, where it follows the figure.
+ * The position is read from the locale rather than assumed: putting the code in
+ * front of the amount is right in English and wrong in Italian, German, French,
+ * Spanish and Arabic, where it follows the figure. That is a property of the
+ * locale and not of the currency — every code the app offers sits on the same
+ * side within one language, which `currency.test.ts` asserts.
  */
 export function currencyAdornment(currency: CurrencyCode = 'EUR'): CurrencyAdornment {
   try {
-    const parts = new Intl.NumberFormat(getLocale(), { style: 'currency', currency }).formatToParts(
-      0,
-    );
-    const symbolIndex = parts.findIndex((part) => part.type === 'currency');
+    const parts = new Intl.NumberFormat(getLocale(), {
+      style: 'currency',
+      currency,
+      currencyDisplay: CURRENCY_DISPLAY,
+    }).formatToParts(0);
+    const codeIndex = parts.findIndex((part) => part.type === 'currency');
     const numberIndex = parts.findIndex((part) => part.type === 'integer');
 
     return {
-      symbol: parts[symbolIndex]?.value ?? currency,
-      position:
-        symbolIndex >= 0 && numberIndex >= 0 && symbolIndex > numberIndex ? 'suffix' : 'prefix',
+      code: parts[codeIndex]?.value ?? currency,
+      position: codeIndex >= 0 && numberIndex >= 0 && codeIndex > numberIndex ? 'suffix' : 'prefix',
     };
   } catch {
-    return { symbol: currency, position: 'prefix' };
+    return { code: currency, position: 'prefix' };
   }
 }
 
@@ -167,7 +185,13 @@ export function currencyAdornment(currency: CurrencyCode = 'EUR'): CurrencyAdorn
  * Separator handling: the last `.` or `,` followed by exactly one or two digits
  * is treated as the decimal separator; every other separator is grouping. This
  * reads `17,99`, `17.99`, `1.234,56`, `1,234.56` and `1,500` the way a user in
- * any of ThinkTwice's target locales means them.
+ * any of ThinkTwice's target locales means them. A third decimal is therefore
+ * read as grouping — `1,234.567` is 123456700, not 123457. That follows from
+ * every currency being one hundredth of its major unit here, so nothing in the
+ * app ever shows a third decimal to prompt one.
+ *
+ * Everything that is not a digit or a separator is stripped first, which is
+ * what makes a pasted `EUR 1,650` — non-breaking space and all — readable.
  */
 export function parseMoneyInput(input: string): Cents | null {
   if (typeof input !== 'string') return null;

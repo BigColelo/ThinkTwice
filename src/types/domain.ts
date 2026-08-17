@@ -31,10 +31,69 @@ export type LanguageCode = 'en' | 'it' | 'de' | 'fr' | 'es' | 'ar';
 export type LanguagePreference = LanguageCode | 'system';
 
 /**
- * V1 ships EUR only, but every formatting path already goes through the
- * currency code so adding another is a data change, not a refactor.
+ * The currencies the app can label an amount with.
+ *
+ * Written out here rather than derived from the table in
+ * `src/constants/currencies`, for the reason every other id union in this file
+ * is: this module imports nothing, which is what lets everything else import
+ * it. The table checks itself against this union instead, so a mistyped code is
+ * a compile error there.
+ *
+ * The union is allowed to be wider than what is on offer at any moment — that
+ * gap is exactly what `SUPPORTED_CURRENCIES` and the `oneOf` check in
+ * `src/db/mappers` are for.
+ *
+ * Every code here is treated as one hundredth of its major unit, including the
+ * six ISO defines with three decimals and the six with none, because amounts
+ * are never converted: see `MINOR_UNITS_PER_MAJOR` in `src/utils/currency`.
  */
-export type CurrencyCode = 'EUR' | 'USD' | 'GBP' | 'CHF';
+export type CurrencyCode =
+  | 'EUR'
+  | 'GBP'
+  | 'CHF'
+  | 'USD'
+  | 'CAD'
+  | 'MXN'
+  | 'ARS'
+  | 'COP'
+  | 'CLP'
+  | 'PEN'
+  | 'UYU'
+  | 'BOB'
+  | 'PYG'
+  | 'DOP'
+  | 'GTQ'
+  | 'CRC'
+  | 'HNL'
+  | 'NIO'
+  | 'CUP'
+  | 'VES'
+  | 'AED'
+  | 'SAR'
+  | 'QAR'
+  | 'BHD'
+  | 'KWD'
+  | 'OMR'
+  | 'JOD'
+  | 'LBP'
+  | 'SYP'
+  | 'IQD'
+  | 'YER'
+  | 'ILS'
+  | 'EGP'
+  | 'LYD'
+  | 'TND'
+  | 'DZD'
+  | 'MAD'
+  | 'MRU'
+  | 'SDG'
+  | 'SOS'
+  | 'KMF'
+  | 'DJF'
+  | 'XOF'
+  | 'XAF'
+  | 'AUD'
+  | 'NZD';
 
 export type CommitmentFrequency =
   'monthly' | 'every_two_months' | 'quarterly' | 'semiannual' | 'annual';

@@ -44,10 +44,10 @@ describe('PurchaseCard', () => {
 
     expect(screen.getByText('Espresso machine')).toBeTruthy();
     expect(screen.getByText('1,820 uses · Home')).toBeTruthy();
-    expect(screen.getByText('€650')).toBeTruthy();
+    expect(screen.getByText('EUR 650')).toBeTruthy();
     expect(screen.getByText('· 13 Aug 2026')).toBeTruthy();
     // €650 over 1,820 uses, to the cent.
-    expect(screen.getByText('€0.36 / use')).toBeTruthy();
+    expect(screen.getByText('EUR 0.36 / use')).toBeTruthy();
   });
 
   it('says there is no usage rather than showing a cost per use of zero', async () => {
@@ -55,7 +55,7 @@ describe('PurchaseCard', () => {
 
     expect(screen.getByText('No uses recorded · Home')).toBeTruthy();
     expect(screen.getByText('No usage yet')).toBeTruthy();
-    expect(screen.queryByText('€0.00 / use')).toBeNull();
+    expect(screen.queryByText('EUR 0.00 / use')).toBeNull();
   });
 
   it('counts additional expenses in the cost per use', async () => {
@@ -67,7 +67,7 @@ describe('PurchaseCard', () => {
       />,
     );
 
-    expect(screen.getByText('€7.00 / use')).toBeTruthy();
+    expect(screen.getByText('EUR 7.00 / use')).toBeTruthy();
   });
 
   it('is one element for assistive technology, named by what it is', async () => {
@@ -86,7 +86,7 @@ describe('PurchaseCard', () => {
     );
 
     expect(screen.getByText(longName).props.numberOfLines).toBe(1);
-    expect(screen.getByText('€650')).toBeTruthy();
-    expect(screen.getByText('€54.17 / use')).toBeTruthy();
+    expect(screen.getByText('EUR 650')).toBeTruthy();
+    expect(screen.getByText('EUR 54.17 / use')).toBeTruthy();
   });
 });

@@ -100,6 +100,65 @@ export const en = {
     phone: 'Phone',
   },
 
+  /**
+   * Currency names, keyed by their ISO 4217 code.
+   *
+   * Top-level for the same reason `categories` is: the code is a persisted
+   * value, so its name belongs to the value rather than to whichever screen
+   * happens to show it.
+   *
+   * No symbols here, and none anywhere else — amounts read `EUR 1,650`. The
+   * code is the label; the name is only what makes the code recognisable.
+   */
+  currencies: {
+    EUR: 'Euro',
+    GBP: 'British pound',
+    CHF: 'Swiss franc',
+    USD: 'US dollar',
+    CAD: 'Canadian dollar',
+    MXN: 'Mexican peso',
+    ARS: 'Argentine peso',
+    COP: 'Colombian peso',
+    CLP: 'Chilean peso',
+    PEN: 'Peruvian sol',
+    UYU: 'Uruguayan peso',
+    BOB: 'Bolivian boliviano',
+    PYG: 'Paraguayan guaraní',
+    DOP: 'Dominican peso',
+    GTQ: 'Guatemalan quetzal',
+    CRC: 'Costa Rican colón',
+    HNL: 'Honduran lempira',
+    NIO: 'Nicaraguan córdoba',
+    CUP: 'Cuban peso',
+    VES: 'Venezuelan bolívar',
+    AED: 'UAE dirham',
+    SAR: 'Saudi riyal',
+    QAR: 'Qatari riyal',
+    BHD: 'Bahraini dinar',
+    KWD: 'Kuwaiti dinar',
+    OMR: 'Omani rial',
+    JOD: 'Jordanian dinar',
+    LBP: 'Lebanese pound',
+    SYP: 'Syrian pound',
+    IQD: 'Iraqi dinar',
+    YER: 'Yemeni rial',
+    ILS: 'Israeli new shekel',
+    EGP: 'Egyptian pound',
+    LYD: 'Libyan dinar',
+    TND: 'Tunisian dinar',
+    DZD: 'Algerian dinar',
+    MAD: 'Moroccan dirham',
+    MRU: 'Mauritanian ouguiya',
+    SDG: 'Sudanese pound',
+    SOS: 'Somali shilling',
+    KMF: 'Comorian franc',
+    DJF: 'Djiboutian franc',
+    XOF: 'West African CFA franc',
+    XAF: 'Central African CFA franc',
+    AUD: 'Australian dollar',
+    NZD: 'New Zealand dollar',
+  },
+
   frequencies: {
     monthly: 'Monthly',
     every_two_months: 'Every 2 months',
@@ -559,11 +618,16 @@ export const en = {
     },
     currency: {
       title: 'Currency',
-      onlyOne: 'The only currency in this version.',
+      row: 'Currency',
       notConverted:
         'Amounts are stored exactly as you enter them and are never converted, so another currency would relabel your figures rather than translate them.',
-      changeNote:
-        '{{currency}}. Amounts already entered are not converted — only how they are displayed changes.',
+      regions: {
+        suggested: 'Suggested for {{language}}',
+        europe: 'Europe',
+        americas: 'Americas',
+        middle_east_africa: 'Middle East & Africa',
+        oceania: 'Oceania',
+      },
     },
     notifications: {
       title: 'Notifications',

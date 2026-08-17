@@ -32,36 +32,38 @@ afterEach(() => {
 
 describe('money follows the language', () => {
   it.each([
-    ['en', '€1,650'],
-    // Italian and Spanish only group from five digits up, so €1,650 keeps no
+    ['en', 'EUR 1,650'],
+    // Italian and Spanish only group from five digits up, so EUR 1,650 keeps no
     // separator at all — a difference an "insert a dot every three digits" rule
     // would get wrong in both directions.
-    ['it', '1650 €'],
-    ['de', '1.650 €'],
-    ['fr', '1 650 €'],
-    ['es', '1650 €'],
-    ['ar', '‏1,650 €'],
+    ['it', '1650 EUR'],
+    ['de', '1.650 EUR'],
+    ['fr', '1 650 EUR'],
+    ['es', '1650 EUR'],
+    // The leading mark is U+200F, which `normalise` leaves alone: it is not
+    // whitespace, and it is what keeps the figure the right way round.
+    ['ar', '‏1,650 EUR'],
   ] as const)('%s formats an amount its own way', (language, expected) => {
     applyLanguage(language);
     expect(normalise(formatMoney(AMOUNT))).toBe(normalise(expected));
   });
 
   it.each([
-    ['en', '€12,500'],
-    ['it', '12.500 €'],
-    ['de', '12.500 €'],
-    ['es', '12.500 €'],
+    ['en', 'EUR 12,500'],
+    ['it', '12.500 EUR'],
+    ['de', '12.500 EUR'],
+    ['es', '12.500 EUR'],
   ] as const)('%s groups a five-digit amount', (language, expected) => {
     applyLanguage(language);
     expect(normalise(formatMoney(1_250_000))).toBe(normalise(expected));
   });
 
   it.each([
-    ['en', '€17.99'],
-    ['it', '17,99 €'],
-    ['de', '17,99 €'],
-    ['fr', '17,99 €'],
-    ['es', '17,99 €'],
+    ['en', 'EUR 17.99'],
+    ['it', '17,99 EUR'],
+    ['de', '17,99 EUR'],
+    ['fr', '17,99 EUR'],
+    ['es', '17,99 EUR'],
   ] as const)('%s uses its own decimal separator', (language, expected) => {
     applyLanguage(language);
     expect(normalise(formatMoney(1_799))).toBe(normalise(expected));
