@@ -1,13 +1,14 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View } from 'react-native';
 
+import { AppText } from '@/components/ui/AppText';
 import { Card } from '@/components/ui/Card';
-import { ListRow } from '@/components/ui/ListRow';
+import { ListRow, RowDivider } from '@/components/ui/ListRow';
 import { SectionHeader } from '@/components/ui/SectionHeader';
+import { useConfirm } from '@/features/dialogs/useConfirm';
 import { useT } from '@/i18n';
 import { useTheme } from '@/theme';
 import type { UsageEvent } from '@/types/domain';
-import { confirm } from '@/utils/confirm';
 import { formatDateTime } from '@/utils/dates';
 
 /**
@@ -16,7 +17,9 @@ import { formatDateTime } from '@/utils/dates';
  * The usage card's undo covers the tap just made; this covers the one noticed
  * hours later, which is what keeps a count kept for years worth keeping. The
  * confirmation lives here, next to the list it acts on, and the removal itself
- * is the caller's — this section never writes.
+ * is the caller's — this section never writes, but it does say when the write it
+ * asked for failed, because a row that silently stays is indistinguishable from
+ * a tap that missed.
  */
 
 export const RecentUsesSection = React.memo(function RecentUsesSection({
@@ -31,6 +34,8 @@ export const RecentUsesSection = React.memo(function RecentUsesSection({
 }): React.ReactElement | null {
   const theme = useTheme();
   const t = useT();
+  const confirm = useConfirm();
+  const [removeError, setRemoveError] = useState<string | null>(null);
 
   if (uses.length === 0) return null;
 
@@ -41,7 +46,14 @@ export const RecentUsesSection = React.memo(function RecentUsesSection({
       confirmLabel: t('purchases.recentUses.removeConfirm'),
       destructive: true,
     });
-    if (confirmed) await onRemove(use);
+    if (!confirmed) return;
+
+    setRemoveError(null);
+    try {
+      await onRemove(use);
+    } catch {
+      setRemoveError(t('purchases.recentUses.removeError'));
+    }
   };
 
   return (
@@ -57,15 +69,7 @@ export const RecentUsesSection = React.memo(function RecentUsesSection({
       <Card padding={theme.spacing.md}>
         {uses.map((use, index) => (
           <View key={use.id}>
-            {index > 0 ? (
-              <View
-                style={{
-                  height: theme.sizes.hairline,
-                  backgroundColor: theme.colors.divider,
-                  marginVertical: theme.spacing.xxs,
-                }}
-              />
-            ) : null}
+            {index > 0 ? <RowDivider /> : null}
             <ListRow
               title={formatDateTime(use.occurredAt)}
               subtitle={use.count > 1 ? t('units.use', { count: use.count }) : undefined}
@@ -75,6 +79,17 @@ export const RecentUsesSection = React.memo(function RecentUsesSection({
           </View>
         ))}
       </Card>
+
+      {removeError ? (
+        <AppText
+          variant="caption"
+          color="danger"
+          accessibilityRole="alert"
+          style={{ marginTop: theme.spacing.xs }}
+        >
+          {removeError}
+        </AppText>
+      ) : null}
     </>
   );
 });

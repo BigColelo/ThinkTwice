@@ -9,6 +9,7 @@ import { Card } from '@/components/ui/Card';
 import { MoneyValue } from '@/components/ui/MoneyValue';
 import { MetricCell, MetricDivider } from '@/components/ui/StatCard';
 import { useRepositories } from '@/db/DatabaseProvider';
+import { useAsyncAction } from '@/features/forms/useAsyncAction';
 import { recordUse, undoLastUse } from '@/features/purchases/services/purchaseActions';
 import { useT } from '@/i18n';
 import { useTheme } from '@/theme';
@@ -38,43 +39,34 @@ export function UsageActionCard({
   const t = useT();
   const repositories = useRepositories();
 
-  const [isBusy, setIsBusy] = useState(false);
   const [canUndo, setCanUndo] = useState(false);
-  const [actionError, setActionError] = useState<string | null>(null);
+  const record = useAsyncAction();
+  const undo = useAsyncAction();
+
+  const isBusy = record.isRunning || undo.isRunning;
+  const actionError = record.error ?? undo.error;
 
   const handleUse = async (): Promise<void> => {
-    setIsBusy(true);
-    setActionError(null);
+    const recorded = await record.run(() => recordUse(repositories, purchaseId), {
+      errorMessage: t('purchases.recordUseError'),
+    });
+    if (!recorded) return;
 
-    let recorded = false;
-    try {
-      await recordUse(repositories, purchaseId);
-      recorded = true;
-      setCanUndo(true);
-    } catch {
-      setActionError(t('purchases.recordUseError'));
-    } finally {
-      setIsBusy(false);
-    }
+    setCanUndo(true);
 
-    // Outside the try: a device that cannot buzz has nothing to do with whether
-    // the use was recorded, and reporting a failed tap for it would be a lie.
-    if (recorded && Platform.OS !== 'web') {
+    // Only once the use is really stored, and never inside the attempt: a device
+    // that cannot buzz has nothing to do with whether the tap worked, and
+    // reporting a failure for it would be a lie.
+    if (Platform.OS !== 'web') {
       void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => undefined);
     }
   };
 
   const handleUndo = async (): Promise<void> => {
-    setIsBusy(true);
-    setActionError(null);
-    try {
-      await undoLastUse(repositories, purchaseId);
-      setCanUndo(false);
-    } catch {
-      setActionError(t('purchases.undoUseError'));
-    } finally {
-      setIsBusy(false);
-    }
+    const removed = await undo.run(() => undoLastUse(repositories, purchaseId), {
+      errorMessage: t('purchases.undoUseError'),
+    });
+    if (removed) setCanUndo(false);
   };
 
   return (
@@ -107,7 +99,7 @@ export function UsageActionCard({
           label={t('purchases.recordUse')}
           icon={Plus}
           onPress={handleUse}
-          loading={isBusy && !canUndo}
+          loading={record.isRunning}
           disabled={isBusy}
           accessibilityHint={t('purchases.recordUseHint')}
         />

@@ -20,7 +20,7 @@ npm run typecheck        # tsc --noEmit (strict)
 npm run lint             # eslint .           (lint:fix to autofix)
 npm run format           # prettier --write . (format:check to verify)
 npm test                 # jest               (test:watch for watch mode)
-npm run verify           # typecheck && lint && test — run before finishing work
+npm run verify           # typecheck && lint && format:check && test — run before finishing work
 npm run icons            # regenerate app icons from geometry in scripts/
 ```
 
@@ -32,7 +32,7 @@ npx jest -t 'cost per use'
 npx jest --coverage      # collected from src/domain, src/utils, src/db only
 ```
 
-`npm run verify` is green as a baseline (55 suites / 612 tests) — treat a failure as caused by the
+`npm run verify` is green as a baseline (68 suites / 703 tests) — treat a failure as caused by the
 current change.
 
 ## Architecture
@@ -57,6 +57,12 @@ Two invariants hold this together and are worth more than any local convenience:
    never computes `price / (income - commitments)` inline. Domain results use `null` for every
    figure that cannot be computed, so `NaN`/`Infinity` are eliminated at the boundary rather than
    defended against at the leaf.
+3. **No components in `src/app`.** A route is a default export and nothing else: it reads its
+   parameters, wires the pieces and decides what an action means. Anything with markup of its own
+   belongs in `src/features/<area>/components`, because a `*.test.tsx` under `src/app` would be
+   picked up by Expo Router as a real route — so a component that lives there cannot be tested at
+   all. That is how the commitment form, the income editor and the Home summary card went unTested
+   while holding real logic.
 
 Domain functions return data, not sentences. The few string helpers there (`impactLevelLabel`,
 `formatCooldownRemaining`) are short neutral labels; explanatory copy belongs in the UI layer.
@@ -64,24 +70,34 @@ Domain functions return data, not sentences. The few string helpers there (`impa
 ### The read/write cycle — get this right
 
 Reads go through `useDatabaseQuery(entities, run, deps)` (`src/db/useDatabaseQuery.ts`), which owns
-loading flags, stale-response guarding and refetching. Writes go through a feature service
-(e.g. `src/features/wishlist/services/wishlistActions.ts`) and **must** call
-`invalidate(...entities)` from `src/db/dataRevisions.ts` for every entity they touched — that is the
+loading flags, stale-response guarding and refetching. Writes go through a feature service —
+`wishlistActions`, `purchaseActions`, `commitmentActions`, `dataActions` — and **must** call
+`invalidate(...entities)` from `src/db/dataRevisions.ts` for every entity they touched: that is the
 only thing that refreshes open screens. Entities are the fixed union
 `settings | commitments | wishlist | purchases | usage | expenses`.
+
+**A screen never calls a repository to write.** Reading one directly is the same mistake with a
+quieter failure: it skips the invalidation, so every other open screen keeps showing what was true
+a moment ago with nothing to suggest otherwise.
+
+A component that runs one of those writes does it through `useAsyncAction()`
+(`src/features/forms/useAsyncAction.ts`), which owns the busy flag and the failure message and
+returns whether it worked. Pass `stayBusyOnSuccess` where success navigates away, so the button does
+not paint one frame of its normal state mid-transition.
 
 There is deliberately no client cache: data is a millisecond away on the same device, so writes
 invalidate and queries re-read.
 
 Repositories are constructed once in `createRepositories` and reached with `useRepositories()`;
 services take `Repositories` as their first argument, which is what makes them testable with a
-plain in-memory fake.
+plain in-memory fake. `repositories.maintenance` is the odd one out — it owns operations over the
+whole database rather than one entity, which today means "reset all local data".
 
 ### Providers and routing
 
-`src/app/_layout.tsx` gates the whole app: SafeArea → bootstrap `ThemeProvider` → `DatabaseProvider`
-→ `DatabaseGate` (loading/error UI) → `SettingsProvider` → `ThemeProvider mode={settings.themeMode}`
-→ `Stack`. Everything below can assume storage is open and settings are loaded, which is why
+`src/app/_layout.tsx` gates the whole app: SafeArea → bootstrap `ThemeProvider` and `I18nProvider`
+→ `AppErrorBoundary` (the crash screen, with retry) → `DatabaseProvider` → `DatabaseGate`
+(loading/error UI) → `SettingsProvider` → `ThemeProvider mode={settings.themeMode}` → `Stack`. Everything below can assume storage is open and settings are loaded, which is why
 `useRepositories()` throws rather than returning `null`.
 
 Routes live in **`src/app`**, not `app/`. A new screen must also be registered as a
@@ -110,6 +126,10 @@ unguarded, for the reasons documented in that file — do not "fix" them.
   the next sequential `version`; never edit or reorder an existing one — installed apps have already
   run it. Each runs in a transaction and `PRAGMA user_version` is bumped only on success; a database
   from a newer build is refused rather than opened.
+- **Partial updates go through `UpdateColumns`** (`src/db/repositories/updateColumns.ts`).
+  `undefined` means "leave this column alone" and `null` means "write NULL", and the app depends on
+  the difference: clearing a resale estimate is not the same as never having entered one. Use
+  `roundedOrSkip` for INTEGER columns, which keeps both kinds of absence while rounding the rest.
 - **Rows are untrusted.** Every row crosses `src/db/mappers.ts`, where enum-like columns are
   validated with `oneOf(...)` against a known set and fall back to a safe default, and non-finite
   numbers are coerced. A new column means updating both the `*Row` type and its mapper.
@@ -135,8 +155,9 @@ These are enforced by tests; breaking one is a regression even if it typechecks.
   in codes would read as a bug. `MoneyField` reads the code _and the side it belongs on_ from the
   locale (`currencyAdornment`): `EUR 17.99` in English, `17,99 EUR` in the other five. ICU separates
   the code from the amount with a **non-breaking** space, which matters when asserting on the output.
-- **Every currency the app offers is 1/100 of its major unit**, including the six ISO defines with
-  three decimals (KWD, BHD, OMR, JOD, LYD, TND) and the six with none. `MINOR_UNITS_PER_MAJOR` stays
+- **Every currency the app offers is 1/100 of its major unit**, including the seven ISO defines
+  with three decimals (BHD, IQD, JOD, KWD, LYD, OMR, TND) and the six with none (CLP, DJF, KMF,
+  PYG, XAF, XOF). `MINOR_UNITS_PER_MAJOR` stays
   a constant on purpose: amounts are never converted, so switching currency must relabel a figure and
   never change it. The list lives in `src/constants/currencies.ts`, one entry per code with the
   translation key of its name and the picker section it belongs to.
@@ -151,6 +172,11 @@ These are enforced by tests; breaking one is a regression even if it typechecks.
   each of the other five languages — are asserted absent across every catalogue in
   `src/i18n/catalogues.test.ts`. Semantic colour never carries meaning alone — always pair it with a
   label or icon.
+- **One list per id union.** The runtime tuples behind `CommitmentFrequency`, `WishlistStatus`,
+  `ExpenseType`, `UsageFrequencyId` and `ThemeMode` live once in `src/constants/enums.ts`, checked
+  against their unions with `satisfies`. Mappers validate against them, `z.enum` builds from them
+  and pickers map over them. `MAX_MONEY_CENTS` in `src/constants/money.ts` is the same idea for the
+  bound all three money schemas share.
 - **Theme tokens only.** No hardcoded colour or pixel value in a screen; use `useTheme()` /
   `useThemedStyles(factory)` with the factory declared at module scope (it is deliberately excluded
   from the memo deps). Dark mode is designed, not inverted: `elevation(level, isDark)` resolves
@@ -202,7 +228,9 @@ Anything not available everywhere is isolated in a module that degrades instead 
 `src/notifications/cooldownNotifications` (no-op on web and in Expo Go on Android),
 `src/features/images/itemImages` (web uses the picked URL), `src/utils/confirm` (web uses
 `window.confirm`), `DateField` (web renders `<input type="date">`). Never call such a platform API
-directly from a screen. Notification permission is requested from the action that needs it, never at
+directly from a screen. Confirmation dialogs go through `useConfirm()` from
+`@/features/dialogs/useConfirm`, which fills in the translated Cancel label; the adapter has no
+defaults and `no-restricted-imports` blocks importing it anywhere else. Notification permission is requested from the action that needs it, never at
 launch.
 
 `expo-notifications` must stay behind the **lazy** `loadNotifications()` in that adapter: it throws
@@ -229,7 +257,7 @@ pattern.
   currency or income, and `language` to exercise a translation or a right-to-left layout.
   `fireEvent.press` / `.scroll` are async too in RNTL 14: not awaiting them asserts before React has
   flushed, which surfaces as "overlapping act() calls" rather than a clear failure.
-- Never put a `*.test.tsx` under `src/app`. Expo Router's route context (`_ctx.*.js`) matches every
+- Never put a `*.test.tsx` under `src/app` — and therefore never put a component there either. Expo Router's route context (`_ctx.*.js`) matches every
   `.tsx` in the app directory, test files included, so it would ship as a real route — keep the
   component in `src/features/<area>/` and test it there.
 - Service/workflow tests build an in-memory object satisfying `Repositories` and `jest.mock` the
@@ -262,7 +290,9 @@ pattern.
   without being asked explicitly.
 - **No UI framework and no chart library.** `src/components/ui` is the in-repo design system on top
   of React Native primitives and `StyleSheet`; `src/components/charts` is hand-built on
-  `react-native-svg`.
+  `react-native-svg`. Reach for what is already there before writing markup: `Spacer` for the gap
+  between two sections, `RowDivider` for the hairline between two rows, `BottomSheet` for a sheet,
+  `LoadingScreen` / `MissingRecordScreen` for a detail route that is still reading or found nothing.
 - App icons are generated from geometry (`npm run icons`); do not commit imported artwork.
 - Sample data (`src/db/devSeed.ts`) is guarded by `__DEV__` and reachable only from an explicit
   Settings action, so invented financial records can never reach a production build.

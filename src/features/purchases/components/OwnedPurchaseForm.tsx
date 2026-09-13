@@ -1,6 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import React, { useMemo, useState } from 'react';
-import { Controller, useForm, useWatch } from 'react-hook-form';
+import React, { useMemo } from 'react';
+import { Controller, useForm } from 'react-hook-form';
 import { View } from 'react-native';
 
 import { AppText } from '@/components/ui/AppText';
@@ -10,18 +10,23 @@ import { DateField } from '@/components/ui/DateField';
 import { MoneyField } from '@/components/ui/MoneyField';
 import { Screen } from '@/components/ui/Screen';
 import { SectionHeader } from '@/components/ui/SectionHeader';
+import { Spacer } from '@/components/ui/Spacer';
 import { TextField } from '@/components/ui/TextField';
 import { DEFAULT_PURCHASE_CATEGORY_ID, PURCHASE_CATEGORIES } from '@/constants/categories';
-import { OWNERSHIP_PRESETS } from '@/constants/ownership';
-import { USAGE_PRESETS } from '@/constants/usagePresets';
 import type { NewPurchase } from '@/db/repositories';
+import {
+  ExpectedUsageFields,
+  usageControl,
+  usageSetValue,
+} from '@/features/forms/ExpectedUsageFields';
+import { useAsyncAction } from '@/features/forms/useAsyncAction';
 import { ImagePickerField } from '@/features/images/ImagePickerField';
 import {
   buildOwnedPurchaseSchema,
   type OwnedPurchaseFormInput,
   type OwnedPurchaseFormValues,
 } from '@/features/purchases/schemas/purchaseSchema';
-import { formatMonthsAsDuration, useT } from '@/i18n';
+import { useT } from '@/i18n';
 import { useTheme } from '@/theme';
 import type { Purchase } from '@/types/domain';
 import { todayIsoDate } from '@/utils/dates';
@@ -56,8 +61,7 @@ export function OwnedPurchaseForm({
   const theme = useTheme();
   const t = useT();
 
-  const [isSaving, setIsSaving] = useState(false);
-  const [saveError, setSaveError] = useState<string | null>(null);
+  const save = useAsyncAction();
 
   // Rebuilt when the language changes: the messages it carries are copy.
   const schema = useMemo(() => buildOwnedPurchaseSchema(t), [t]);
@@ -84,27 +88,23 @@ export function OwnedPurchaseForm({
     },
   });
 
-  const values = useWatch({ control });
-
   const submit = handleSubmit(async (formValues) => {
-    setIsSaving(true);
-    setSaveError(null);
-    try {
-      await onSubmit({
-        name: formValues.name,
-        purchasePriceCents: formValues.purchasePriceCents,
-        purchaseDate: formValues.purchaseDate,
-        categoryId: formValues.categoryId,
-        imageUri: formValues.imageUri,
-        currentResaleValueCents: formValues.currentResaleValueCents,
-        expectedUsageFrequency: formValues.expectedUsageFrequency,
-        customUsesPerMonth: formValues.customUsesPerMonth,
-        expectedOwnershipMonths: formValues.expectedOwnershipMonths,
-      });
-    } catch {
-      setSaveError(t('purchases.form.saveError'));
-      setIsSaving(false);
-    }
+    await save.run(
+      () =>
+        onSubmit({
+          name: formValues.name,
+          purchasePriceCents: formValues.purchasePriceCents,
+          purchaseDate: formValues.purchaseDate,
+          categoryId: formValues.categoryId,
+          imageUri: formValues.imageUri,
+          currentResaleValueCents: formValues.currentResaleValueCents,
+          expectedUsageFrequency: formValues.expectedUsageFrequency,
+          customUsesPerMonth: formValues.customUsesPerMonth,
+          expectedOwnershipMonths: formValues.expectedOwnershipMonths,
+        }),
+      // Saving leaves the form for the item it just created or corrected.
+      { errorMessage: t('purchases.form.saveError'), stayBusyOnSuccess: true },
+    );
   });
 
   return (
@@ -115,7 +115,7 @@ export function OwnedPurchaseForm({
         <Button
           label={submitLabel}
           onPress={submit}
-          loading={isSaving}
+          loading={save.isRunning}
           disabled={formState.isSubmitting}
         />
       }
@@ -206,86 +206,32 @@ export function OwnedPurchaseForm({
         />
       </View>
 
-      <View style={{ height: theme.spacing.xl }} />
+      <Spacer size="xl" />
       <SectionHeader
         title={t('purchases.form.expectationTitle')}
         subtitle={t('purchases.form.expectationSubtitle')}
       />
 
       <View style={{ gap: theme.spacing.md }}>
-        <Controller
-          control={control}
-          name="expectedUsageFrequency"
-          render={({ field, fieldState }) => (
-            <ChipSelect
-              label={t('purchases.form.frequencyLabel')}
-              options={USAGE_PRESETS.map((preset) => ({
-                value: preset.id,
-                label: t(preset.labelKey),
-              }))}
-              value={field.value}
-              onChange={(next) => {
-                field.onChange(next);
-                if (next !== 'custom') setValue('customUsesPerMonth', null);
-              }}
-              hint={(() => {
-                const preset = USAGE_PRESETS.find((option) => option.id === field.value);
-                return preset ? t(preset.detailKey) : undefined;
-              })()}
-              error={fieldState.error?.message}
-            />
-          )}
-        />
-
-        {values.expectedUsageFrequency === 'custom' ? (
-          <Controller
-            control={control}
-            name="customUsesPerMonth"
-            render={({ field, fieldState }) => (
-              <TextField
-                label={t('purchases.form.usesPerMonthLabel')}
-                required
-                keyboardType="numeric"
-                inputMode="numeric"
-                value={field.value == null ? '' : String(field.value)}
-                onChangeText={(text) => {
-                  const parsed = Number.parseFloat(text.replace(',', '.'));
-                  field.onChange(Number.isFinite(parsed) ? parsed : null);
-                }}
-                onBlur={field.onBlur}
-                error={fieldState.error?.message}
-                suffix={t('units.perMonth')}
-              />
-            )}
-          />
-        ) : null}
-
-        <Controller
-          control={control}
-          name="expectedOwnershipMonths"
-          render={({ field, fieldState }) => (
-            <ChipSelect
-              label={t('purchases.form.ownershipLabel')}
-              options={OWNERSHIP_PRESETS.map((months) => ({
-                value: months,
-                label: formatMonthsAsDuration(t, months),
-              }))}
-              value={field.value}
-              onChange={field.onChange}
-              error={fieldState.error?.message}
-            />
-          )}
+        <ExpectedUsageFields
+          control={usageControl(control)}
+          setValue={usageSetValue(setValue)}
+          labels={{
+            frequency: t('purchases.form.frequencyLabel'),
+            usesPerMonth: t('purchases.form.usesPerMonthLabel'),
+            ownership: t('purchases.form.ownershipLabel'),
+          }}
         />
       </View>
 
-      {saveError ? (
+      {save.error ? (
         <AppText
           variant="caption"
           color="danger"
           accessibilityRole="alert"
           style={{ marginTop: theme.spacing.md }}
         >
-          {saveError}
+          {save.error}
         </AppText>
       ) : null}
     </Screen>

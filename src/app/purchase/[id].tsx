@@ -7,12 +7,14 @@ import { AppText } from '@/components/ui/AppText';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Chip } from '@/components/ui/Chip';
+import { LoadingScreen, MissingRecordScreen } from '@/components/ui/RecordScreens';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { SectionHeader } from '@/components/ui/SectionHeader';
-import { ErrorState, LoadingState } from '@/components/ui/StateViews';
+import { Spacer } from '@/components/ui/Spacer';
 import { usageFrequencyShortLabel } from '@/constants/usagePresets';
 import { useRepositories } from '@/db/DatabaseProvider';
+import { useConfirm } from '@/features/dialogs/useConfirm';
 import { useAppRouter } from '@/features/navigation/useAppRouter';
 import { useDeleteAndLeave } from '@/features/navigation/useDeleteAndLeave';
 import { useGoBack } from '@/features/navigation/useGoBack';
@@ -24,7 +26,7 @@ import { RecentUsesSection } from '@/features/purchases/components/RecentUsesSec
 import { ResaleValueEditor } from '@/features/purchases/components/ResaleValueEditor';
 import { UsageActionCard } from '@/features/purchases/components/UsageActionCard';
 import { RECENT_USES_LIMIT, usePurchaseDetail } from '@/features/purchases/hooks/usePurchases';
-import type { PurchaseExpenseFormValues } from '@/features/purchases/schemas/purchaseSchema';
+import { PurchaseExpenseFormValues } from '@/features/purchases/schemas/purchaseSchema';
 import {
   addPurchaseExpense,
   deletePurchase,
@@ -35,8 +37,7 @@ import {
 } from '@/features/purchases/services/purchaseActions';
 import { formatDuration, formatMonthsAsDuration, useT } from '@/i18n';
 import { useTheme } from '@/theme';
-import type { Cents, PurchaseExpense, UsageEvent } from '@/types/domain';
-import { confirm } from '@/utils/confirm';
+import { Cents, PurchaseExpense, UsageEvent } from '@/types/domain';
 import { formatNumber } from '@/utils/currency';
 
 /**
@@ -53,6 +54,7 @@ export default function PurchaseDetailScreen(): React.ReactElement {
   const router = useAppRouter();
   const repositories = useRepositories();
   const { id } = useLocalSearchParams<{ id: string }>();
+  const confirm = useConfirm();
 
   const { data: liveData, isLoading, error, refetch } = usePurchaseDetail(id);
   // `null` while closed; an empty object while adding; the expense while correcting.
@@ -123,29 +125,16 @@ export default function PurchaseDetailScreen(): React.ReactElement {
     }
   };
 
-  if (isLoading) {
-    return (
-      <>
-        <ScreenHeader onBack={goBack} />
-        <Screen>
-          <LoadingState />
-        </Screen>
-      </>
-    );
-  }
+  if (isLoading) return <LoadingScreen onBack={goBack} />;
 
   if (error || !data) {
     return (
-      <>
-        <ScreenHeader onBack={goBack} />
-        <Screen>
-          <ErrorState
-            title={t('purchases.notFound')}
-            description={t('purchases.notFoundDescription')}
-            onRetry={refetch}
-          />
-        </Screen>
-      </>
+      <MissingRecordScreen
+        onBack={goBack}
+        heading={t('purchases.notFound')}
+        description={t('purchases.notFoundDescription')}
+        onRetry={refetch}
+      />
     );
   }
 
@@ -176,7 +165,7 @@ export default function PurchaseDetailScreen(): React.ReactElement {
           }
         />
 
-        <View style={{ height: theme.spacing.lg }} />
+        <Spacer size="lg" />
 
         <UsageActionCard
           purchaseId={purchase.id}
@@ -185,11 +174,11 @@ export default function PurchaseDetailScreen(): React.ReactElement {
           lastUsedAt={purchase.lastUsedAt}
         />
 
-        <View style={{ height: theme.spacing.xl }} />
+        <Spacer size="xl" />
         <SectionHeader title={t('purchases.realCost.title')} />
         <RealCostBreakdown metrics={metrics} expenses={expenses} />
 
-        <View style={{ height: theme.spacing.sm }} />
+        <Spacer size="sm" />
         <Button
           label={t('purchases.addExpense')}
           icon={Plus}
@@ -197,22 +186,22 @@ export default function PurchaseDetailScreen(): React.ReactElement {
           onPress={openNewExpense}
         />
 
-        <View style={{ height: theme.spacing.xl }} />
+        <Spacer size="xl" />
         <SectionHeader title={t('purchases.resaleTitle')} />
         <ResaleValueEditor
           valueCents={purchase.currentResaleValueCents}
           onSave={handleResaleSave}
         />
 
-        <View style={{ height: theme.spacing.xl }} />
+        <Spacer size="xl" />
         <ExpensesSection expenses={expenses} onSelect={openExpense} />
 
-        {recentUses.length > 0 ? <View style={{ height: theme.spacing.xl }} /> : null}
+        {recentUses.length > 0 ? <Spacer size="xl" /> : null}
         <RecentUsesSection uses={recentUses} limit={RECENT_USES_LIMIT} onRemove={handleUseRemove} />
 
         {purchase.expectedUsageFrequency != null || purchase.expectedOwnershipMonths != null ? (
           <>
-            <View style={{ height: theme.spacing.xl }} />
+            <Spacer size="xl" />
             <SectionHeader
               title={t('purchases.expectationTitle')}
               subtitle={t('purchases.expectationSubtitle')}
@@ -259,7 +248,7 @@ export default function PurchaseDetailScreen(): React.ReactElement {
           </AppText>
         ) : null}
 
-        <View style={{ height: theme.spacing.xl }} />
+        <Spacer size="xl" />
         <Button
           label={t('purchases.delete')}
           variant="destructive"

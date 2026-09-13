@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, type StyleProp, type ViewStyle } from 'react-native';
 
+import { MiniBar } from '@/components/charts/MiniBar';
 import { AppText } from '@/components/ui/AppText';
 import { IconTile } from '@/components/ui/IconTile';
 import { MoneyValue } from '@/components/ui/MoneyValue';
@@ -77,28 +78,17 @@ export function CategoryBarChart({
               <MoneyValue cents={item.totalCents} variant="bodyStrong" />
             </View>
 
-            <View
-              accessibilityElementsHidden
-              importantForAccessibility="no-hide-descendants"
+            {/* No `accessibilityLabel`: the row above already announces the
+                category and its amount, and `MiniBar` hides itself without one. */}
+            <MiniBar
+              fraction={fraction}
+              color={tint.base}
               style={{
-                height: 6,
-                borderRadius: theme.radius.full,
-                backgroundColor: theme.colors.surfaceMuted,
-                overflow: 'hidden',
                 // Logical rather than `marginLeft`: under a right-to-left
                 // language the bar has to line up with the label on the right.
                 marginStart: theme.sizes.iconTile.sm + theme.spacing.sm,
               }}
-            >
-              <View
-                style={{
-                  width: `${fraction * 100}%`,
-                  height: '100%',
-                  borderRadius: theme.radius.full,
-                  backgroundColor: tint.base,
-                }}
-              />
-            </View>
+            />
           </View>
         );
       })}

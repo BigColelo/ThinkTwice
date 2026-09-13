@@ -1,22 +1,22 @@
-import { ChartPie, Settings, TrendingDown, TrendingUp } from 'lucide-react-native';
+import { ChartPie, Settings } from 'lucide-react-native';
 import React, { useState } from 'react';
 import { View } from 'react-native';
 
 import { CategoryBarChart } from '@/components/charts/CategoryBarChart';
 import { AppText } from '@/components/ui/AppText';
-import { Card, PressableCard } from '@/components/ui/Card';
+import { Card } from '@/components/ui/Card';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { MoneyValue } from '@/components/ui/MoneyValue';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { SectionHeader } from '@/components/ui/SectionHeader';
 import { SegmentedControl } from '@/components/ui/SegmentedControl';
+import { Spacer } from '@/components/ui/Spacer';
 import { StatCard } from '@/components/ui/StatCard';
 import { ErrorState, LoadingState } from '@/components/ui/StateViews';
-import { Thumbnail } from '@/components/ui/Thumbnail';
-import { getPurchaseCategory } from '@/constants/categories';
-import { INSIGHTS_RANGES, type InsightsRange, type ValueHighlight } from '@/domain';
+import { INSIGHTS_RANGES, type InsightsRange } from '@/domain';
 import { AvoidedPurchasesCard } from '@/features/insights/components/AvoidedPurchasesCard';
+import { ValueHighlightCard } from '@/features/insights/components/ValueHighlightCard';
 import { useInsights } from '@/features/insights/hooks/useInsights';
 import { useAppRouter } from '@/features/navigation/useAppRouter';
 import { useT } from '@/i18n';
@@ -59,7 +59,7 @@ export default function InsightsScreen(): React.ReactElement {
           size="sm"
         />
 
-        <View style={{ height: theme.spacing.lg }} />
+        <Spacer size="lg" />
 
         {error ? (
           <ErrorState description={t('insights.error')} onRetry={refetch} />
@@ -135,17 +135,17 @@ export default function InsightsScreen(): React.ReactElement {
 
             {summary.bestValue ? (
               <>
-                <View style={{ height: theme.spacing.xl }} />
+                <Spacer size="xl" />
                 <SectionHeader title={t('insights.costPerUseTitle')} />
                 <View style={{ gap: theme.spacing.sm }}>
-                  <HighlightCard
+                  <ValueHighlightCard
                     label={t('insights.lowestCostPerUse')}
                     highlight={summary.bestValue}
                     tone="positive"
                     onPress={() => router.push(`/purchase/${summary.bestValue?.purchaseId}`)}
                   />
                   {summary.highestCostPerUse ? (
-                    <HighlightCard
+                    <ValueHighlightCard
                       label={t('insights.highestCostPerUse')}
                       highlight={summary.highestCostPerUse}
                       tone="warning"
@@ -160,7 +160,7 @@ export default function InsightsScreen(): React.ReactElement {
 
             {summary.spendingByCategory.length > 0 ? (
               <>
-                <View style={{ height: theme.spacing.xl }} />
+                <Spacer size="xl" />
                 <SectionHeader title={t('insights.byCategory')} />
                 <Card padding={theme.spacing.md}>
                   <CategoryBarChart items={summary.spendingByCategory} />
@@ -170,7 +170,7 @@ export default function InsightsScreen(): React.ReactElement {
 
             {summary.avoidedPurchaseCount > 0 ? (
               <>
-                <View style={{ height: theme.spacing.xl }} />
+                <Spacer size="xl" />
                 <SectionHeader title={t('insights.decidedAgainst')} />
                 <AvoidedPurchasesCard
                   count={summary.avoidedPurchaseCount}
@@ -179,7 +179,7 @@ export default function InsightsScreen(): React.ReactElement {
               </>
             ) : null}
 
-            <View style={{ height: theme.spacing.xl }} />
+            <Spacer size="xl" />
             <SectionHeader title={t('insights.commitmentsTitle')} />
             <Card padding={theme.spacing.md}>
               <View
@@ -212,65 +212,5 @@ export default function InsightsScreen(): React.ReactElement {
         )}
       </Screen>
     </>
-  );
-}
-
-/**
- * A cost-per-use extreme. The label states which extreme it is; colour only
- * reinforces what the words already say.
- */
-function HighlightCard({
-  label,
-  highlight,
-  tone,
-  onPress,
-}: {
-  label: string;
-  highlight: ValueHighlight;
-  tone: 'positive' | 'warning';
-  onPress: () => void;
-}): React.ReactElement {
-  const theme = useTheme();
-  const t = useT();
-  const category = getPurchaseCategory(highlight.categoryId);
-  const accent = tone === 'positive' ? theme.colors.positive : theme.colors.warning;
-  const Icon = tone === 'positive' ? TrendingDown : TrendingUp;
-
-  return (
-    <PressableCard
-      onPress={onPress}
-      padding={theme.spacing.sm}
-      accessibilityLabel={t('insights.highlightLabel', { label, name: highlight.name })}
-      accessibilityHint={t('purchases.openHint')}
-    >
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing.sm }}>
-        <Thumbnail
-          uri={highlight.imageUri}
-          fallbackIcon={category.icon}
-          tint={category.tint}
-          size={theme.sizes.thumbnail.md}
-        />
-        <View style={{ flex: 1, gap: 2 }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing.xxs }}>
-            <Icon size={theme.sizes.icon.xs} color={accent.base} strokeWidth={2.4} />
-            <AppText variant="caption" style={{ color: accent.base }}>
-              {label}
-            </AppText>
-          </View>
-          <AppText variant="bodyStrong" numberOfLines={1}>
-            {highlight.name}
-          </AppText>
-          <AppText variant="caption" color="secondary">
-            {t('units.use', { count: highlight.totalUses })}
-          </AppText>
-        </View>
-        <MoneyValue
-          cents={highlight.costPerUseCents}
-          variant="bodyStrong"
-          decimals="always"
-          suffix={` ${t('units.perUse')}`}
-        />
-      </View>
-    </PressableCard>
   );
 }

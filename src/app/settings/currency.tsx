@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 
 import { AppText } from '@/components/ui/AppText';
 import { Screen } from '@/components/ui/Screen';
@@ -27,10 +27,17 @@ export default function CurrencyScreen(): React.ReactElement {
   const t = useT();
   const goBack = useGoBack('/settings');
   const { settings, updateSettings } = useSettings();
+  const [saveError, setSaveError] = useState<string | null>(null);
 
-  const select = (code: CurrencyCode): void => {
+  const select = async (code: CurrencyCode): Promise<void> => {
     if (code === settings.currencyCode) return;
-    void updateSettings({ currencyCode: code });
+
+    setSaveError(null);
+    try {
+      await updateSettings({ currencyCode: code });
+    } catch {
+      setSaveError(t('settings.saveError'));
+    }
   };
 
   return (
@@ -41,8 +48,19 @@ export default function CurrencyScreen(): React.ReactElement {
         <CurrencyPicker
           value={settings.currencyCode}
           language={resolveLanguage(settings.language)}
-          onSelect={select}
+          onSelect={(code) => void select(code)}
         />
+
+        {saveError ? (
+          <AppText
+            variant="caption"
+            color="danger"
+            accessibilityRole="alert"
+            style={{ marginTop: theme.spacing.sm }}
+          >
+            {saveError}
+          </AppText>
+        ) : null}
 
         <AppText variant="caption" color="tertiary" style={{ marginTop: theme.spacing.sm }}>
           {t('settings.currency.notConverted')}

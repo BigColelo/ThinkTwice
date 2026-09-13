@@ -4,7 +4,7 @@ import { View } from 'react-native';
 
 import { AppText } from '@/components/ui/AppText';
 import { Card } from '@/components/ui/Card';
-import { ListRow } from '@/components/ui/ListRow';
+import { ListRow, RowDivider } from '@/components/ui/ListRow';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { useRepositories } from '@/db/DatabaseProvider';
@@ -46,21 +46,34 @@ export default function LanguageScreen(): React.ReactElement {
   const repositories = useRepositories();
 
   const [needsRestart, setNeedsRestart] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   const select = async (preference: LanguagePreference): Promise<void> => {
     if (preference === settings.language) return;
 
-    await updateSettings({ language: preference });
+    setSaveError(null);
+    try {
+      await updateSettings({ language: preference });
+    } catch {
+      setSaveError(t('settings.saveError'));
+      return;
+    }
 
     const language = resolveLanguage(preference);
     setNeedsRestart(applyLayoutDirection(language));
 
     // The reminder carries its copy from the moment it was scheduled, so the
     // pending ones are now in the previous language. This is the same reason an
-    // edited item re-schedules its own.
+    // edited item re-schedules its own. A reminder is a convenience: the language
+    // is saved whether or not this part succeeds, so a failure here is not
+    // reported as if the choice had been lost.
     if (settings.cooldownRemindersEnabled && areLocalNotificationsSupported()) {
-      const openItems = await repositories.wishlist.listOpen();
-      await rescheduleAllCooldownReminders(openItems);
+      try {
+        const openItems = await repositories.wishlist.listOpen();
+        await rescheduleAllCooldownReminders(openItems);
+      } catch {
+        // See above: the pending reminders keep their previous language.
+      }
     }
   };
 
@@ -84,15 +97,7 @@ export default function LanguageScreen(): React.ReactElement {
         <Card padding={theme.spacing.md}>
           {options.map((option, index) => (
             <View key={option.value}>
-              {index > 0 ? (
-                <View
-                  style={{
-                    height: theme.sizes.hairline,
-                    backgroundColor: theme.colors.divider,
-                    marginVertical: theme.spacing.xxs,
-                  }}
-                />
-              ) : null}
+              {index > 0 ? <RowDivider /> : null}
               <ListRow
                 title={option.label}
                 subtitle={option.detail}
@@ -117,6 +122,17 @@ export default function LanguageScreen(): React.ReactElement {
         <AppText variant="caption" color="tertiary" style={{ marginTop: theme.spacing.sm }}>
           {t('settings.language.description')}
         </AppText>
+
+        {saveError ? (
+          <AppText
+            variant="caption"
+            color="danger"
+            accessibilityRole="alert"
+            style={{ marginTop: theme.spacing.sm }}
+          >
+            {saveError}
+          </AppText>
+        ) : null}
 
         {needsRestart ? (
           <AppText

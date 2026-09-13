@@ -1,5 +1,12 @@
 /** The only spacing values allowed in the app. */
 export const spacing = {
+  /**
+   * The gap between a line and the caption directly under it, inside a card or
+   * a row. Smaller than anything that separates two blocks — it exists so the
+   * two lines read as one thing — and it is a token rather than a literal `2`
+   * because the app keeps every pixel in the theme.
+   */
+  xxxs: 2,
   xxs: 4,
   xs: 8,
   sm: 12,

@@ -1,13 +1,14 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import React, { useMemo, useState } from 'react';
+import React, { useMemo } from 'react';
 import { Controller, useForm } from 'react-hook-form';
-import { Modal, Pressable, ScrollView, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { View } from 'react-native';
 
 import { AppText } from '@/components/ui/AppText';
+import { BottomSheet } from '@/components/ui/BottomSheet';
 import { Button } from '@/components/ui/Button';
 import { DateField } from '@/components/ui/DateField';
 import { MoneyField } from '@/components/ui/MoneyField';
+import { useAsyncAction } from '@/features/forms/useAsyncAction';
 import {
   buildConfirmedPurchaseSchema,
   type ConfirmedPurchaseFormInput,
@@ -46,10 +47,8 @@ export function ConfirmPurchaseSheet({
 }): React.ReactElement {
   const theme = useTheme();
   const t = useT();
-  const insets = useSafeAreaInsets();
 
-  const [isSaving, setIsSaving] = useState(false);
-  const [saveError, setSaveError] = useState<string | null>(null);
+  const confirmPurchase = useAsyncAction();
 
   // Rebuilt when the language changes: the messages it carries are copy.
   const schema = useMemo(() => buildConfirmedPurchaseSchema(t), [t]);
@@ -69,131 +68,81 @@ export function ConfirmPurchaseSheet({
 
   const close = (): void => {
     reset();
-    setSaveError(null);
+    confirmPurchase.reset();
     onClose();
   };
 
   const onSubmit = handleSubmit(async (values) => {
-    setIsSaving(true);
-    setSaveError(null);
-    try {
-      await onConfirm({
-        purchaseDate: values.purchaseDate,
-        actualPriceCents: values.purchasePriceCents,
-      });
-    } catch {
-      setSaveError(t('wishlist.confirmPurchase.saveError'));
-    } finally {
-      setIsSaving(false);
-    }
+    await confirmPurchase.run(
+      () =>
+        onConfirm({
+          purchaseDate: values.purchaseDate,
+          actualPriceCents: values.purchasePriceCents,
+        }),
+      { errorMessage: t('wishlist.confirmPurchase.saveError') },
+    );
   });
 
   return (
-    <Modal
-      visible={visible}
-      animationType="slide"
-      transparent
-      onRequestClose={close}
-      accessibilityViewIsModal
-    >
-      <View style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: theme.colors.scrim }}>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={t('common.close')}
+    <BottomSheet visible={visible} onClose={close}>
+      <AppText variant="title" accessibilityRole="header">
+        {t('wishlist.confirmPurchase.title')}
+      </AppText>
+      <AppText variant="caption" color="secondary">
+        {t('wishlist.confirmPurchase.description', { name: item.name })}
+      </AppText>
+
+      <Controller
+        control={control}
+        name="purchasePriceCents"
+        render={({ field, fieldState }) => (
+          <MoneyField
+            label={t('wishlist.confirmPurchase.priceLabel')}
+            required
+            hint={t('wishlist.confirmPurchase.priceHint')}
+            valueCents={field.value}
+            onChangeCents={field.onChange}
+            error={fieldState.error?.message}
+          />
+        )}
+      />
+
+      <Controller
+        control={control}
+        name="purchaseDate"
+        render={({ field, fieldState }) => (
+          <DateField
+            label={t('wishlist.confirmPurchase.dateLabel')}
+            required
+            value={field.value}
+            onChange={field.onChange}
+            error={fieldState.error?.message}
+            hint={t('wishlist.confirmPurchase.dateHint')}
+          />
+        )}
+      />
+
+      {confirmPurchase.error ? (
+        <AppText variant="caption" color="danger" accessibilityRole="alert">
+          {confirmPurchase.error}
+        </AppText>
+      ) : null}
+
+      <View style={{ flexDirection: 'row', gap: theme.spacing.sm }}>
+        <Button
+          label={t('common.cancel')}
+          variant="secondary"
           onPress={close}
           style={{ flex: 1 }}
+          disabled={confirmPurchase.isRunning}
         />
-
-        <View
-          style={{
-            backgroundColor: theme.colors.background,
-            borderTopLeftRadius: theme.radius.xxl,
-            borderTopRightRadius: theme.radius.xxl,
-            paddingTop: theme.spacing.md,
-            paddingBottom: insets.bottom + theme.spacing.md,
-            maxHeight: '90%',
-          }}
-        >
-          <View
-            // Grabber, purely visual — the close affordances are the scrim and Cancel.
-            style={{
-              alignSelf: 'center',
-              width: 36,
-              height: 4,
-              borderRadius: theme.radius.full,
-              backgroundColor: theme.colors.borderStrong,
-              marginBottom: theme.spacing.md,
-            }}
-          />
-
-          <ScrollView
-            contentContainerStyle={{
-              paddingHorizontal: theme.screenPadding,
-              gap: theme.spacing.md,
-            }}
-            keyboardShouldPersistTaps="handled"
-          >
-            <AppText variant="title" accessibilityRole="header">
-              {t('wishlist.confirmPurchase.title')}
-            </AppText>
-            <AppText variant="caption" color="secondary">
-              {t('wishlist.confirmPurchase.description', { name: item.name })}
-            </AppText>
-
-            <Controller
-              control={control}
-              name="purchasePriceCents"
-              render={({ field, fieldState }) => (
-                <MoneyField
-                  label={t('wishlist.confirmPurchase.priceLabel')}
-                  required
-                  hint={t('wishlist.confirmPurchase.priceHint')}
-                  valueCents={field.value}
-                  onChangeCents={field.onChange}
-                  error={fieldState.error?.message}
-                />
-              )}
-            />
-
-            <Controller
-              control={control}
-              name="purchaseDate"
-              render={({ field, fieldState }) => (
-                <DateField
-                  label={t('wishlist.confirmPurchase.dateLabel')}
-                  required
-                  value={field.value}
-                  onChange={field.onChange}
-                  error={fieldState.error?.message}
-                  hint={t('wishlist.confirmPurchase.dateHint')}
-                />
-              )}
-            />
-
-            {saveError ? (
-              <AppText variant="caption" color="danger" accessibilityRole="alert">
-                {saveError}
-              </AppText>
-            ) : null}
-
-            <View style={{ flexDirection: 'row', gap: theme.spacing.sm }}>
-              <Button
-                label={t('common.cancel')}
-                variant="secondary"
-                onPress={close}
-                style={{ flex: 1 }}
-                disabled={isSaving}
-              />
-              <Button
-                label={t('wishlist.iBoughtIt')}
-                onPress={onSubmit}
-                loading={isSaving}
-                style={{ flex: 1 }}
-              />
-            </View>
-          </ScrollView>
-        </View>
+        <Button
+          label={t('wishlist.iBoughtIt')}
+          onPress={onSubmit}
+          loading={confirmPurchase.isRunning}
+          style={{ flex: 1 }}
+        />
       </View>
-    </Modal>
+    </BottomSheet>
   );
 }

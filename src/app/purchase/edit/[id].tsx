@@ -1,11 +1,10 @@
 import { useLocalSearchParams } from 'expo-router';
 import React from 'react';
 
-import { Screen } from '@/components/ui/Screen';
+import { LoadingScreen, MissingRecordScreen } from '@/components/ui/RecordScreens';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
-import { ErrorState, LoadingState } from '@/components/ui/StateViews';
 import { useRepositories } from '@/db/DatabaseProvider';
-import type { NewPurchase } from '@/db/repositories';
+import { NewPurchase } from '@/db/repositories';
 import { useGoBack } from '@/features/navigation/useGoBack';
 import { OwnedPurchaseForm } from '@/features/purchases/components/OwnedPurchaseForm';
 import { usePurchaseDetail } from '@/features/purchases/hooks/usePurchases';
@@ -29,29 +28,17 @@ export default function EditPurchaseScreen(): React.ReactElement {
 
   const { data, isLoading, error, refetch } = usePurchaseDetail(id);
 
-  if (isLoading) {
-    return (
-      <>
-        <ScreenHeader title={t('add.editPurchase')} onBack={goBack} />
-        <Screen>
-          <LoadingState />
-        </Screen>
-      </>
-    );
-  }
+  if (isLoading) return <LoadingScreen title={t('add.editPurchase')} onBack={goBack} />;
 
   if (error || !data) {
     return (
-      <>
-        <ScreenHeader title={t('add.editPurchase')} onBack={goBack} />
-        <Screen>
-          <ErrorState
-            title={t('purchases.notFound')}
-            description={t('purchases.notFoundDescription')}
-            onRetry={refetch}
-          />
-        </Screen>
-      </>
+      <MissingRecordScreen
+        title={t('add.editPurchase')}
+        onBack={goBack}
+        heading={t('purchases.notFound')}
+        description={t('purchases.notFoundDescription')}
+        onRetry={refetch}
+      />
     );
   }
 

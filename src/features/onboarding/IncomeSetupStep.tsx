@@ -5,6 +5,7 @@ import { AppText } from '@/components/ui/AppText';
 import { Button } from '@/components/ui/Button';
 import { MoneyField } from '@/components/ui/MoneyField';
 import { Screen } from '@/components/ui/Screen';
+import { useAsyncAction } from '@/features/forms/useAsyncAction';
 import { useAppRouter } from '@/features/navigation/useAppRouter';
 import { useSettings } from '@/features/settings/SettingsProvider';
 import { useT } from '@/i18n';
@@ -22,22 +23,20 @@ export function IncomeSetupStep({ onBack }: { onBack: () => void }): React.React
   const { updateSettings } = useSettings();
 
   const [incomeCents, setIncomeCents] = useState<Cents | null>(null);
-  const [isSaving, setIsSaving] = useState(false);
-  const [saveError, setSaveError] = useState<string | null>(null);
+  const save = useAsyncAction();
 
   const finish = async (withIncome: boolean): Promise<void> => {
-    setIsSaving(true);
-    setSaveError(null);
-    try {
-      await updateSettings({
-        onboardingCompleted: true,
-        ...(withIncome && incomeCents != null ? { monthlyNetIncomeCents: incomeCents } : {}),
-      });
-      router.replace('/');
-    } catch {
-      setSaveError(t('onboarding.saveError'));
-      setIsSaving(false);
-    }
+    const saved = await save.run(
+      () =>
+        updateSettings({
+          onboardingCompleted: true,
+          ...(withIncome && incomeCents != null ? { monthlyNetIncomeCents: incomeCents } : {}),
+        }),
+      // Finishing leaves onboarding for the app itself.
+      { errorMessage: t('onboarding.saveError'), stayBusyOnSuccess: true },
+    );
+
+    if (saved) router.replace('/');
   };
 
   return (
@@ -57,16 +56,16 @@ export function IncomeSetupStep({ onBack }: { onBack: () => void }): React.React
           onChangeCents={setIncomeCents}
         />
 
-        {saveError ? (
+        {save.error ? (
           <AppText variant="caption" color="danger" accessibilityRole="alert">
-            {saveError}
+            {save.error}
           </AppText>
         ) : null}
 
         <Button
           label={t('onboarding.continue')}
           onPress={() => finish(true)}
-          loading={isSaving}
+          loading={save.isRunning}
           disabled={incomeCents == null}
         />
         <Button
@@ -74,14 +73,14 @@ export function IncomeSetupStep({ onBack }: { onBack: () => void }): React.React
           variant="ghost"
           size="md"
           onPress={() => finish(false)}
-          disabled={isSaving}
+          disabled={save.isRunning}
         />
         <Button
           label={t('onboarding.back')}
           variant="ghost"
           size="sm"
           onPress={onBack}
-          disabled={isSaving}
+          disabled={save.isRunning}
         />
       </View>
     </Screen>

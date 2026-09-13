@@ -45,6 +45,7 @@ describe('wishlistDeleteConfirmation', () => {
 
       expect(confirmation.destructive).toBe(true);
       expect(confirmation.confirmLabel).toBe('Delete');
+      expect(confirmation.cancelLabel).toBe('Cancel');
       expect(confirmation.title).toBe('Delete this item?');
     }
   });

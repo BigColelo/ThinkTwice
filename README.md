@@ -84,18 +84,22 @@ scan the QR code with Expo Go.
 
 ### Commands
 
-| Command             | What it does                                 |
-| ------------------- | -------------------------------------------- |
-| `npm start`         | Start the Expo dev server                    |
-| `npm run ios`       | Start and open the iOS simulator             |
-| `npm run android`   | Start and open an Android emulator or device |
-| `npm run web`       | Start and open the web build                 |
-| `npm run typecheck` | TypeScript, strict, no emit                  |
-| `npm run lint`      | ESLint                                       |
-| `npm run test`      | Jest                                         |
-| `npm run format`    | Prettier                                     |
-| `npm run verify`    | typecheck + lint + test                      |
-| `npm run icons`     | Regenerate the app icons from `scripts/`     |
+| Command             | What it does                                                     |
+| ------------------- | ---------------------------------------------------------------- |
+| `npm start`         | Start the Expo dev server                                        |
+| `npm run ios`       | Build the native iOS app and run it in the simulator             |
+| `npm run android`   | Build the native Android app and run it on an emulator or device |
+| `npm run web`       | Start and open the web build                                     |
+| `npm run typecheck` | TypeScript, strict, no emit                                      |
+| `npm run lint`      | ESLint                                                           |
+| `npm run test`      | Jest                                                             |
+| `npm run format`    | Prettier                                                         |
+| `npm run verify`    | typecheck + lint + format check + test                           |
+| `npm run icons`     | Regenerate the app icons from `scripts/`                         |
+
+`npm run ios` and `npm run android` produce a development build through Expo prebuild. The `ios/`
+and `android/` folders they generate are ignored by git and never edited by hand; the project stays
+managed. Expo Go still works through `npm start`. The same `npm run verify` runs in CI on every push.
 
 ---
 
@@ -245,3 +249,10 @@ tracking, no investment tracking, and no behavioural predictions.
 
 The architecture leaves room for some of these later — repositories are a real boundary — but none
 of the infrastructure for them is built now.
+
+---
+
+## License
+
+Copyright © 2026 Riccardo Filpi. All rights reserved — see [`LICENSE`](./LICENSE). Third-party
+packages keep their own licenses, listed in [`THIRD_PARTY.md`](./THIRD_PARTY.md).

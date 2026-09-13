@@ -80,30 +80,3 @@ export async function migrate(db: SQLiteDatabase): Promise<void> {
     });
   }
 }
-
-/**
- * Deletes every row while keeping the schema — the "reset all local data"
- * action in Settings. Ordering respects foreign keys.
- */
-export async function resetAllData(db: SQLiteDatabase): Promise<void> {
-  await db.withTransactionAsync(async () => {
-    await db.execAsync(`
-      DELETE FROM usage_events;
-      DELETE FROM purchase_expenses;
-      DELETE FROM purchases;
-      DELETE FROM wishlist_items;
-      DELETE FROM recurring_commitments;
-    `);
-    const now = new Date().toISOString();
-    await db.runAsync(
-      `UPDATE app_settings
-          SET monthly_net_income_cents = 0,
-              monthly_savings_target_cents = NULL,
-              onboarding_completed = 0,
-              cooldown_reminders_enabled = 0,
-              updated_at = ?
-        WHERE id = 1`,
-      now,
-    );
-  });
-}

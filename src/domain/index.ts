@@ -16,8 +16,10 @@ export {
 export {
   calculateEstimatedCostPerUse,
   calculateEstimatedUses,
+  calculateUsageEstimate,
   resolveUsesPerMonth,
   type ExpectedUsageInput,
+  type UsageEstimate,
 } from './wishlist/usage';
 
 export {

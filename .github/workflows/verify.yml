@@ -1,0 +1,28 @@
+# The same check a developer runs before finishing work, on every push.
+name: Verify
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+    branches: [main]
+
+# A newer push to the same branch supersedes the run in progress.
+concurrency:
+  group: verify-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: Typecheck, lint, format, test
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      # Public registry only, pinned by the repository's own .npmrc.
+      - run: npm ci
+      - run: npm run verify

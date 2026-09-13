@@ -136,12 +136,12 @@ describe('every currency the app offers', () => {
 
 describe('minor units', () => {
   /**
-   * KWD, BHD, OMR, JOD, LYD and TND are defined with three decimals, and DJF,
-   * KMF, IQD, SOS, SYP and LBP with none. The app shows all of them with two,
-   * on purpose — see `MINOR_UNITS_PER_MAJOR`.
+   * BHD, IQD, JOD, KWD, LYD, OMR and TND are defined with three decimals, and
+   * CLP, DJF, KMF, PYG, XAF and XOF with none. The app shows all of them with
+   * two, on purpose — see `MINOR_UNITS_PER_MAJOR`.
    */
   it('shows two decimals where ISO defines three', () => {
-    for (const code of ['KWD', 'BHD', 'OMR', 'JOD', 'LYD', 'TND'] as const) {
+    for (const code of ['BHD', 'IQD', 'JOD', 'KWD', 'LYD', 'OMR', 'TND'] as const) {
       expect(formatMoney(1_799, { currency: code, decimals: 'always' })).toBe(
         `${code}${NBSP}17.99`,
       );
@@ -149,7 +149,7 @@ describe('minor units', () => {
   });
 
   it('shows two decimals where ISO defines none', () => {
-    for (const code of ['DJF', 'KMF', 'IQD', 'SOS', 'SYP', 'LBP'] as const) {
+    for (const code of ['CLP', 'DJF', 'KMF', 'PYG', 'XAF', 'XOF'] as const) {
       expect(formatMoney(1_799, { currency: code, decimals: 'always' })).toBe(
         `${code}${NBSP}17.99`,
       );

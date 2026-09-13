@@ -3,6 +3,7 @@ import type { NotificationResponse } from 'expo-notifications';
 import { Platform } from 'react-native';
 
 import { t } from '@/i18n';
+import { brandAccent } from '@/theme/colors';
 import type { WishlistItem } from '@/types/domain';
 import { parseIso } from '@/utils/dates';
 
@@ -81,6 +82,23 @@ function notificationIdFor(wishlistItemId: string): string {
   return `thinktwice-cooldown-${wishlistItemId}`;
 }
 
+type CooldownChannel = Parameters<NotificationsModule['setNotificationChannelAsync']>[1];
+
+/**
+ * The one Android channel, described in the current language. Built in one
+ * place so creating it at launch and renaming it after a language change cannot
+ * drift apart. The light is the brand accent rather than a themed colour: the
+ * OS reads it once and keeps it, whatever scheme the app is in.
+ */
+function cooldownChannel(notifications: NotificationsModule): CooldownChannel {
+  return {
+    name: t('notifications.channelName'),
+    importance: notifications.AndroidImportance.DEFAULT,
+    lightColor: brandAccent,
+    vibrationPattern: [0, 200],
+  };
+}
+
 /**
  * Installs the foreground presentation rules. Called once from the app root;
  * it does not request permission and does not prompt the user.
@@ -100,12 +118,7 @@ export function configureNotificationHandling(): void {
 
     if (Platform.OS === 'android') {
       void notifications
-        .setNotificationChannelAsync(CHANNEL_ID, {
-          name: t('notifications.channelName'),
-          importance: notifications.AndroidImportance.DEFAULT,
-          lightColor: '#6D3FF3',
-          vibrationPattern: [0, 200],
-        })
+        .setNotificationChannelAsync(CHANNEL_ID, cooldownChannel(notifications))
         .catch(() => undefined);
     }
   });
@@ -118,12 +131,7 @@ async function renameNotificationChannel(): Promise<void> {
   if (!notifications) return;
 
   try {
-    await notifications.setNotificationChannelAsync(CHANNEL_ID, {
-      name: t('notifications.channelName'),
-      importance: notifications.AndroidImportance.DEFAULT,
-      lightColor: '#6D3FF3',
-      vibrationPattern: [0, 200],
-    });
+    await notifications.setNotificationChannelAsync(CHANNEL_ID, cooldownChannel(notifications));
   } catch {
     // A channel that keeps its old name is not worth failing a language change.
   }

@@ -4,6 +4,7 @@ import { AppText } from '@/components/ui/AppText';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { MoneyField } from '@/components/ui/MoneyField';
+import { useAsyncAction } from '@/features/forms/useAsyncAction';
 import { useT } from '@/i18n';
 import { useTheme } from '@/theme';
 import type { Cents } from '@/types/domain';
@@ -30,8 +31,7 @@ export function ResaleValueEditor({
 
   const [draft, setDraft] = useState<Cents | null>(valueCents);
   const [lastSavedValue, setLastSavedValue] = useState<Cents | null>(valueCents);
-  const [isSaving, setIsSaving] = useState(false);
-  const [saveError, setSaveError] = useState<string | null>(null);
+  const save = useAsyncAction();
 
   // Adopt a value that changed elsewhere (a refetch after saving) without an
   // effect, so the field never renders a frame of stale text.
@@ -42,16 +42,8 @@ export function ResaleValueEditor({
 
   const hasChanges = draft !== valueCents;
 
-  const save = async (): Promise<void> => {
-    setIsSaving(true);
-    setSaveError(null);
-    try {
-      await onSave(draft);
-    } catch {
-      setSaveError(t('purchases.resale.saveError'));
-    } finally {
-      setIsSaving(false);
-    }
+  const handleSave = async (): Promise<void> => {
+    await save.run(() => onSave(draft), { errorMessage: t('purchases.resale.saveError') });
   };
 
   return (
@@ -63,14 +55,14 @@ export function ResaleValueEditor({
         onChangeCents={setDraft}
       />
 
-      {saveError ? (
+      {save.error ? (
         <AppText
           variant="caption"
           color="danger"
           accessibilityRole="alert"
           style={{ marginTop: theme.spacing.xs }}
         >
-          {saveError}
+          {save.error}
         </AppText>
       ) : null}
 
@@ -78,8 +70,8 @@ export function ResaleValueEditor({
         <Button
           label={t('purchases.resale.save')}
           size="md"
-          onPress={save}
-          loading={isSaving}
+          onPress={handleSave}
+          loading={save.isRunning}
           style={{ marginTop: theme.spacing.sm }}
         />
       ) : null}

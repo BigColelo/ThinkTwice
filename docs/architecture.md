@@ -42,6 +42,22 @@ The domain function returns a typed result whose every field can be `null`; the 
 how to present each case. That is why `NaN` and `Infinity` cannot reach the screen: they are
 eliminated at the boundary, not defended against at the leaf.
 
+**A route is a default export and nothing else.** It reads its parameters, composes feature
+components and decides what an action means; anything with markup of its own lives in
+`src/features/<area>/components`. This is not tidiness. Expo Router's route context matches every
+`.tsx` under `src/app`, test files included, so a test placed beside a component there would ship as
+a real screen — which means a component living in a route cannot be tested at all. Five did, and the
+two with real logic in them, the commitment form and the income editor, were the only untested
+forms in the app.
+
+**A render error loses one screen, not the app.** `AppErrorBoundary` (`src/features/errors`) sits
+directly below the bootstrap theme and language providers in the root layout and above the
+database. Anything that throws while rendering — a screen, a provider, the navigator — lands on a
+crash screen in the device's language, with the message and a retry that re-mounts everything below
+it, database included. Without it a production build shows React Native's own red screen and offers
+no way back. It sits _below_ the bootstrap providers on purpose: the crash screen is themed and
+translated exactly as the database gate is, without carrying a copy of either.
+
 ---
 
 ## 2. Money
@@ -60,9 +76,9 @@ Arab-state currencies as their code in every locale but `ar`. Symbols for some a
 would look like a rendering failure, and the code is also the one label that is never ambiguous
 between two dollars or three pounds. The corollary is that the app shows no `€` anywhere.
 
-**One hundredth of the major unit, for all of them.** KWD, BHD, OMR, JOD, LYD and TND are defined
-with three decimals and DJF, KMF, IQD, SOS, SYP and LBP with none; all twelve are displayed here with
-two. That is not an oversight. Amounts are stored as minor units and are never converted, so
+**One hundredth of the major unit, for all of them.** BHD, IQD, JOD, KWD, LYD, OMR and TND are
+defined with three decimals and CLP, DJF, KMF, PYG, XAF and XOF with none; all thirteen are displayed
+here with two. That is not an oversight. Amounts are stored as minor units and are never converted, so
 switching currency has to relabel a figure and must never change it — 165000 reads `EUR 1,650` and,
 after a switch, `KWD 1,650`. Honouring each ISO exponent instead would move the decimal point on
 money the user had already entered, which is a silent edit to their own records. `MINOR_UNITS_PER_MAJOR`
@@ -214,10 +230,23 @@ since continuing could corrupt data this build does not understand.
 and falls back to a safe default, and coerces non-finite numbers. A row from an older build, or one
 that was hand-edited, degrades instead of leaking an unexpected string into a `switch`.
 
+**Partial updates keep two kinds of absence apart.** Every repository takes a `Partial<…>`, where
+`undefined` means "leave this column alone" and `null` means "write NULL". Collapsing them either
+way is silent and destructive: treating `undefined` as NULL would clear the photo and the notes when
+someone corrects a name, and treating `null` as "skip" would make clearing a resale estimate
+impossible — the one case where the user means "I no longer have a figure" rather than "zero".
+`UpdateColumns` states that rule once instead of four times.
+
 **Aggregates are computed in SQL.** `PurchaseRepository` joins usage totals and expense totals in
 one query, so a list of purchases costs one round trip regardless of length. Cost per use is also
 expressed in SQL, so the database can sort by it — with items that have no uses ordered last in both
 directions, rather than pretending to be the cheapest or the most expensive.
+
+**Every write names the entities it touched, and only a service can.** A screen that called a
+repository directly would skip the invalidation below, and the failure is silent: the write lands,
+and every other open screen keeps showing what was true a moment ago. The commitment form was the
+last screen doing its own writes; `commitmentActions` and `dataActions` finished the pattern the
+wishlist and purchase services had already set.
 
 **Reads invalidate rather than cache.** `src/db/dataRevisions.ts` is a small pub/sub: a write names
 the entities it touched, and every `useDatabaseQuery` watching those entities refetches. This is
@@ -256,6 +285,13 @@ throws:
 | Image storage       | `src/features/images/itemImages`          | Web uses the picked URL directly.                                                     |
 | Confirmation dialog | `src/utils/confirm`                       | Web uses `window.confirm`; `Alert` is unimplemented there.                            |
 | Date picking        | `src/components/ui/DateField`             | Web renders a native `<input type="date">`.                                           |
+
+The confirmation adapter knows no language. Both button labels are required, and screens reach it
+only through `useConfirm()` (`src/features/dialogs/useConfirm`), which supplies the Cancel label from
+the `t` the screen was rendered with; `no-restricted-imports` keeps the adapter itself out of reach.
+The first version defaulted both labels in English, and every dialog in the app showed an English
+Cancel to a reader in any other language: an optional label with a default is exactly the shape that
+lets a literal slip past the catalogue tests, which only see the catalogues.
 
 Notifications are the important one. They are **never** requested at launch — permission is asked
 for the first time the user enables reminders, at the moment it is useful. A denied permission costs

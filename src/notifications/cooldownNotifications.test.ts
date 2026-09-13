@@ -3,6 +3,7 @@ import * as Notifications from 'expo-notifications';
 import type { NotificationPermissionsStatus, NotificationResponse } from 'expo-notifications';
 import { Platform } from 'react-native';
 
+import { brandAccent } from '@/theme/colors';
 import type { WishlistItem } from '@/types/domain';
 
 import {
@@ -152,7 +153,7 @@ describe('configureNotificationHandling', () => {
 
     expect(mocked.setNotificationChannelAsync).toHaveBeenCalledWith(
       'cooldown-reminders',
-      expect.objectContaining({ name: 'Reflection reminders' }),
+      expect.objectContaining({ name: 'Reflection reminders', lightColor: brandAccent }),
     );
   });
 });

@@ -1,6 +1,11 @@
 import { WEEKS_PER_MONTH } from '@/constants/usagePresets';
 
-import { calculateEstimatedCostPerUse, calculateEstimatedUses, resolveUsesPerMonth } from './usage';
+import {
+  calculateEstimatedCostPerUse,
+  calculateEstimatedUses,
+  calculateUsageEstimate,
+  resolveUsesPerMonth,
+} from './usage';
 
 describe('resolveUsesPerMonth', () => {
   it('resolves a range preset to its documented midpoint', () => {
@@ -142,5 +147,66 @@ describe('calculateEstimatedCostPerUse', () => {
   it('never returns a non-finite value', () => {
     const result = calculateEstimatedCostPerUse(Number.POSITIVE_INFINITY, 10);
     expect(result).toBeNull();
+  });
+});
+
+/**
+ * The estimate as one value.
+ *
+ * The two figures are never shown apart, and the second is derived from the
+ * first, so the pair is what callers actually want — and what stops a screen
+ * computing them in a different order from the form that previewed them.
+ */
+describe('calculateUsageEstimate', () => {
+  const FIVE_YEARS_TWICE_A_WEEK = {
+    frequency: 'several_times_week',
+    customUsesPerMonth: null,
+    expectedOwnershipMonths: 60,
+  } as const;
+
+  it('gives the worked example from the product spec', () => {
+    // 2.5 × 52/12 × 60 = 650 uses; €1,799 ÷ 650 = €2.77 each.
+    const estimate = calculateUsageEstimate(179_900, FIVE_YEARS_TWICE_A_WEEK);
+
+    expect(estimate.estimatedUses).toBe(650);
+    expect(estimate.costPerUseCents).toBeCloseTo(276.77, 2);
+  });
+
+  it('agrees exactly with the two functions it stands for', () => {
+    const uses = calculateEstimatedUses(FIVE_YEARS_TWICE_A_WEEK);
+
+    expect(calculateUsageEstimate(179_900, FIVE_YEARS_TWICE_A_WEEK)).toEqual({
+      estimatedUses: uses,
+      costPerUseCents: calculateEstimatedCostPerUse(179_900, uses),
+    });
+  });
+
+  it('still counts the uses when there is no price yet', () => {
+    // The form previews the estimate while the item is being typed in, and the
+    // number of uses is answerable long before the price is.
+    const estimate = calculateUsageEstimate(null, FIVE_YEARS_TWICE_A_WEEK);
+
+    expect(estimate.estimatedUses).toBe(650);
+    expect(estimate.costPerUseCents).toBeNull();
+  });
+
+  it('reports both as unknown when the usage cannot be resolved', () => {
+    const estimate = calculateUsageEstimate(179_900, {
+      frequency: 'custom',
+      customUsesPerMonth: null,
+      expectedOwnershipMonths: 60,
+    });
+
+    expect(estimate).toEqual({ estimatedUses: null, costPerUseCents: null });
+  });
+
+  it('never divides by a zero-length ownership', () => {
+    const estimate = calculateUsageEstimate(179_900, {
+      frequency: 'daily',
+      customUsesPerMonth: null,
+      expectedOwnershipMonths: 0,
+    });
+
+    expect(estimate.costPerUseCents).toBeNull();
   });
 });

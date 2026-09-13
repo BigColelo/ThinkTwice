@@ -5,6 +5,7 @@ import { nowIso, todayIsoDate } from '@/utils/dates';
 import { createId } from '@/utils/ids';
 
 import { mapPurchaseExpense, type PurchaseExpenseRow } from '../mappers';
+import { roundedOrSkip, UpdateColumns } from './updateColumns';
 
 export type NewPurchaseExpense = {
   purchaseId: string;
@@ -58,26 +59,17 @@ export class PurchaseExpenseRepository {
   }
 
   async update(id: string, update: PurchaseExpenseUpdate): Promise<PurchaseExpense | null> {
-    const assignments: string[] = [];
-    const values: (string | number)[] = [];
+    // No `updated_at` here: the table records when an expense was entered and
+    // what it was for, and has never carried a modified time to keep current.
+    const columns = new UpdateColumns()
+      .set('name', update.name?.trim())
+      .set('amount_cents', roundedOrSkip(update.amountCents))
+      .set('expense_type', update.expenseType)
+      .set('date', update.date);
 
-    const set = (column: string, value: string | number): void => {
-      assignments.push(`${column} = ?`);
-      values.push(value);
-    };
+    if (columns.isEmpty) return this.findById(id);
 
-    if (update.name !== undefined) set('name', update.name.trim());
-    if (update.amountCents !== undefined) set('amount_cents', Math.round(update.amountCents));
-    if (update.expenseType !== undefined) set('expense_type', update.expenseType);
-    if (update.date !== undefined) set('date', update.date);
-
-    if (assignments.length === 0) return this.findById(id);
-
-    await this.db.runAsync(
-      `UPDATE purchase_expenses SET ${assignments.join(', ')} WHERE id = ?`,
-      ...values,
-      id,
-    );
+    await columns.update(this.db, 'purchase_expenses', id);
 
     return this.findById(id);
   }

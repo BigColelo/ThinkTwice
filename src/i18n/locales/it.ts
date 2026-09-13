@@ -35,6 +35,9 @@ export const it = {
     databaseErrorTitle: 'Non è stato possibile aprire i tuoi dati',
     databaseErrorDescription:
       'ThinkTwice conserva tutto su questo dispositivo. Di solito basta riavviare l’app.',
+    crashTitle: 'Questa schermata ha riscontrato un problema',
+    crashDescription:
+      'I tuoi dati sono conservati su questo dispositivo e non sono stati toccati. Riprova, oppure riavvia l’app.',
   },
 
   units: {
@@ -355,6 +358,7 @@ export const it = {
       removeTitle: 'Rimuovere questo utilizzo?',
       removeMessage: 'Il costo per utilizzo viene ricalcolato senza di esso.',
       removeConfirm: 'Rimuovi',
+      removeError: 'Non è stato possibile rimuovere questo utilizzo. Riprova.',
     },
     resale: {
       label: 'Quanto vale oggi?',
@@ -486,6 +490,9 @@ export const it = {
       delete: 'Elimina spesa ricorrente',
       deleteTitle: 'Eliminare questa spesa ricorrente?',
       deleteMessage: 'Non verrà più sottratta al tuo reddito mensile.',
+      deleteError: 'Non è stato possibile eliminare questa spesa ricorrente. Riprova.',
+      notFound: 'Questa spesa ricorrente non esiste più',
+      notFoundDescription: 'Potrebbe essere stata eliminata da un’altra schermata.',
       saveError: 'Non è stato possibile salvare questa spesa ricorrente. Riprova.',
     },
   },
@@ -644,6 +651,7 @@ export const it = {
       heading: 'Tutto resta su questo dispositivo',
       body: 'ThinkTwice non ha account, né server, né strumenti di analisi. Il tuo reddito, le spese ricorrenti e gli acquisti sono in un database locale e non vengono mai inviati da nessuna parte.',
     },
+    saveError: 'Non è stato possibile salvare questa impostazione. Riprova.',
     data: {
       title: 'Dati',
       heading: 'Database locale',
@@ -654,6 +662,7 @@ export const it = {
       resetMessage:
         'Il tuo reddito, le spese ricorrenti, la lista, gli acquisti, la cronologia degli utilizzi e le foto degli elementi verranno rimossi definitivamente da questo dispositivo. L’operazione non è reversibile.',
       resetConfirm: 'Elimina tutto',
+      resetError: 'Non è stato possibile completare l’azzeramento. Riprova.',
     },
     development: {
       title: 'Sviluppo',

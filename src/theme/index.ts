@@ -1,4 +1,11 @@
-export { darkColors, lightColors, resolveTint, type ColorScheme, type StatusColor } from './colors';
+export {
+  brandAccent,
+  darkColors,
+  lightColors,
+  resolveTint,
+  type ColorScheme,
+  type StatusColor,
+} from './colors';
 export { tint, type TintName } from './palette';
 export { radius, type Radius, type RadiusKey } from './radius';
 export { elevation, type ElevationLevel } from './shadows';

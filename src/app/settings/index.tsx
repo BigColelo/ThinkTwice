@@ -22,17 +22,17 @@ import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { SectionHeader } from '@/components/ui/SectionHeader';
 import { SegmentedControl } from '@/components/ui/SegmentedControl';
+import { Spacer } from '@/components/ui/Spacer';
 import { getCurrency } from '@/constants/currencies';
-import { resetAllData } from '@/db/database';
-import { useDatabase, useRepositories } from '@/db/DatabaseProvider';
-import { invalidate } from '@/db/dataRevisions';
+import { useRepositories } from '@/db/DatabaseProvider';
 import { isDevSeedAvailable, seedDevelopmentData } from '@/db/devSeed';
 import { LATEST_SCHEMA_VERSION } from '@/db/migrations';
-import { deleteAllItemImages } from '@/features/images/itemImages';
+import { useConfirm } from '@/features/dialogs/useConfirm';
 import { useAppRouter } from '@/features/navigation/useAppRouter';
 import { useGoBack } from '@/features/navigation/useGoBack';
 import { appVersion } from '@/features/settings/appVersion';
 import { AboutCard } from '@/features/settings/components/AboutCard';
+import { resetAllLocalData } from '@/features/settings/services/dataActions';
 import { useSettings } from '@/features/settings/SettingsProvider';
 import { LANGUAGE_NATIVE_NAMES, resolveLanguage, useT } from '@/i18n';
 import {
@@ -44,7 +44,6 @@ import {
 } from '@/notifications/cooldownNotifications';
 import { useTheme } from '@/theme';
 import type { ThemeMode } from '@/types/domain';
-import { confirm } from '@/utils/confirm';
 
 /**
  * Appearance, currency, reminders, and the controls that let the user take
@@ -55,20 +54,34 @@ export default function SettingsScreen(): React.ReactElement {
   const t = useT();
   const router = useAppRouter();
   const { settings, updateSettings, reloadSettings } = useSettings();
-  const database = useDatabase();
   const repositories = useRepositories();
 
+  const confirm = useConfirm();
+
+  const [appearanceError, setAppearanceError] = useState<string | null>(null);
   const [notificationMessage, setNotificationMessage] = useState<string | null>(null);
   const [isResetting, setIsResetting] = useState(false);
+  const [resetError, setResetError] = useState<string | null>(null);
   const [isSeeding, setIsSeeding] = useState(false);
+  const [seedError, setSeedError] = useState<string | null>(null);
   const goBack = useGoBack('/');
 
   // The switch is disabled where local scheduling does not exist; without a
   // reason next to it, a dead control is just confusing.
   const remindersUnavailableFor = localNotificationsUnavailableReason();
 
+  const handleThemeChange = async (mode: ThemeMode): Promise<void> => {
+    setAppearanceError(null);
+    try {
+      await updateSettings({ themeMode: mode });
+    } catch {
+      setAppearanceError(t('settings.saveError'));
+    }
+  };
+
   const handleSeed = async (): Promise<void> => {
     setIsSeeding(true);
+    setSeedError(null);
     try {
       await seedDevelopmentData(repositories);
       // The seed writes settings straight through the repository, so the
@@ -76,6 +89,9 @@ export default function SettingsScreen(): React.ReactElement {
       // showing the pre-seed income.
       await reloadSettings();
       router.replace('/');
+    } catch {
+      // Development only, so the generic message is enough.
+      setSeedError(t('common.somethingWentWrong'));
     } finally {
       setIsSeeding(false);
     }
@@ -84,39 +100,44 @@ export default function SettingsScreen(): React.ReactElement {
   const handleRemindersToggle = async (enabled: boolean): Promise<void> => {
     setNotificationMessage(null);
 
-    if (!enabled) {
-      await updateSettings({ cooldownRemindersEnabled: false });
-      await cancelAllCooldownReminders();
-      return;
-    }
+    try {
+      if (!enabled) {
+        await updateSettings({ cooldownRemindersEnabled: false });
+        await cancelAllCooldownReminders();
+        return;
+      }
 
-    // Permission is requested here — the moment it becomes useful — rather than
-    // at first launch.
-    const outcome = await requestNotificationPermission();
+      // Permission is requested here — the moment it becomes useful — rather than
+      // at first launch.
+      const outcome = await requestNotificationPermission();
 
-    if (outcome === 'granted') {
-      await updateSettings({ cooldownRemindersEnabled: true });
+      if (outcome === 'granted') {
+        await updateSettings({ cooldownRemindersEnabled: true });
 
-      // Items already in a reflection period were created before permission
-      // existed, so nothing was scheduled for them. Cover them now, otherwise
-      // "reminders on" would only apply to items added from here on.
-      const openItems = await repositories.wishlist.listOpen();
-      const scheduled = await rescheduleAllCooldownReminders(openItems);
+        // Items already in a reflection period were created before permission
+        // existed, so nothing was scheduled for them. Cover them now, otherwise
+        // "reminders on" would only apply to items added from here on.
+        const openItems = await repositories.wishlist.listOpen();
+        const scheduled = await rescheduleAllCooldownReminders(openItems);
+
+        setNotificationMessage(
+          scheduled > 0
+            ? t('settings.notifications.enabledWithPending', { count: scheduled })
+            : t('settings.notifications.enabled'),
+        );
+        return;
+      }
 
       setNotificationMessage(
-        scheduled > 0
-          ? t('settings.notifications.enabledWithPending', { count: scheduled })
-          : t('settings.notifications.enabled'),
+        outcome === 'unsupported'
+          ? t('settings.notifications.unsupported')
+          : t('settings.notifications.denied'),
       );
-      return;
+    } catch {
+      // The switch follows the stored value, so it already shows the truth; this
+      // says why it did not move.
+      setNotificationMessage(t('settings.saveError'));
     }
-
-    if (outcome === 'unsupported') {
-      setNotificationMessage(t('settings.notifications.unsupported'));
-      return;
-    }
-
-    setNotificationMessage(t('settings.notifications.denied'));
   };
 
   const handleReset = async (): Promise<void> => {
@@ -129,14 +150,15 @@ export default function SettingsScreen(): React.ReactElement {
     if (!confirmed) return;
 
     setIsResetting(true);
+    setResetError(null);
     try {
-      await resetAllData(database);
-      // Rows referencing the photos are gone, so the files must go too.
-      await deleteAllItemImages();
-      await cancelAllCooldownReminders();
-      invalidate('settings', 'commitments', 'wishlist', 'purchases', 'usage', 'expenses');
-      await updateSettings({ onboardingCompleted: false });
+      await resetAllLocalData(repositories);
+      // The reset already cleared the row; the provider's copy has to catch up
+      // with it, the same way it does after the development seed.
+      await reloadSettings();
       router.replace('/onboarding');
+    } catch {
+      setResetError(t('settings.data.resetError'));
     } finally {
       setIsResetting(false);
     }
@@ -157,7 +179,7 @@ export default function SettingsScreen(): React.ReactElement {
               { value: 'dark', label: t('settings.appearance.dark') },
             ]}
             value={settings.themeMode}
-            onChange={(mode) => void updateSettings({ themeMode: mode })}
+            onChange={(mode) => void handleThemeChange(mode)}
           />
           <View
             style={{
@@ -186,9 +208,19 @@ export default function SettingsScreen(): React.ReactElement {
                   : t('settings.appearance.alwaysDark')}
             </AppText>
           </View>
+          {appearanceError ? (
+            <AppText
+              variant="caption"
+              color="danger"
+              accessibilityRole="alert"
+              style={{ marginTop: theme.spacing.sm }}
+            >
+              {appearanceError}
+            </AppText>
+          ) : null}
         </Card>
 
-        <View style={{ height: theme.spacing.xl }} />
+        <Spacer size="xl" />
         <SectionHeader title={t('settings.language.title')} />
         <Card padding={theme.spacing.md}>
           <ListRow
@@ -204,7 +236,7 @@ export default function SettingsScreen(): React.ReactElement {
           />
         </Card>
 
-        <View style={{ height: theme.spacing.xl }} />
+        <Spacer size="xl" />
         <SectionHeader title={t('settings.currency.title')} />
         <Card padding={theme.spacing.md}>
           <ListRow
@@ -216,14 +248,18 @@ export default function SettingsScreen(): React.ReactElement {
           />
         </Card>
 
-        <View style={{ height: theme.spacing.xl }} />
+        <Spacer size="xl" />
         <SectionHeader title={t('settings.notifications.title')} />
         <Card padding={theme.spacing.md}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing.sm }}>
             <IconTile icon={Bell} tint="violet" />
             <View style={{ flex: 1 }}>
               <AppText variant="bodyStrong">{t('settings.notifications.remindersTitle')}</AppText>
-              <AppText variant="caption" color="secondary" style={{ marginTop: 2 }}>
+              <AppText
+                variant="caption"
+                color="secondary"
+                style={{ marginTop: theme.spacing.xxxs }}
+              >
                 {t('settings.notifications.remindersSubtitle')}
               </AppText>
             </View>
@@ -251,7 +287,7 @@ export default function SettingsScreen(): React.ReactElement {
           ) : null}
         </Card>
 
-        <View style={{ height: theme.spacing.xl }} />
+        <Spacer size="xl" />
         <SectionHeader title={t('settings.money.title')} />
         <Card padding={theme.spacing.md}>
           <ListRow
@@ -263,34 +299,42 @@ export default function SettingsScreen(): React.ReactElement {
           />
         </Card>
 
-        <View style={{ height: theme.spacing.xl }} />
+        <Spacer size="xl" />
         <SectionHeader title={t('settings.privacy.title')} />
         <Card padding={theme.spacing.md}>
           <View style={{ flexDirection: 'row', gap: theme.spacing.sm }}>
             <IconTile icon={Lock} tint="slate" />
             <View style={{ flex: 1 }}>
               <AppText variant="bodyStrong">{t('settings.privacy.heading')}</AppText>
-              <AppText variant="caption" color="secondary" style={{ marginTop: 2 }}>
+              <AppText
+                variant="caption"
+                color="secondary"
+                style={{ marginTop: theme.spacing.xxxs }}
+              >
                 {t('settings.privacy.body')}
               </AppText>
             </View>
           </View>
         </Card>
 
-        <View style={{ height: theme.spacing.xl }} />
+        <Spacer size="xl" />
         <SectionHeader title={t('settings.data.title')} />
         <Card padding={theme.spacing.md}>
           <View style={{ flexDirection: 'row', gap: theme.spacing.sm }}>
             <IconTile icon={Database} tint="blue" />
             <View style={{ flex: 1 }}>
               <AppText variant="bodyStrong">{t('settings.data.heading')}</AppText>
-              <AppText variant="caption" color="secondary" style={{ marginTop: 2 }}>
+              <AppText
+                variant="caption"
+                color="secondary"
+                style={{ marginTop: theme.spacing.xxxs }}
+              >
                 {t('settings.data.schemaVersion', { version: LATEST_SCHEMA_VERSION })}
               </AppText>
             </View>
           </View>
 
-          <View style={{ height: theme.spacing.md }} />
+          <Spacer size="md" />
 
           <Button
             label={t('settings.data.reset')}
@@ -300,11 +344,21 @@ export default function SettingsScreen(): React.ReactElement {
             onPress={handleReset}
             loading={isResetting}
           />
+          {resetError ? (
+            <AppText
+              variant="caption"
+              color="danger"
+              accessibilityRole="alert"
+              style={{ marginTop: theme.spacing.sm }}
+            >
+              {resetError}
+            </AppText>
+          ) : null}
         </Card>
 
         {isDevSeedAvailable() ? (
           <>
-            <View style={{ height: theme.spacing.xl }} />
+            <Spacer size="xl" />
             <SectionHeader
               title={t('settings.development.title')}
               subtitle={t('settings.development.subtitle')}
@@ -320,11 +374,21 @@ export default function SettingsScreen(): React.ReactElement {
               <AppText variant="caption" color="tertiary" style={{ marginTop: theme.spacing.xs }}>
                 {t('settings.development.seedDescription')}
               </AppText>
+              {seedError ? (
+                <AppText
+                  variant="caption"
+                  color="danger"
+                  accessibilityRole="alert"
+                  style={{ marginTop: theme.spacing.xs }}
+                >
+                  {seedError}
+                </AppText>
+              ) : null}
             </Card>
           </>
         ) : null}
 
-        <View style={{ height: theme.spacing.xl }} />
+        <Spacer size="xl" />
         <SectionHeader title={t('settings.about.title')} />
         {/* The app version lives here; the schema version stays under Data, because
             they are different numbers about different things. */}

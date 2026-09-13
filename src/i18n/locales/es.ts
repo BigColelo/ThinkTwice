@@ -32,6 +32,9 @@ export const es = {
     databaseErrorTitle: 'No se han podido abrir tus datos',
     databaseErrorDescription:
       'ThinkTwice guarda todo en este dispositivo. Reiniciar la aplicación suele resolverlo.',
+    crashTitle: 'Esta pantalla ha tenido un problema',
+    crashDescription:
+      'Tus datos están guardados en este dispositivo y no se han tocado. Inténtalo de nuevo o reinicia la aplicación.',
   },
 
   units: {
@@ -351,6 +354,7 @@ export const es = {
       removeTitle: '¿Quitar este uso?',
       removeMessage: 'El coste por uso se vuelve a calcular sin él.',
       removeConfirm: 'Quitar',
+      removeError: 'No se ha podido quitar este uso. Inténtalo de nuevo.',
     },
     resale: {
       label: '¿Cuánto vale hoy?',
@@ -480,6 +484,9 @@ export const es = {
       delete: 'Eliminar gasto recurrente',
       deleteTitle: '¿Eliminar este gasto recurrente?',
       deleteMessage: 'Dejará de restarse de tus ingresos mensuales.',
+      deleteError: 'No se ha podido eliminar este gasto recurrente. Inténtalo de nuevo.',
+      notFound: 'Este gasto recurrente ya no existe',
+      notFoundDescription: 'Es posible que se haya eliminado desde otra pantalla.',
       saveError: 'No se ha podido guardar este gasto recurrente. Inténtalo de nuevo.',
     },
   },
@@ -641,6 +648,7 @@ export const es = {
       heading: 'Todo se queda en este dispositivo',
       body: 'ThinkTwice no tiene cuenta, ni servidor, ni analítica. Tus ingresos, tus gastos recurrentes y tus compras están en una base de datos local y nunca se envían a ninguna parte.',
     },
+    saveError: 'No se ha podido guardar este ajuste. Inténtalo de nuevo.',
     data: {
       title: 'Datos',
       heading: 'Base de datos local',
@@ -651,6 +659,7 @@ export const es = {
       resetMessage:
         'Tus ingresos, tus gastos recurrentes, tu lista, tus compras, tu historial de uso y tus fotos se eliminarán definitivamente de este dispositivo. Esta acción no se puede deshacer.',
       resetConfirm: 'Eliminar todo',
+      resetError: 'No se ha podido completar el restablecimiento. Inténtalo de nuevo.',
     },
     development: {
       title: 'Desarrollo',

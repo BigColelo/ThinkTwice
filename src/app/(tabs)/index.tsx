@@ -1,19 +1,17 @@
-import { Clock, Plus, Settings, ShoppingBag, Wallet } from 'lucide-react-native';
+import { Clock, Settings, ShoppingBag } from 'lucide-react-native';
 import React from 'react';
 import { View } from 'react-native';
 
 import { ThinkTwiceWordmark } from '@/components/brand/ThinkTwiceMark';
-import { ProgressRing } from '@/components/charts/ProgressRing';
 import { AppText } from '@/components/ui/AppText';
-import { Card, PressableCard } from '@/components/ui/Card';
+import { Card } from '@/components/ui/Card';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { IconButton } from '@/components/ui/IconButton';
-import { MoneyValue } from '@/components/ui/MoneyValue';
 import { Screen } from '@/components/ui/Screen';
 import { SectionHeader } from '@/components/ui/SectionHeader';
-import { MetricCell, MetricDivider } from '@/components/ui/StatCard';
+import { Spacer } from '@/components/ui/Spacer';
 import { LoadingState } from '@/components/ui/StateViews';
-import type { MonthlyFinances } from '@/domain';
+import { AvailableCard } from '@/features/money/components/AvailableCard';
 import { useMonthlyFinances } from '@/features/money/hooks/useMonthlyFinances';
 import { useAppRouter } from '@/features/navigation/useAppRouter';
 import { PurchaseCard } from '@/features/purchases/components/PurchaseCard';
@@ -22,7 +20,6 @@ import { WishlistCard } from '@/features/wishlist/components/WishlistCard';
 import { useWishlistPreview } from '@/features/wishlist/hooks/useWishlist';
 import { useT } from '@/i18n';
 import { useTheme } from '@/theme';
-import { formatPercent } from '@/utils/currency';
 
 /**
  * Home answers three questions, in this order:
@@ -51,7 +48,7 @@ export default function HomeScreen(): React.ReactElement {
       >
         <View style={{ flex: 1 }}>
           <ThinkTwiceWordmark />
-          <AppText variant="caption" color="secondary" style={{ marginTop: 2 }}>
+          <AppText variant="caption" color="secondary" style={{ marginTop: theme.spacing.xxxs }}>
             {t('home.greeting')}
           </AppText>
         </View>
@@ -62,9 +59,13 @@ export default function HomeScreen(): React.ReactElement {
         />
       </View>
 
-      {isLoadingFinances ? <LoadingState /> : <AvailableCard finances={finances} />}
+      {isLoadingFinances ? (
+        <LoadingState />
+      ) : (
+        <AvailableCard finances={finances} onSetUpIncome={() => router.push('/money')} />
+      )}
 
-      <View style={{ height: theme.spacing.xl }} />
+      <Spacer size="xl" />
 
       <SectionHeader
         title={t('home.thinkingAbout')}
@@ -99,7 +100,7 @@ export default function HomeScreen(): React.ReactElement {
         </Card>
       )}
 
-      <View style={{ height: theme.spacing.xl }} />
+      <Spacer size="xl" />
 
       <SectionHeader
         title={t('home.recentPurchases')}
@@ -134,117 +135,5 @@ export default function HomeScreen(): React.ReactElement {
         </Card>
       )}
     </Screen>
-  );
-}
-
-/**
- * The headline figure. The ring shows what share of income remains after
- * commitments — the same number, in a second form, never a different one.
- */
-function AvailableCard({ finances }: { finances: MonthlyFinances }): React.ReactElement {
-  const theme = useTheme();
-  const t = useT();
-  const router = useAppRouter();
-
-  if (!finances.isIncomeConfigured) {
-    return (
-      <PressableCard onPress={() => router.push('/money')} accessibilityHint={t('home.setUpHint')}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing.sm }}>
-          <View
-            style={{
-              width: 44,
-              height: 44,
-              borderRadius: theme.radius.full,
-              alignItems: 'center',
-              justifyContent: 'center',
-              backgroundColor: theme.colors.accent.soft,
-            }}
-          >
-            <Wallet
-              size={theme.sizes.icon.lg}
-              color={theme.colors.accent.base}
-              strokeWidth={theme.sizes.iconStrokeWidth}
-            />
-          </View>
-          <View style={{ flex: 1 }}>
-            <AppText variant="subheading">{t('home.setUpTitle')}</AppText>
-            <AppText variant="caption" color="secondary" style={{ marginTop: 2 }}>
-              {t('home.setUpDescription')}
-            </AppText>
-          </View>
-          <Plus
-            size={theme.sizes.icon.md}
-            color={theme.colors.text.tertiary}
-            strokeWidth={theme.sizes.iconStrokeWidth}
-          />
-        </View>
-      </PressableCard>
-    );
-  }
-
-  const availableColor = finances.availableAfterCommitmentsCents >= 0 ? 'primary' : 'danger';
-  const ringProgress = Math.max(finances.availableToIncomeRatio ?? 0, 0);
-
-  return (
-    <Card padding={theme.spacing.md}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing.md }}>
-        <View style={{ flex: 1 }}>
-          <AppText variant="caption" color="secondary">
-            {t('home.availableAfterCommitments')}
-          </AppText>
-          <MoneyValue
-            cents={finances.availableAfterCommitmentsCents}
-            variant="metricLarge"
-            color={availableColor}
-            style={{ marginTop: theme.spacing.xxs }}
-            adjustsFontSizeToFit
-            numberOfLines={1}
-          />
-          <AppText variant="caption" color="tertiary">
-            {t('home.thisMonth')}
-          </AppText>
-        </View>
-
-        <ProgressRing
-          progress={ringProgress}
-          size={68}
-          strokeWidth={6}
-          accessibilityLabel={t('home.availableRatioLabel', {
-            percent: formatPercent(finances.availableToIncomeRatio),
-          })}
-        >
-          <AppText variant="subheading">{formatPercent(finances.availableToIncomeRatio)}</AppText>
-        </ProgressRing>
-      </View>
-
-      <View
-        style={{
-          height: theme.sizes.hairline,
-          backgroundColor: theme.colors.divider,
-          marginVertical: theme.spacing.md,
-        }}
-      />
-
-      <View style={{ flexDirection: 'row', alignItems: 'stretch' }}>
-        <MetricCell
-          label={t('home.netIncome')}
-          value={<MoneyValue cents={finances.netIncomeCents} variant="metricSmall" />}
-        />
-        <MetricDivider />
-        <MetricCell
-          label={t('home.commitments')}
-          value={<MoneyValue cents={finances.commitmentsCents} variant="metricSmall" />}
-        />
-        {finances.savingsTargetCents != null ? (
-          <>
-            <MetricDivider />
-            <MetricCell
-              label={t('home.savingsGoal')}
-              value={<MoneyValue cents={finances.savingsTargetCents} variant="metricSmall" />}
-            />
-          </>
-        ) : null}
-      </View>
-    </Card>
   );
 }

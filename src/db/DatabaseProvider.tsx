@@ -28,6 +28,7 @@ export function DatabaseProvider({ children, open }: DatabaseProviderProps): Rea
 
   useEffect(() => {
     let cancelled = false;
+    let opened: SQLiteDatabase | null = null;
 
     const run = async (): Promise<void> => {
       try {
@@ -36,6 +37,7 @@ export function DatabaseProvider({ children, open }: DatabaseProviderProps): Rea
           await db.closeAsync().catch(() => undefined);
           return;
         }
+        opened = db;
         setState({ status: 'ready', db, repositories: createRepositories(db) });
       } catch (error) {
         if (cancelled) return;
@@ -52,6 +54,11 @@ export function DatabaseProvider({ children, open }: DatabaseProviderProps): Rea
     void run();
     return () => {
       cancelled = true;
+      // The provider only unmounts when the tree above it is torn down — the
+      // crash screen replacing the app, then a retry mounting it again — and the
+      // next mount opens the database afresh. Closing this handle first keeps a
+      // retry from stacking connections to the same file.
+      void opened?.closeAsync().catch(() => undefined);
     };
   }, [open, attempt]);
 

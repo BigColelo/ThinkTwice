@@ -5,6 +5,7 @@ import { nowIso } from '@/utils/dates';
 import { createId } from '@/utils/ids';
 
 import { mapWishlistItem, type WishlistItemRow } from '../mappers';
+import { roundedOrSkip, UpdateColumns } from './updateColumns';
 
 export type NewWishlistItem = Pick<
   WishlistItem,
@@ -114,40 +115,26 @@ export class WishlistRepository {
   }
 
   async update(id: string, update: WishlistItemUpdate): Promise<WishlistItem | null> {
-    const assignments: string[] = [];
-    const values: (string | number | null)[] = [];
+    const columns = new UpdateColumns()
+      .set('name', update.name?.trim())
+      .set('price_cents', roundedOrSkip(update.priceCents))
+      .set('category_id', update.categoryId)
+      .set('image_uri', update.imageUri)
+      .set('expected_usage_frequency', update.expectedUsageFrequency)
+      .set('custom_uses_per_month', update.customUsesPerMonth)
+      .set('expected_ownership_months', roundedOrSkip(update.expectedOwnershipMonths))
+      .set('cooldown_days', roundedOrSkip(update.cooldownDays))
+      .set('cooldown_started_at', update.cooldownStartedAt)
+      .set('cooldown_ends_at', update.cooldownEndsAt)
+      .set('notes', update.notes)
+      .set('status', update.status);
 
-    const set = (column: string, value: string | number | null): void => {
-      assignments.push(`${column} = ?`);
-      values.push(value);
-    };
+    // An update that named nothing is not a write: stamping `updated_at` for it
+    // would record a change that never happened.
+    if (columns.isEmpty) return this.findById(id);
 
-    if (update.name !== undefined) set('name', update.name.trim());
-    if (update.priceCents !== undefined) set('price_cents', Math.round(update.priceCents));
-    if (update.categoryId !== undefined) set('category_id', update.categoryId);
-    if (update.imageUri !== undefined) set('image_uri', update.imageUri);
-    if (update.expectedUsageFrequency !== undefined)
-      set('expected_usage_frequency', update.expectedUsageFrequency);
-    if (update.customUsesPerMonth !== undefined)
-      set('custom_uses_per_month', update.customUsesPerMonth);
-    if (update.expectedOwnershipMonths !== undefined)
-      set('expected_ownership_months', Math.round(update.expectedOwnershipMonths));
-    if (update.cooldownDays !== undefined) set('cooldown_days', Math.round(update.cooldownDays));
-    if (update.cooldownStartedAt !== undefined)
-      set('cooldown_started_at', update.cooldownStartedAt);
-    if (update.cooldownEndsAt !== undefined) set('cooldown_ends_at', update.cooldownEndsAt);
-    if (update.notes !== undefined) set('notes', update.notes);
-    if (update.status !== undefined) set('status', update.status);
-
-    if (assignments.length === 0) return this.findById(id);
-
-    set('updated_at', nowIso());
-
-    await this.db.runAsync(
-      `UPDATE wishlist_items SET ${assignments.join(', ')} WHERE id = ?`,
-      ...values,
-      id,
-    );
+    columns.set('updated_at', nowIso());
+    await columns.update(this.db, 'wishlist_items', id);
 
     return this.findById(id);
   }

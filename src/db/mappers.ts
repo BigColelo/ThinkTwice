@@ -1,18 +1,23 @@
 import { SUPPORTED_CURRENCIES } from '@/constants/currencies';
-import { LANGUAGE_PREFERENCES } from '@/i18n/languages';
+import {
+  COMMITMENT_FREQUENCY_IDS,
+  EXPENSE_TYPES,
+  THEME_MODES,
+  USAGE_FREQUENCY_IDS,
+  WISHLIST_STATUSES,
+} from '@/constants/enums';
+// The pure table, not `./languages`: that one reads the device's language
+// through `expo-localization`, and nothing in the data layer should need a
+// native module to check a stored string.
+import { LANGUAGE_PREFERENCES } from '@/i18n/languageCodes';
 import type {
   AppSettings,
-  CommitmentFrequency,
-  ExpenseType,
   Purchase,
   PurchaseExpense,
   PurchaseWithStats,
   RecurringCommitment,
-  ThemeMode,
   UsageEvent,
-  UsageFrequencyId,
   WishlistItem,
-  WishlistStatus,
 } from '@/types/domain';
 
 /**
@@ -110,37 +115,6 @@ export type PurchaseExpenseRow = {
 
 // -- Validation helpers ------------------------------------------------------
 
-const THEME_MODES: readonly ThemeMode[] = ['system', 'light', 'dark'];
-const FREQUENCIES: readonly CommitmentFrequency[] = [
-  'monthly',
-  'every_two_months',
-  'quarterly',
-  'semiannual',
-  'annual',
-];
-const STATUSES: readonly WishlistStatus[] = [
-  'thinking',
-  'ready_to_decide',
-  'purchased',
-  'dismissed',
-];
-const EXPENSE_TYPES: readonly ExpenseType[] = [
-  'accessory',
-  'maintenance',
-  'repair',
-  'upgrade',
-  'other',
-];
-const USAGE_IDS: readonly UsageFrequencyId[] = [
-  'daily',
-  'several_times_week',
-  'weekly',
-  'several_times_month',
-  'monthly',
-  'occasionally',
-  'custom',
-];
-
 function oneOf<T extends string>(allowed: readonly T[], value: unknown, fallback: T): T {
   return typeof value === 'string' && (allowed as readonly string[]).includes(value)
     ? (value as T)
@@ -195,7 +169,7 @@ export function mapRecurringCommitment(row: RecurringCommitmentRow): RecurringCo
     id: row.id,
     name: row.name,
     amountCents: toInteger(row.amount_cents),
-    frequency: oneOf(FREQUENCIES, row.frequency, 'monthly'),
+    frequency: oneOf(COMMITMENT_FREQUENCY_IDS, row.frequency, 'monthly'),
     categoryId: row.category_id,
     isActive: toBoolean(row.is_active),
     createdAt: row.created_at,
@@ -210,13 +184,13 @@ export function mapWishlistItem(row: WishlistItemRow): WishlistItem {
     priceCents: toInteger(row.price_cents),
     categoryId: row.category_id,
     imageUri: row.image_uri,
-    expectedUsageFrequency: oneOf(USAGE_IDS, row.expected_usage_frequency, 'weekly'),
+    expectedUsageFrequency: oneOf(USAGE_FREQUENCY_IDS, row.expected_usage_frequency, 'weekly'),
     customUsesPerMonth: toNullableNumber(row.custom_uses_per_month),
     expectedOwnershipMonths: toInteger(row.expected_ownership_months, 12),
     cooldownDays: toInteger(row.cooldown_days, 7),
     cooldownStartedAt: row.cooldown_started_at,
     cooldownEndsAt: row.cooldown_ends_at,
-    status: oneOf(STATUSES, row.status, 'thinking'),
+    status: oneOf(WISHLIST_STATUSES, row.status, 'thinking'),
     notes: row.notes,
     decidedAt: row.decided_at,
     createdAt: row.created_at,
@@ -234,7 +208,7 @@ export function mapPurchase(row: PurchaseRow): Purchase {
     categoryId: row.category_id,
     imageUri: row.image_uri,
     expectedUsageFrequency: row.expected_usage_frequency
-      ? oneOf(USAGE_IDS, row.expected_usage_frequency, 'weekly')
+      ? oneOf(USAGE_FREQUENCY_IDS, row.expected_usage_frequency, 'weekly')
       : null,
     customUsesPerMonth: toNullableNumber(row.custom_uses_per_month),
     expectedOwnershipMonths: toNullableInteger(row.expected_ownership_months),

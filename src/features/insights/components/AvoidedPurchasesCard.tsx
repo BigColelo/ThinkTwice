@@ -3,6 +3,7 @@ import { View } from 'react-native';
 
 import { AppText } from '@/components/ui/AppText';
 import { Card } from '@/components/ui/Card';
+import { RowDivider } from '@/components/ui/ListRow';
 import { MoneyValue } from '@/components/ui/MoneyValue';
 import { MetricCell, MetricDivider } from '@/components/ui/StatCard';
 import { useT } from '@/i18n';
@@ -46,13 +47,7 @@ export function AvoidedPurchasesCard({
         <MetricCell label={t('insights.avoidedCountLabel')} value={t('units.item', { count })} />
       </View>
 
-      <View
-        style={{
-          height: theme.sizes.hairline,
-          backgroundColor: theme.colors.divider,
-          marginVertical: theme.spacing.md,
-        }}
-      />
+      <RowDivider spacing="md" />
 
       <AppText variant="caption" color="secondary">
         {t('insights.avoidedCaption')}

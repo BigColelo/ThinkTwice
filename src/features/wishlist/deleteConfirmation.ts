@@ -22,6 +22,7 @@ export function wishlistDeleteConfirmation(t: TFunction, status: WishlistStatus)
     title: t('wishlist.deleteTitle'),
     message: `${consequenceOf(t, status)} ${t('common.cannotBeUndone')}`,
     confirmLabel: t('common.delete'),
+    cancelLabel: t('common.cancel'),
     destructive: true,
   };
 }

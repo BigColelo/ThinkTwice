@@ -1,0 +1,12 @@
+Copyright (c) 2026 Riccardo Filpi. All rights reserved.
+
+ThinkTwice is an independent personal project. The source code, documentation,
+translations and generated assets in this repository are the exclusive property
+of the copyright holder.
+
+No permission is granted to copy, modify, publish, distribute, sublicense or
+use this software, in whole or in part, for any purpose, without the prior
+written consent of the copyright holder.
+
+Third-party packages installed from the public npm registry remain subject to
+their own licenses; they are listed in THIRD_PARTY.md.

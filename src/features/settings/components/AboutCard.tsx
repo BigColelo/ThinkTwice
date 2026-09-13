@@ -26,11 +26,11 @@ export function AboutCard({ version }: { version: string | null }): React.ReactE
         <View style={{ flex: 1 }}>
           <AppText variant="bodyStrong">{t('settings.about.appName')}</AppText>
           {version ? (
-            <AppText variant="caption" color="tertiary" style={{ marginTop: 2 }}>
+            <AppText variant="caption" color="tertiary" style={{ marginTop: theme.spacing.xxxs }}>
               {t('settings.about.version', { version })}
             </AppText>
           ) : null}
-          <AppText variant="caption" color="secondary" style={{ marginTop: 2 }}>
+          <AppText variant="caption" color="secondary" style={{ marginTop: theme.spacing.xxxs }}>
             {t('settings.about.body')}
           </AppText>
         </View>

@@ -1,10 +1,10 @@
 import type { TFunction } from 'i18next';
 import { z } from 'zod';
 
+import { EXPENSE_TYPES, USAGE_FREQUENCY_IDS } from '@/constants/enums';
+import { MAX_MONEY_CENTS } from '@/constants/money';
 import { MAX_OWNERSHIP_MONTHS, MIN_OWNERSHIP_MONTHS } from '@/constants/ownership';
-import { USAGE_FREQUENCY_IDS } from '@/constants/usagePresets';
 import { requiredAmount } from '@/features/forms/requiredAmount';
-import type { ExpenseType } from '@/types/domain';
 import { parseIsoDate, toIsoDate } from '@/utils/dates';
 
 /**
@@ -14,8 +14,6 @@ import { parseIsoDate, toIsoDate } from '@/utils/dates';
  * user reads follows the language they chose, so the schema is a function of the
  * translation rather than a module-level constant.
  */
-
-const MAX_AMOUNT_CENTS = 100_000_000;
 
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -30,7 +28,7 @@ function ownedPurchaseFields(t: TFunction) {
     .number({ error: t('validation.purchase.priceRequired') })
     .int()
     .min(0, t('validation.purchase.priceNegative'))
-    .max(MAX_AMOUNT_CENTS, t('validation.purchase.priceTooLarge'));
+    .max(MAX_MONEY_CENTS, t('validation.purchase.priceTooLarge'));
 
   return z.object({
     name: z
@@ -56,7 +54,7 @@ function ownedPurchaseFields(t: TFunction) {
       .number()
       .int()
       .min(0, t('validation.purchase.resaleNegative'))
-      .max(MAX_AMOUNT_CENTS, t('validation.purchase.resaleTooLarge'))
+      .max(MAX_MONEY_CENTS, t('validation.purchase.resaleTooLarge'))
       .nullable(),
 
     // The expectation is optional here, unlike on a wishlist item: something bought
@@ -112,20 +110,12 @@ export type ConfirmedPurchaseFormValues = z.infer<ConfirmedPurchaseSchema>;
 
 export type ConfirmedPurchaseFormInput = z.input<ConfirmedPurchaseSchema>;
 
-export const EXPENSE_TYPES = [
-  'accessory',
-  'maintenance',
-  'repair',
-  'upgrade',
-  'other',
-] as const satisfies readonly ExpenseType[];
-
 export function buildPurchaseExpenseSchema(t: TFunction) {
   const expenseAmountCents = z
     .number({ error: t('validation.amountRequired') })
     .int()
     .min(0, t('validation.amountNegative'))
-    .max(MAX_AMOUNT_CENTS, t('validation.amountTooLarge'));
+    .max(MAX_MONEY_CENTS, t('validation.amountTooLarge'));
 
   return z.object({
     name: z

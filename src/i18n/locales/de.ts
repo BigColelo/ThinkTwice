@@ -30,6 +30,9 @@ export const de = {
     databaseErrorTitle: 'Deine Daten konnten nicht geöffnet werden',
     databaseErrorDescription:
       'ThinkTwice speichert alles auf diesem Gerät. Ein Neustart der App behebt das meistens.',
+    crashTitle: 'Auf diesem Bildschirm ist ein Problem aufgetreten',
+    crashDescription:
+      'Deine Daten sind auf diesem Gerät gespeichert und unverändert. Versuch es erneut oder starte die App neu.',
   },
 
   units: {
@@ -338,6 +341,7 @@ export const de = {
       removeTitle: 'Diese Nutzung entfernen?',
       removeMessage: 'Die Kosten pro Nutzung werden ohne sie neu berechnet.',
       removeConfirm: 'Entfernen',
+      removeError: 'Diese Nutzung konnte nicht entfernt werden. Versuch es erneut.',
     },
     resale: {
       label: 'Was ist es heute wert?',
@@ -466,6 +470,9 @@ export const de = {
       delete: 'Laufende Ausgabe löschen',
       deleteTitle: 'Diese laufende Ausgabe löschen?',
       deleteMessage: 'Sie wird nicht mehr von deinem Monatseinkommen abgezogen.',
+      deleteError: 'Diese laufende Ausgabe konnte nicht gelöscht werden. Versuch es erneut.',
+      notFound: 'Diese laufende Ausgabe gibt es nicht mehr',
+      notFoundDescription: 'Sie wurde möglicherweise auf einem anderen Bildschirm gelöscht.',
       saveError: 'Diese laufende Ausgabe konnte nicht gespeichert werden. Versuch es erneut.',
     },
   },
@@ -621,6 +628,7 @@ export const de = {
       heading: 'Alles bleibt auf diesem Gerät',
       body: 'ThinkTwice hat kein Konto, keinen Server und keine Analyse. Dein Einkommen, deine laufenden Ausgaben und deine Käufe liegen in einer lokalen Datenbank und werden nirgendwohin gesendet.',
     },
+    saveError: 'Diese Einstellung konnte nicht gespeichert werden. Versuch es erneut.',
     data: {
       title: 'Daten',
       heading: 'Lokale Datenbank',
@@ -631,6 +639,7 @@ export const de = {
       resetMessage:
         'Dein Einkommen, deine laufenden Ausgaben, deine Liste, deine Käufe, dein Nutzungsverlauf und deine Fotos werden endgültig von diesem Gerät entfernt. Das lässt sich nicht rückgängig machen.',
       resetConfirm: 'Alles löschen',
+      resetError: 'Das Zurücksetzen konnte nicht abgeschlossen werden. Versuch es erneut.',
     },
     development: {
       title: 'Entwicklung',

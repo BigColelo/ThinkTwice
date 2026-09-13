@@ -72,7 +72,11 @@ describe('RecentUsesSection', () => {
     await fireEvent.press(screen.getByText(/^13 Aug 2026/));
 
     expect(mockedConfirm).toHaveBeenCalledWith(
-      expect.objectContaining({ title: 'Remove this use?', destructive: true }),
+      expect.objectContaining({
+        title: 'Remove this use?',
+        destructive: true,
+        cancelLabel: 'Cancel',
+      }),
     );
     expect(onRemove).toHaveBeenCalledWith(recorded);
   });
@@ -85,6 +89,19 @@ describe('RecentUsesSection', () => {
     await fireEvent.press(screen.getByText(/^13 Aug 2026/));
 
     expect(onRemove).not.toHaveBeenCalled();
+  });
+
+  it('says so when the removal fails, instead of leaving the row standing unexplained', async () => {
+    const onRemove = jest.fn(async () => {
+      throw new Error('storage');
+    });
+    await renderWithProviders(<RecentUsesSection uses={[use()]} limit={10} onRemove={onRemove} />);
+
+    await fireEvent.press(screen.getByText(/^13 Aug 2026/));
+
+    expect(
+      await screen.findByText('This use could not be removed. Please try again.'),
+    ).toBeTruthy();
   });
 
   it('spells out a use that counted for more than one', async () => {

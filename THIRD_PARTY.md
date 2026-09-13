@@ -173,15 +173,15 @@ the build never breaks there.
 
 ## Development-only
 
-| Package                                      | Used for                                                   |
-| -------------------------------------------- | ---------------------------------------------------------- |
-| `typescript`                                 | Strict type checking.                                      |
-| `jest`, `jest-expo`                          | Test runner, configured for the Expo/React Native runtime. |
-| `@testing-library/react-native`              | Rendering components the way a user encounters them.       |
-| `react-test-renderer`                        | Required by the testing library.                           |
-| `eslint`, `eslint-config-expo`               | Linting, on Expo's public shared config.                   |
-| `prettier`, `eslint-config-prettier`         | Formatting, and stopping ESLint from arguing with it.      |
-| `@types/react`, `@types/jest`, `@types/node` | Type definitions.                                          |
+| Package                              | Used for                                                   |
+| ------------------------------------ | ---------------------------------------------------------- |
+| `typescript`                         | Strict type checking.                                      |
+| `jest`, `jest-expo`                  | Test runner, configured for the Expo/React Native runtime. |
+| `@testing-library/react-native`      | Rendering components the way a user encounters them.       |
+| `react-test-renderer`                | Required by the testing library.                           |
+| `eslint`, `eslint-config-expo`       | Linting, on Expo's public shared config.                   |
+| `prettier`, `eslint-config-prettier` | Formatting, and stopping ESLint from arguing with it.      |
+| `@types/react`, `@types/jest`        | Type definitions.                                          |
 
 The ESLint and Prettier configurations (`eslint.config.js`, `.prettierrc.json`) belong entirely to
 this repository. They extend only `eslint-config-expo`, which is public.

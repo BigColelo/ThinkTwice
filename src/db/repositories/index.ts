@@ -1,5 +1,6 @@
 import type { SQLiteDatabase } from 'expo-sqlite';
 
+import { MaintenanceRepository } from './MaintenanceRepository';
 import { PurchaseExpenseRepository } from './PurchaseExpenseRepository';
 import { PurchaseRepository } from './PurchaseRepository';
 import { RecurringCommitmentRepository } from './RecurringCommitmentRepository';
@@ -21,6 +22,8 @@ export type Repositories = {
   purchases: PurchaseRepository;
   usage: UsageRepository;
   expenses: PurchaseExpenseRepository;
+  /** Operations over the database as a whole, e.g. "reset all local data". */
+  maintenance: MaintenanceRepository;
 };
 
 export function createRepositories(db: SQLiteDatabase): Repositories {
@@ -31,9 +34,11 @@ export function createRepositories(db: SQLiteDatabase): Repositories {
     purchases: new PurchaseRepository(db),
     usage: new UsageRepository(db),
     expenses: new PurchaseExpenseRepository(db),
+    maintenance: new MaintenanceRepository(db),
   };
 }
 
+export { MaintenanceRepository } from './MaintenanceRepository';
 export {
   PurchaseExpenseRepository,
   type NewPurchaseExpense,

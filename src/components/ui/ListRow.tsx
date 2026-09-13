@@ -2,7 +2,7 @@ import { ChevronRight } from 'lucide-react-native';
 import React from 'react';
 import { Pressable, View, type StyleProp, type ViewStyle } from 'react-native';
 
-import { useTheme } from '@/theme';
+import { useTheme, type SpacingKey } from '@/theme';
 
 import { AppText } from './AppText';
 
@@ -120,15 +120,24 @@ export function ListRow({
   );
 }
 
-/** Hairline separator matching the row gutter. */
-export function RowDivider(): React.ReactElement {
+/**
+ * Hairline separator between two rows of the same card, and between the rows of
+ * a card and the total under them.
+ *
+ * The breathing room around it is the caller's: `xxs` between two rows of a
+ * list, more where the line closes a group off from a summary. Every one of
+ * these was written out by hand in ten different files before, which is how the
+ * same line ended up drawn against `divider` in some places and measured
+ * differently in others.
+ */
+export function RowDivider({ spacing = 'xxs' }: { spacing?: SpacingKey } = {}): React.ReactElement {
   const theme = useTheme();
   return (
     <View
       style={{
         height: theme.sizes.hairline,
         backgroundColor: theme.colors.divider,
-        marginVertical: theme.spacing.xxs,
+        marginVertical: theme.spacing[spacing],
       }}
     />
   );

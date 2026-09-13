@@ -1,4 +1,5 @@
 export { AppText, type AppTextProps, type TextColor } from './AppText';
+export { BottomSheet } from './BottomSheet';
 export { Button, type ButtonProps, type ButtonSize, type ButtonVariant } from './Button';
 export { Card, PressableCard, type CardProps, type CardVariant } from './Card';
 export { Chip, type ChipProps, type ChipTone } from './Chip';
@@ -11,9 +12,11 @@ export { IconTile, type IconTileProps } from './IconTile';
 export { ListRow, RowDivider, type ListRowProps } from './ListRow';
 export { MoneyField, type MoneyFieldProps } from './MoneyField';
 export { CostPerUse, MoneyValue, type MoneyValueProps } from './MoneyValue';
+export { LoadingScreen, MissingRecordScreen } from './RecordScreens';
 export { Screen, type ScreenProps } from './Screen';
 export { ScreenHeader, type ScreenHeaderProps } from './ScreenHeader';
 export { SectionHeader, type SectionHeaderProps } from './SectionHeader';
+export { Spacer } from './Spacer';
 export {
   SegmentedControl,
   type SegmentedControlProps,

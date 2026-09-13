@@ -9,10 +9,11 @@ import { ChipSelect } from '@/components/ui/ChipSelect';
 import { MoneyField } from '@/components/ui/MoneyField';
 import { Screen } from '@/components/ui/Screen';
 import { SectionHeader } from '@/components/ui/SectionHeader';
+import { Spacer } from '@/components/ui/Spacer';
 import { TextField } from '@/components/ui/TextField';
 import { DEFAULT_PURCHASE_CATEGORY_ID, PURCHASE_CATEGORIES } from '@/constants/categories';
-import { DEFAULT_OWNERSHIP_MONTHS, OWNERSHIP_PRESETS } from '@/constants/ownership';
-import { DEFAULT_USAGE_FREQUENCY, USAGE_PRESETS } from '@/constants/usagePresets';
+import { DEFAULT_OWNERSHIP_MONTHS } from '@/constants/ownership';
+import { DEFAULT_USAGE_FREQUENCY } from '@/constants/usagePresets';
 import {
   COOLDOWN_DAY_OPTIONS,
   DEFAULT_COOLDOWN_DAYS,
@@ -20,6 +21,12 @@ import {
   suggestCooldownDays,
   type MonthlyFinances,
 } from '@/domain';
+import {
+  ExpectedUsageFields,
+  usageControl,
+  usageSetValue,
+} from '@/features/forms/ExpectedUsageFields';
+import { useAsyncAction } from '@/features/forms/useAsyncAction';
 import { ImagePickerField } from '@/features/images/ImagePickerField';
 import { useSettings } from '@/features/settings/SettingsProvider';
 import { EstimatePreview } from '@/features/wishlist/components/EstimatePreview';
@@ -30,7 +37,7 @@ import {
   type WishlistItemFormValues,
 } from '@/features/wishlist/schemas/wishlistItemSchema';
 import type { CreateWishlistItemInput } from '@/features/wishlist/services/wishlistActions';
-import { formatMonthsAsDuration, useT } from '@/i18n';
+import { useT } from '@/i18n';
 import { useTheme } from '@/theme';
 import type { WishlistItem } from '@/types/domain';
 
@@ -64,8 +71,7 @@ export function WishlistItemForm({
   const t = useT();
   const { settings } = useSettings();
 
-  const [isSaving, setIsSaving] = useState(false);
-  const [saveError, setSaveError] = useState<string | null>(null);
+  const save = useAsyncAction();
 
   // An existing period counts as the user's own unless it is exactly what the
   // app suggested for the stored price — the same question the update service
@@ -124,24 +130,22 @@ export function WishlistItemForm({
   }, [hasEditedCooldown, suggestion.days, setValue]);
 
   const submit = handleSubmit(async (formValues) => {
-    setIsSaving(true);
-    setSaveError(null);
-    try {
-      await onSubmit({
-        name: formValues.name,
-        priceCents: formValues.priceCents,
-        categoryId: formValues.categoryId,
-        imageUri: formValues.imageUri,
-        expectedUsageFrequency: formValues.expectedUsageFrequency,
-        customUsesPerMonth: formValues.customUsesPerMonth,
-        expectedOwnershipMonths: formValues.expectedOwnershipMonths,
-        cooldownDays: formValues.cooldownDays,
-        notes: formValues.notes,
-      });
-    } catch {
-      setSaveError(t('wishlist.saveError'));
-      setIsSaving(false);
-    }
+    await save.run(
+      () =>
+        onSubmit({
+          name: formValues.name,
+          priceCents: formValues.priceCents,
+          categoryId: formValues.categoryId,
+          imageUri: formValues.imageUri,
+          expectedUsageFrequency: formValues.expectedUsageFrequency,
+          customUsesPerMonth: formValues.customUsesPerMonth,
+          expectedOwnershipMonths: formValues.expectedOwnershipMonths,
+          cooldownDays: formValues.cooldownDays,
+          notes: formValues.notes,
+        }),
+      // Saving leaves the form for the item it just created or corrected.
+      { errorMessage: t('wishlist.saveError'), stayBusyOnSuccess: true },
+    );
   });
 
   return (
@@ -152,7 +156,7 @@ export function WishlistItemForm({
         <Button
           label={submitLabel}
           onPress={submit}
-          loading={isSaving}
+          loading={save.isRunning}
           disabled={formState.isSubmitting}
         />
       }
@@ -215,75 +219,21 @@ export function WishlistItemForm({
         />
       </View>
 
-      <View style={{ height: theme.spacing.xl }} />
+      <Spacer size="xl" />
       <SectionHeader
         title={t('wishlist.expectedUsageTitle')}
         subtitle={t('wishlist.expectedUsageSubtitle')}
       />
 
       <View style={{ gap: theme.spacing.md }}>
-        <Controller
-          control={control}
-          name="expectedUsageFrequency"
-          render={({ field, fieldState }) => (
-            <ChipSelect
-              label={t('wishlist.frequencyLabel')}
-              options={USAGE_PRESETS.map((preset) => ({
-                value: preset.id,
-                label: t(preset.labelKey),
-              }))}
-              value={field.value}
-              onChange={(next) => {
-                field.onChange(next);
-                if (next !== 'custom') setValue('customUsesPerMonth', null);
-              }}
-              hint={(() => {
-                const preset = USAGE_PRESETS.find((option) => option.id === field.value);
-                return preset ? t(preset.detailKey) : undefined;
-              })()}
-              error={fieldState.error?.message}
-            />
-          )}
-        />
-
-        {values.expectedUsageFrequency === 'custom' ? (
-          <Controller
-            control={control}
-            name="customUsesPerMonth"
-            render={({ field, fieldState }) => (
-              <TextField
-                label={t('wishlist.usesPerMonthLabel')}
-                required
-                keyboardType="numeric"
-                inputMode="numeric"
-                value={field.value == null ? '' : String(field.value)}
-                onChangeText={(text) => {
-                  const parsed = Number.parseFloat(text.replace(',', '.'));
-                  field.onChange(Number.isFinite(parsed) ? parsed : null);
-                }}
-                onBlur={field.onBlur}
-                error={fieldState.error?.message}
-                suffix={t('units.perMonth')}
-              />
-            )}
-          />
-        ) : null}
-
-        <Controller
-          control={control}
-          name="expectedOwnershipMonths"
-          render={({ field, fieldState }) => (
-            <ChipSelect
-              label={t('wishlist.ownershipLabel')}
-              options={OWNERSHIP_PRESETS.map((months) => ({
-                value: months,
-                label: formatMonthsAsDuration(t, months),
-              }))}
-              value={field.value}
-              onChange={field.onChange}
-              error={fieldState.error?.message}
-            />
-          )}
+        <ExpectedUsageFields
+          control={usageControl(control)}
+          setValue={usageSetValue(setValue)}
+          labels={{
+            frequency: t('wishlist.frequencyLabel'),
+            usesPerMonth: t('wishlist.usesPerMonthLabel'),
+            ownership: t('wishlist.ownershipLabel'),
+          }}
         />
 
         <EstimatePreview
@@ -294,11 +244,11 @@ export function WishlistItemForm({
         />
       </View>
 
-      <View style={{ height: theme.spacing.xl }} />
+      <Spacer size="xl" />
       <SectionHeader title={t('impact.sectionTitle')} />
       <PurchaseImpactCard impact={impact} />
 
-      <View style={{ height: theme.spacing.xl }} />
+      <Spacer size="xl" />
       <SectionHeader
         title={t('cooldown.sectionTitle')}
         subtitle={
@@ -336,7 +286,7 @@ export function WishlistItemForm({
         )}
       />
 
-      <View style={{ height: theme.spacing.xl }} />
+      <Spacer size="xl" />
       <SectionHeader title={t('wishlist.reasonTitle')} subtitle={t('common.optional')} />
 
       <Controller
@@ -355,14 +305,14 @@ export function WishlistItemForm({
         )}
       />
 
-      {saveError ? (
+      {save.error ? (
         <AppText
           variant="caption"
           color="danger"
           accessibilityRole="alert"
           style={{ marginTop: theme.spacing.md }}
         >
-          {saveError}
+          {save.error}
         </AppText>
       ) : null}
     </Screen>

@@ -1,8 +1,9 @@
 import type { TFunction } from 'i18next';
 import { z } from 'zod';
 
+import { COMMITMENT_FREQUENCY_IDS } from '@/constants/enums';
+import { MAX_MONEY_CENTS } from '@/constants/money';
 import { requiredAmount } from '@/features/forms/requiredAmount';
-import type { CommitmentFrequency } from '@/types/domain';
 
 /**
  * Validation for the recurring-commitment form.
@@ -13,23 +14,12 @@ import type { CommitmentFrequency } from '@/types/domain';
  * person reading them chose a language.
  */
 
-const FREQUENCIES = [
-  'monthly',
-  'every_two_months',
-  'quarterly',
-  'semiannual',
-  'annual',
-] as const satisfies readonly CommitmentFrequency[];
-
-/** One million euro a month is well beyond any real commitment; it catches slips. */
-const MAX_AMOUNT_CENTS = 100_000_000;
-
 export function buildCommitmentSchema(t: TFunction) {
   const amountCents = z
     .number({ error: t('validation.amountRequired') })
     .int()
     .min(0, t('validation.amountNegative'))
-    .max(MAX_AMOUNT_CENTS, t('validation.amountTooLarge'));
+    .max(MAX_MONEY_CENTS, t('validation.amountTooLarge'));
 
   return z.object({
     name: z
@@ -38,7 +28,7 @@ export function buildCommitmentSchema(t: TFunction) {
       .min(1, t('validation.money.nameRequired'))
       .max(60, t('validation.nameTooLong60')),
     amountCents: requiredAmount(amountCents),
-    frequency: z.enum(FREQUENCIES),
+    frequency: z.enum(COMMITMENT_FREQUENCY_IDS),
     categoryId: z.string().min(1, t('validation.categoryRequired')),
     /** Paused commitments stay in the list but stop counting towards the month. */
     isActive: z.boolean(),
@@ -60,12 +50,12 @@ export function buildMonthlyIncomeSchema(t: TFunction) {
       .number({ error: t('validation.money.incomeRequired') })
       .int()
       .min(0, t('validation.money.incomeNegative'))
-      .max(MAX_AMOUNT_CENTS, t('validation.amountTooLarge')),
+      .max(MAX_MONEY_CENTS, t('validation.amountTooLarge')),
     monthlySavingsTargetCents: z
       .number()
       .int()
       .min(0, t('validation.money.savingsNegative'))
-      .max(MAX_AMOUNT_CENTS, t('validation.amountTooLarge'))
+      .max(MAX_MONEY_CENTS, t('validation.amountTooLarge'))
       .nullable(),
   });
 }

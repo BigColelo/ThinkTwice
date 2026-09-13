@@ -1,8 +1,9 @@
 import type { TFunction } from 'i18next';
 import { z } from 'zod';
 
+import { USAGE_FREQUENCY_IDS } from '@/constants/enums';
+import { MAX_MONEY_CENTS } from '@/constants/money';
 import { MAX_OWNERSHIP_MONTHS, MIN_OWNERSHIP_MONTHS } from '@/constants/ownership';
-import { USAGE_FREQUENCY_IDS } from '@/constants/usagePresets';
 import { MAX_COOLDOWN_DAYS, MIN_COOLDOWN_DAYS } from '@/domain';
 import { requiredAmount } from '@/features/forms/requiredAmount';
 
@@ -16,14 +17,12 @@ import { requiredAmount } from '@/features/forms/requiredAmount';
  * not on every keystroke.
  */
 
-const MAX_PRICE_CENTS = 100_000_000;
-
 export function buildWishlistItemSchema(t: TFunction) {
   const priceCents = z
     .number({ error: t('validation.wishlist.priceRequired') })
     .int()
     .positive(t('validation.wishlist.pricePositive'))
-    .max(MAX_PRICE_CENTS, t('validation.wishlist.priceTooLarge'));
+    .max(MAX_MONEY_CENTS, t('validation.wishlist.priceTooLarge'));
 
   return (
     z

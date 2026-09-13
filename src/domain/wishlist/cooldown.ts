@@ -123,13 +123,54 @@ export type CooldownSuggestion = {
 };
 
 /**
+ * The suggested period by how much of a month's available money the price is.
+ *
+ * Read as bands: the first row whose `below` the ratio falls under wins, and
+ * the last row is what is left. Written as a table rather than a chain of `if`s
+ * because these five numbers are the whole of the app's opinion about how long
+ * to think — the one place it says anything resembling a judgement — and a
+ * table can be read, reviewed and changed without reading code around it.
+ *
+ * The ladder itself: a twentieth of the month is a day, a fifth is three, past
+ * half of it a week, around a whole month a fortnight, and more than that a
+ * month. Every step is a suggestion the user can override with one tap.
+ */
+const SUGGESTION_BY_AVAILABLE_RATIO: readonly {
+  below: number;
+  days: number;
+  rationale: CooldownRationale;
+}[] = [
+  { below: 0.05, days: 1, rationale: 'small_share' },
+  { below: 0.2, days: 3, rationale: 'under_a_fifth' },
+  { below: 0.6, days: 7, rationale: 'noticeable_share' },
+  { below: 1.5, days: 14, rationale: 'about_a_month' },
+  { below: Number.POSITIVE_INFINITY, days: 30, rationale: 'over_a_month' },
+];
+
+/**
+ * The fallback when the price cannot be compared to anything: no income set, or
+ * commitments consuming all of it.
+ *
+ * Absolute amounts mean less than a share of a month — they are the same bands
+ * for every income — but a suggestion of "one day" for a €2,000 purchase would
+ * be worse than a rough one. The rationale says so: every row reports
+ * `price_only`, and the UI turns that into a sentence naming the price as the
+ * only thing it went on.
+ */
+const SUGGESTION_BY_PRICE: readonly { belowCents: Cents; days: number }[] = [
+  { belowCents: 5_000, days: 1 },
+  { belowCents: 15_000, days: 3 },
+  { belowCents: 50_000, days: 7 },
+  { belowCents: 150_000, days: 14 },
+  { belowCents: Number.POSITIVE_INFINITY, days: 30 },
+];
+
+/**
  * Suggests a reflection period from the price.
  *
  * This is a suggestion, not advice, and the user can always override it. It is
- * deterministic and fully described by the thresholds below: larger relative
- * cost → longer default period. When the price cannot be compared to available
- * money (no income set, or commitments consume it all) it falls back to
- * absolute price bands so the suggestion still means something.
+ * deterministic and fully described by the two tables above: larger relative
+ * cost → longer default period.
  */
 export function suggestCooldownDays(
   priceCents: Cents,
@@ -140,18 +181,16 @@ export function suggestCooldownDays(
   const available = finances?.availableAfterCommitmentsCents ?? 0;
   if (finances?.isIncomeConfigured && available > 0) {
     const ratio = price / available;
-    if (ratio < 0.05) return { days: 1, rationale: 'small_share' };
-    if (ratio < 0.2) return { days: 3, rationale: 'under_a_fifth' };
-    if (ratio < 0.6) return { days: 7, rationale: 'noticeable_share' };
-    if (ratio < 1.5) return { days: 14, rationale: 'about_a_month' };
-    return { days: 30, rationale: 'over_a_month' };
+    const band = SUGGESTION_BY_AVAILABLE_RATIO.find((entry) => ratio < entry.below);
+    // The last band is unbounded, so this only falls through for a non-finite
+    // ratio — which `price` and `available` above have already ruled out.
+    return band
+      ? { days: band.days, rationale: band.rationale }
+      : { days: 30, rationale: 'over_a_month' };
   }
 
-  if (price < 5_000) return { days: 1, rationale: 'price_only' };
-  if (price < 15_000) return { days: 3, rationale: 'price_only' };
-  if (price < 50_000) return { days: 7, rationale: 'price_only' };
-  if (price < 150_000) return { days: 14, rationale: 'price_only' };
-  return { days: 30, rationale: 'price_only' };
+  const band = SUGGESTION_BY_PRICE.find((entry) => price < entry.belowCents);
+  return { days: band?.days ?? 30, rationale: 'price_only' };
 }
 
 export type CooldownRevision = {

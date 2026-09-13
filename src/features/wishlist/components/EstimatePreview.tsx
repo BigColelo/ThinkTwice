@@ -7,7 +7,7 @@ import { Card } from '@/components/ui/Card';
 import { MoneyValue } from '@/components/ui/MoneyValue';
 import { MetricCell, MetricDivider } from '@/components/ui/StatCard';
 import { usageFrequencyShortLabel } from '@/constants/usagePresets';
-import { calculateEstimatedCostPerUse, calculateEstimatedUses } from '@/domain';
+import { calculateUsageEstimate } from '@/domain';
 import { formatMonthsAsDuration, useT } from '@/i18n';
 import { useTheme } from '@/theme';
 import type { Cents, UsageFrequencyId } from '@/types/domain';
@@ -34,13 +34,11 @@ export function EstimatePreview({
   const theme = useTheme();
   const t = useT();
 
-  const estimatedUses = calculateEstimatedUses({
+  const { estimatedUses, costPerUseCents } = calculateUsageEstimate(priceCents, {
     frequency,
     customUsesPerMonth,
     expectedOwnershipMonths,
   });
-  const costPerUse =
-    priceCents == null ? null : calculateEstimatedCostPerUse(priceCents, estimatedUses);
 
   return (
     <Card variant="muted" padding={theme.spacing.md}>
@@ -64,13 +62,13 @@ export function EstimatePreview({
         <MetricCell
           label={t('wishlist.estimatedCostPerUse')}
           value={
-            costPerUse == null ? (
+            costPerUseCents == null ? (
               <AppText variant="metricSmall" color="tertiary">
                 {t('common.noValue')}
               </AppText>
             ) : (
               <MoneyValue
-                cents={costPerUse}
+                cents={costPerUseCents}
                 variant="metricSmall"
                 decimals="always"
                 adjustsFontSizeToFit

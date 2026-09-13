@@ -44,7 +44,7 @@ export type LanguagePreference = LanguageCode | 'system';
  * `src/db/mappers` are for.
  *
  * Every code here is treated as one hundredth of its major unit, including the
- * six ISO defines with three decimals and the six with none, because amounts
+ * seven ISO defines with three decimals and the six with none, because amounts
  * are never converted: see `MINOR_UNITS_PER_MAJOR` in `src/utils/currency`.
  */
 export type CurrencyCode =

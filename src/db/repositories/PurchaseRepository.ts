@@ -5,6 +5,7 @@ import { nowIso } from '@/utils/dates';
 import { createId } from '@/utils/ids';
 
 import { mapPurchaseWithStats, type PurchaseWithStatsRow } from '../mappers';
+import { roundedOrSkip, UpdateColumns } from './updateColumns';
 
 export type NewPurchase = Pick<
   Purchase,
@@ -140,44 +141,22 @@ export class PurchaseRepository {
   }
 
   async update(id: string, update: PurchaseUpdate): Promise<PurchaseWithStats | null> {
-    const assignments: string[] = [];
-    const values: (string | number | null)[] = [];
+    const columns = new UpdateColumns()
+      .set('name', update.name?.trim())
+      .set('purchase_price_cents', roundedOrSkip(update.purchasePriceCents))
+      .set('purchase_date', update.purchaseDate)
+      .set('category_id', update.categoryId)
+      .set('image_uri', update.imageUri)
+      .set('expected_usage_frequency', update.expectedUsageFrequency)
+      .set('custom_uses_per_month', update.customUsesPerMonth)
+      .set('expected_ownership_months', roundedOrSkip(update.expectedOwnershipMonths))
+      // `null` clears the estimate, which is not the same as an estimate of zero.
+      .set('current_resale_value_cents', roundedOrSkip(update.currentResaleValueCents));
 
-    const set = (column: string, value: string | number | null): void => {
-      assignments.push(`${column} = ?`);
-      values.push(value);
-    };
+    if (columns.isEmpty) return this.findById(id);
 
-    if (update.name !== undefined) set('name', update.name.trim());
-    if (update.purchasePriceCents !== undefined)
-      set('purchase_price_cents', Math.round(update.purchasePriceCents));
-    if (update.purchaseDate !== undefined) set('purchase_date', update.purchaseDate);
-    if (update.categoryId !== undefined) set('category_id', update.categoryId);
-    if (update.imageUri !== undefined) set('image_uri', update.imageUri);
-    if (update.expectedUsageFrequency !== undefined)
-      set('expected_usage_frequency', update.expectedUsageFrequency);
-    if (update.customUsesPerMonth !== undefined)
-      set('custom_uses_per_month', update.customUsesPerMonth);
-    if (update.expectedOwnershipMonths !== undefined)
-      set(
-        'expected_ownership_months',
-        update.expectedOwnershipMonths == null ? null : Math.round(update.expectedOwnershipMonths),
-      );
-    if (update.currentResaleValueCents !== undefined)
-      set(
-        'current_resale_value_cents',
-        update.currentResaleValueCents == null ? null : Math.round(update.currentResaleValueCents),
-      );
-
-    if (assignments.length === 0) return this.findById(id);
-
-    set('updated_at', nowIso());
-
-    await this.db.runAsync(
-      `UPDATE purchases SET ${assignments.join(', ')} WHERE id = ?`,
-      ...values,
-      id,
-    );
+    columns.set('updated_at', nowIso());
+    await columns.update(this.db, 'purchases', id);
 
     return this.findById(id);
   }

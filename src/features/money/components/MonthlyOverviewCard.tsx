@@ -3,6 +3,7 @@ import { View } from 'react-native';
 
 import { AppText } from '@/components/ui/AppText';
 import { Card } from '@/components/ui/Card';
+import { RowDivider } from '@/components/ui/ListRow';
 import { MoneyValue } from '@/components/ui/MoneyValue';
 import type { MonthlyFinances } from '@/domain';
 import { useT } from '@/i18n';
@@ -37,13 +38,7 @@ export function MonthlyOverviewCard({
         ) : null}
       </View>
 
-      <View
-        style={{
-          height: theme.sizes.hairline,
-          backgroundColor: theme.colors.divider,
-          marginVertical: theme.spacing.sm,
-        }}
-      />
+      <RowDivider spacing="sm" />
 
       {/* Grouped without an explicit label so React Native composes it from the
           children — otherwise the label would replace the amount and a screen

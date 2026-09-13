@@ -51,7 +51,12 @@ export function StatCard({
         {typeof value === 'string' ? <AppText variant="metric">{value}</AppText> : value}
       </View>
       {caption ? (
-        <AppText variant="caption" color="tertiary" style={{ marginTop: 2 }} numberOfLines={1}>
+        <AppText
+          variant="caption"
+          color="tertiary"
+          style={{ marginTop: theme.spacing.xxxs }}
+          numberOfLines={1}
+        >
           {caption}
         </AppText>
       ) : null}

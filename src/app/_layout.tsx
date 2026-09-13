@@ -8,6 +8,7 @@ import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-cont
 import { AppText } from '@/components/ui/AppText';
 import { ErrorState, LoadingState } from '@/components/ui/StateViews';
 import { DatabaseProvider, useDatabaseState, useRetryDatabase } from '@/db/DatabaseProvider';
+import { AppErrorBoundary } from '@/features/errors/AppErrorBoundary';
 import { useAppRouter } from '@/features/navigation/useAppRouter';
 import { SettingsProvider, useSettings } from '@/features/settings/SettingsProvider';
 import { I18nProvider, useT } from '@/i18n';
@@ -28,6 +29,11 @@ import { ThemeProvider, useTheme } from '@/theme';
  * above them renders real UI — a spinner, or an explanation of why the database
  * would not open — before any preference has been read. The outer pair follows
  * the device, the inner pair follows what the user chose.
+ *
+ * `AppErrorBoundary` sits just below the outer pair. It is the one component
+ * that has to survive a crash anywhere in the app, so it renders with the
+ * device's theme and language — the same footing as the gate — and re-mounts
+ * everything below it when the user tries again.
  */
 
 // Keeps the native splash up until the first screen is genuinely ready.
@@ -42,13 +48,15 @@ export default function RootLayout(): React.ReactElement {
           already themed and already in the device's language. */}
       <ThemeProvider mode="system">
         <I18nProvider language="system">
-          <DatabaseProvider>
-            <DatabaseGate>
-              <SettingsProvider>
-                <ThemedApp />
-              </SettingsProvider>
-            </DatabaseGate>
-          </DatabaseProvider>
+          <AppErrorBoundary>
+            <DatabaseProvider>
+              <DatabaseGate>
+                <SettingsProvider>
+                  <ThemedApp />
+                </SettingsProvider>
+              </DatabaseGate>
+            </DatabaseProvider>
+          </AppErrorBoundary>
         </I18nProvider>
       </ThemeProvider>
     </SafeAreaProvider>

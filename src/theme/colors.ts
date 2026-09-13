@@ -135,6 +135,14 @@ export const darkColors: ColorScheme = {
   skeleton: neutral[850],
 };
 
+/**
+ * The brand accent as one plain value, for the few places that have no theme to
+ * read it from — the Android notification light, set from a module with no
+ * component. It is the light-scheme accent because that is the colour the icon
+ * and the splash carry, and the one `app.json` repeats.
+ */
+export const brandAccent = purple[500];
+
 /** Resolves a category/entity tint for the active scheme. */
 export function resolveTint(name: TintName, isDark: boolean): { base: string; soft: string } {
   const entry = tint[name];

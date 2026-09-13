@@ -3,6 +3,7 @@ import { View } from 'react-native';
 
 import { AppText } from '@/components/ui/AppText';
 import { Card } from '@/components/ui/Card';
+import { RowDivider } from '@/components/ui/ListRow';
 import { MoneyValue } from '@/components/ui/MoneyValue';
 import type { PurchaseMetrics } from '@/domain';
 import { useT } from '@/i18n';
@@ -65,13 +66,7 @@ export function RealCostBreakdown({
         />
       </View>
 
-      <View
-        style={{
-          height: theme.sizes.hairline,
-          backgroundColor: theme.colors.divider,
-          marginVertical: theme.spacing.sm,
-        }}
-      />
+      <RowDivider spacing="sm" />
 
       {/* No explicit label: React Native composes one from the children, so the
           amount is announced along with "Current real cost". */}

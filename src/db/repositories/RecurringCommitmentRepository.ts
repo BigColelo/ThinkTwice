@@ -5,6 +5,7 @@ import { nowIso } from '@/utils/dates';
 import { createId } from '@/utils/ids';
 
 import { fromBoolean, mapRecurringCommitment, type RecurringCommitmentRow } from '../mappers';
+import { roundedOrSkip, UpdateColumns } from './updateColumns';
 
 export type NewRecurringCommitment = Pick<
   RecurringCommitment,
@@ -68,40 +69,18 @@ export class RecurringCommitmentRepository {
   }
 
   async update(id: string, update: RecurringCommitmentUpdate): Promise<RecurringCommitment | null> {
-    const assignments: string[] = [];
-    const values: (string | number)[] = [];
+    const columns = new UpdateColumns()
+      .set('name', update.name?.trim())
+      .set('amount_cents', roundedOrSkip(update.amountCents))
+      .set('frequency', update.frequency)
+      .set('category_id', update.categoryId)
+      // Pausing is an update like any other: the row stays and stops counting.
+      .set('is_active', update.isActive === undefined ? undefined : fromBoolean(update.isActive));
 
-    if (update.name !== undefined) {
-      assignments.push('name = ?');
-      values.push(update.name.trim());
-    }
-    if (update.amountCents !== undefined) {
-      assignments.push('amount_cents = ?');
-      values.push(Math.round(update.amountCents));
-    }
-    if (update.frequency !== undefined) {
-      assignments.push('frequency = ?');
-      values.push(update.frequency);
-    }
-    if (update.categoryId !== undefined) {
-      assignments.push('category_id = ?');
-      values.push(update.categoryId);
-    }
-    if (update.isActive !== undefined) {
-      assignments.push('is_active = ?');
-      values.push(fromBoolean(update.isActive));
-    }
+    if (columns.isEmpty) return this.findById(id);
 
-    if (assignments.length === 0) return this.findById(id);
-
-    assignments.push('updated_at = ?');
-    values.push(nowIso());
-
-    await this.db.runAsync(
-      `UPDATE recurring_commitments SET ${assignments.join(', ')} WHERE id = ?`,
-      ...values,
-      id,
-    );
+    columns.set('updated_at', nowIso());
+    await columns.update(this.db, 'recurring_commitments', id);
 
     return this.findById(id);
   }

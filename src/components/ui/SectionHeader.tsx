@@ -47,7 +47,7 @@ export function SectionHeader({
           {title}
         </AppText>
         {subtitle ? (
-          <AppText variant="caption" color="secondary" style={{ marginTop: 2 }}>
+          <AppText variant="caption" color="secondary" style={{ marginTop: theme.spacing.xxxs }}>
             {subtitle}
           </AppText>
         ) : null}

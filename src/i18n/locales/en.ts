@@ -40,6 +40,10 @@ export const en = {
     databaseErrorTitle: 'Your data could not be opened',
     databaseErrorDescription:
       'ThinkTwice stores everything on this device. Restarting the app usually resolves this.',
+    /** The crash screen `AppErrorBoundary` shows when a screen throws while rendering. */
+    crashTitle: 'This screen ran into a problem',
+    crashDescription:
+      'Your data is stored on this device and has not been touched. Try again, or restart the app.',
   },
 
   /**
@@ -374,6 +378,7 @@ export const en = {
       removeTitle: 'Remove this use?',
       removeMessage: 'The cost per use is worked out again without it.',
       removeConfirm: 'Remove',
+      removeError: 'This use could not be removed. Please try again.',
     },
     resale: {
       label: 'What is it worth today?',
@@ -503,6 +508,9 @@ export const en = {
       delete: 'Delete commitment',
       deleteTitle: 'Delete this commitment?',
       deleteMessage: 'It will no longer be subtracted from your monthly income.',
+      deleteError: 'This commitment could not be deleted. Please try again.',
+      notFound: 'This commitment no longer exists',
+      notFoundDescription: 'It may have been deleted on another screen.',
       saveError: 'This commitment could not be saved. Please try again.',
     },
   },
@@ -656,6 +664,8 @@ export const en = {
       heading: 'Everything stays on this device',
       body: 'ThinkTwice has no account, no server and no analytics. Your income, commitments and purchases are stored in a local database and are never sent anywhere.',
     },
+    /** A preference — theme, language, currency, reminders — that could not be written. */
+    saveError: 'This setting could not be saved. Please try again.',
     data: {
       title: 'Data',
       heading: 'Local database',
@@ -665,6 +675,7 @@ export const en = {
       resetMessage:
         'Your income, commitments, wishlist, purchases, usage history and item photos will be permanently removed from this device. This cannot be undone.',
       resetConfirm: 'Delete everything',
+      resetError: 'The reset could not be completed. Please try again.',
     },
     development: {
       title: 'Development',

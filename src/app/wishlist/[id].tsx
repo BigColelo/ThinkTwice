@@ -8,22 +8,24 @@ import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Chip } from '@/components/ui/Chip';
 import { ItemImage } from '@/components/ui/ItemImage';
+import { RowDivider } from '@/components/ui/ListRow';
 import { MoneyValue } from '@/components/ui/MoneyValue';
+import { LoadingScreen, MissingRecordScreen } from '@/components/ui/RecordScreens';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { SectionHeader } from '@/components/ui/SectionHeader';
+import { Spacer } from '@/components/ui/Spacer';
 import { MetricCell, MetricDivider } from '@/components/ui/StatCard';
-import { ErrorState, LoadingState } from '@/components/ui/StateViews';
 import { getPurchaseCategory } from '@/constants/categories';
 import { usageFrequencyShortLabel } from '@/constants/usagePresets';
 import { useRepositories } from '@/db/DatabaseProvider';
 import {
   calculateCooldownState,
-  calculateEstimatedCostPerUse,
-  calculateEstimatedUses,
   calculatePurchaseImpact,
+  calculateUsageEstimate,
   isDecided,
 } from '@/domain';
+import { useConfirm } from '@/features/dialogs/useConfirm';
 import { useMonthlyFinances } from '@/features/money/hooks/useMonthlyFinances';
 import { useAppRouter } from '@/features/navigation/useAppRouter';
 import { useDeleteAndLeave } from '@/features/navigation/useDeleteAndLeave';
@@ -41,7 +43,6 @@ import {
 } from '@/features/wishlist/services/wishlistActions';
 import { formatMonthsAsDuration, useT } from '@/i18n';
 import { useTheme } from '@/theme';
-import { confirm } from '@/utils/confirm';
 import { formatNumber } from '@/utils/currency';
 
 /**
@@ -58,6 +59,7 @@ export default function WishlistDetailScreen(): React.ReactElement {
   const repositories = useRepositories();
   const { id } = useLocalSearchParams<{ id: string }>();
   const goBack = useGoBack('/wishlist');
+  const confirm = useConfirm();
 
   const { data: liveItem, isLoading, error, refetch } = useWishlistItem(id);
   // Deleting removes the row this screen reads, so it keeps the copy it was
@@ -75,15 +77,15 @@ export default function WishlistDetailScreen(): React.ReactElement {
     [item, finances],
   );
 
-  const estimatedUses = item
-    ? calculateEstimatedUses({
+  // The same pair the form previewed while this item was being added, computed
+  // the same way — an item's own screen must not disagree with the estimate the
+  // decision was made on.
+  const estimate = item
+    ? calculateUsageEstimate(item.priceCents, {
         frequency: item.expectedUsageFrequency,
         customUsesPerMonth: item.customUsesPerMonth,
         expectedOwnershipMonths: item.expectedOwnershipMonths,
       })
-    : null;
-  const estimatedCostPerUse = item
-    ? calculateEstimatedCostPerUse(item.priceCents, estimatedUses)
     : null;
 
   // The sheet collects the two facts the wishlist item cannot know — what was
@@ -131,29 +133,16 @@ export default function WishlistDetailScreen(): React.ReactElement {
     }
   };
 
-  if (isLoading) {
-    return (
-      <>
-        <ScreenHeader onBack={goBack} />
-        <Screen>
-          <LoadingState />
-        </Screen>
-      </>
-    );
-  }
+  if (isLoading) return <LoadingScreen onBack={goBack} />;
 
   if (error || !item) {
     return (
-      <>
-        <ScreenHeader onBack={goBack} />
-        <Screen>
-          <ErrorState
-            title={t('wishlist.notFound')}
-            description={t('wishlist.notFoundDescription')}
-            onRetry={refetch}
-          />
-        </Screen>
-      </>
+      <MissingRecordScreen
+        onBack={goBack}
+        heading={t('wishlist.notFound')}
+        description={t('wishlist.notFoundDescription')}
+        onRetry={refetch}
+      />
     );
   }
 
@@ -227,11 +216,11 @@ export default function WishlistDetailScreen(): React.ReactElement {
           </View>
         ) : null}
 
-        <View style={{ height: theme.spacing.xl }} />
+        <Spacer size="xl" />
         <SectionHeader title={t('impact.sectionTitle')} />
         {impact ? <PurchaseImpactCard impact={impact} /> : null}
 
-        <View style={{ height: theme.spacing.xl }} />
+        <Spacer size="xl" />
         <SectionHeader title={t('wishlist.expectedUsageTitle')} />
 
         <Card padding={theme.spacing.md}>
@@ -247,30 +236,28 @@ export default function WishlistDetailScreen(): React.ReactElement {
             <Chip icon={Calendar} label={formatMonthsAsDuration(t, item.expectedOwnershipMonths)} />
           </View>
 
-          <View
-            style={{
-              height: theme.sizes.hairline,
-              backgroundColor: theme.colors.divider,
-              marginVertical: theme.spacing.md,
-            }}
-          />
+          <RowDivider spacing="md" />
 
           <View style={{ flexDirection: 'row', alignItems: 'stretch' }}>
             <MetricCell
               label={t('wishlist.estimatedUses')}
-              value={estimatedUses == null ? t('common.noValue') : formatNumber(estimatedUses)}
+              value={
+                estimate?.estimatedUses == null
+                  ? t('common.noValue')
+                  : formatNumber(estimate.estimatedUses)
+              }
             />
             <MetricDivider />
             <MetricCell
               label={t('wishlist.estimatedCostPerUse')}
               value={
-                estimatedCostPerUse == null ? (
+                estimate?.costPerUseCents == null ? (
                   <AppText variant="metricSmall" color="tertiary">
                     {t('common.noValue')}
                   </AppText>
                 ) : (
                   <MoneyValue
-                    cents={estimatedCostPerUse}
+                    cents={estimate.costPerUseCents}
                     variant="metricSmall"
                     decimals="always"
                     adjustsFontSizeToFit
@@ -284,7 +271,7 @@ export default function WishlistDetailScreen(): React.ReactElement {
 
         {item.notes ? (
           <>
-            <View style={{ height: theme.spacing.xl }} />
+            <Spacer size="xl" />
             <SectionHeader title={t('wishlist.whyYouWantIt')} />
             <Card padding={theme.spacing.md}>
               <AppText variant="body" color="secondary">
@@ -305,7 +292,7 @@ export default function WishlistDetailScreen(): React.ReactElement {
           </AppText>
         ) : null}
 
-        <View style={{ height: theme.spacing.xl }} />
+        <Spacer size="xl" />
         <Button
           label={t('wishlist.delete')}
           variant="destructive"

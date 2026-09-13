@@ -63,3 +63,33 @@ export function calculateEstimatedCostPerUse(
   if (estimatedUses == null || estimatedUses <= 0) return null;
   return safeDivide(priceCents, estimatedUses);
 }
+
+/** The whole estimate: what the two figures above say together. */
+export type UsageEstimate = {
+  /** Total uses over the ownership period. `null` when the inputs cannot give one. */
+  estimatedUses: number | null;
+  /** Price ÷ those uses, unrounded. `null` whenever `estimatedUses` is. */
+  costPerUseCents: number | null;
+};
+
+/**
+ * The estimate as one value.
+ *
+ * The two figures are never shown apart — the form previews them side by side
+ * while the user types, and the item's own screen prints the same pair — and
+ * the second is derived from the first, so asking for them separately means
+ * every caller repeats the order they have to be computed in. Two did, and one
+ * of them had to remember to pass `null` through when there was no price yet.
+ */
+export function calculateUsageEstimate(
+  priceCents: Cents | null,
+  input: ExpectedUsageInput,
+): UsageEstimate {
+  const estimatedUses = calculateEstimatedUses(input);
+
+  return {
+    estimatedUses,
+    costPerUseCents:
+      priceCents == null ? null : calculateEstimatedCostPerUse(priceCents, estimatedUses),
+  };
+}

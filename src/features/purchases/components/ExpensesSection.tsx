@@ -4,7 +4,7 @@ import { View } from 'react-native';
 
 import { Card } from '@/components/ui/Card';
 import { EmptyState } from '@/components/ui/EmptyState';
-import { ListRow } from '@/components/ui/ListRow';
+import { ListRow, RowDivider } from '@/components/ui/ListRow';
 import { MoneyValue } from '@/components/ui/MoneyValue';
 import { SectionHeader } from '@/components/ui/SectionHeader';
 import { useT } from '@/i18n';
@@ -56,15 +56,7 @@ export const ExpensesSection = React.memo(function ExpensesSection({
         <Card padding={theme.spacing.md}>
           {expenses.map((expense, index) => (
             <View key={expense.id}>
-              {index > 0 ? (
-                <View
-                  style={{
-                    height: theme.sizes.hairline,
-                    backgroundColor: theme.colors.divider,
-                    marginVertical: theme.spacing.xxs,
-                  }}
-                />
-              ) : null}
+              {index > 0 ? <RowDivider /> : null}
               <ListRow
                 title={expense.name}
                 subtitle={`${t(`purchases.expenses.type.${expense.expenseType}`)}${t('common.dotSeparator')}${formatDate(expense.date)}`}

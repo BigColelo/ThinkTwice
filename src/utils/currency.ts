@@ -26,8 +26,8 @@ import { getLocale } from './locale';
  * Every currency the app offers is one hundredth of its major unit.
  *
  * That is the app's convention rather than the ISO exponent, and the difference
- * is deliberate. KWD, BHD, OMR, JOD, LYD and TND are defined with three
- * decimals; DJF, KMF, IQD, SOS, SYP and LBP with none. All twelve are shown
+ * is deliberate. BHD, IQD, JOD, KWD, LYD, OMR and TND are defined with three
+ * decimals; CLP, DJF, KMF, PYG, XAF and XOF with none. All thirteen are shown
  * here with two, because amounts are stored as minor units and are **never
  * converted**: switching currency has to relabel a figure and must never change
  * it. 165000 minor units reads `EUR 1,650` and, after a switch, `KWD 1,650` —

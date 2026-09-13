@@ -6,6 +6,7 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { SectionHeader } from '@/components/ui/SectionHeader';
+import { Spacer } from '@/components/ui/Spacer';
 import { ErrorState, LoadingState } from '@/components/ui/StateViews';
 import { useAppRouter } from '@/features/navigation/useAppRouter';
 import { useGoBack } from '@/features/navigation/useGoBack';
@@ -61,7 +62,7 @@ export default function WishlistScreen(): React.ReactElement {
                     />
                   ))}
                 </View>
-                <View style={{ height: theme.spacing.xl }} />
+                <Spacer size="xl" />
               </>
             ) : null}
 

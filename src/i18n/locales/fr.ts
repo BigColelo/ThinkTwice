@@ -32,6 +32,9 @@ export const fr = {
     databaseErrorTitle: 'Tes données n’ont pas pu être ouvertes',
     databaseErrorDescription:
       'ThinkTwice conserve tout sur cet appareil. Redémarrer l’application suffit généralement.',
+    crashTitle: 'Cet écran a rencontré un problème',
+    crashDescription:
+      'Tes données sont conservées sur cet appareil et n’ont pas été touchées. Réessaie, ou relance l’application.',
   },
 
   units: {
@@ -351,6 +354,7 @@ export const fr = {
       removeTitle: 'Retirer cette utilisation ?',
       removeMessage: 'Le coût par utilisation est recalculé sans elle.',
       removeConfirm: 'Retirer',
+      removeError: 'Cette utilisation n’a pas pu être retirée. Réessaie.',
     },
     resale: {
       label: 'Combien vaut-il aujourd’hui ?',
@@ -482,6 +486,9 @@ export const fr = {
       delete: 'Supprimer la dépense récurrente',
       deleteTitle: 'Supprimer cette dépense récurrente ?',
       deleteMessage: 'Elle ne sera plus déduite de ton revenu mensuel.',
+      deleteError: 'Cette dépense récurrente n’a pas pu être supprimée. Réessaie.',
+      notFound: 'Cette dépense récurrente n’existe plus',
+      notFoundDescription: 'Elle a peut-être été supprimée depuis un autre écran.',
       saveError: 'Cette dépense récurrente n’a pas pu être enregistrée. Réessaie.',
     },
   },
@@ -640,6 +647,7 @@ export const fr = {
       heading: 'Tout reste sur cet appareil',
       body: 'ThinkTwice n’a ni compte, ni serveur, ni outil d’analyse. Ton revenu, tes dépenses récurrentes et tes achats sont dans une base de données locale et ne sont jamais envoyés nulle part.',
     },
+    saveError: 'Ce réglage n’a pas pu être enregistré. Réessaie.',
     data: {
       title: 'Données',
       heading: 'Base de données locale',
@@ -650,6 +658,7 @@ export const fr = {
       resetMessage:
         'Ton revenu, tes dépenses récurrentes, ta liste, tes achats, ton historique d’utilisation et tes photos seront définitivement retirés de cet appareil. Cette action est irréversible.',
       resetConfirm: 'Tout supprimer',
+      resetError: 'La réinitialisation n’a pas pu être effectuée. Réessaie.',
     },
     development: {
       title: 'Développement',

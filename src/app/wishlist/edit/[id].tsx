@@ -1,9 +1,8 @@
 import { useLocalSearchParams } from 'expo-router';
 import React from 'react';
 
-import { Screen } from '@/components/ui/Screen';
+import { LoadingScreen, MissingRecordScreen } from '@/components/ui/RecordScreens';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
-import { ErrorState, LoadingState } from '@/components/ui/StateViews';
 import { useRepositories } from '@/db/DatabaseProvider';
 import { isDecided } from '@/domain';
 import { useMonthlyFinances } from '@/features/money/hooks/useMonthlyFinances';
@@ -38,31 +37,19 @@ export default function EditWishlistItemScreen(): React.ReactElement {
 
   const decided = item != null && isDecided(item.status);
 
-  if (isLoading) {
-    return (
-      <>
-        <ScreenHeader title={t('add.editItem')} onBack={goBack} />
-        <Screen>
-          <LoadingState />
-        </Screen>
-      </>
-    );
-  }
+  if (isLoading) return <LoadingScreen title={t('add.editItem')} onBack={goBack} />;
 
   if (error || !item || decided) {
     return (
-      <>
-        <ScreenHeader title={t('add.editItem')} onBack={goBack} />
-        <Screen>
-          <ErrorState
-            title={decided ? t('add.itemDecidedTitle') : t('wishlist.notFound')}
-            description={
-              decided ? t('add.itemDecidedDescription') : t('wishlist.notFoundDescription')
-            }
-            onRetry={decided ? undefined : refetch}
-          />
-        </Screen>
-      </>
+      <MissingRecordScreen
+        title={t('add.editItem')}
+        onBack={goBack}
+        heading={decided ? t('add.itemDecidedTitle') : t('wishlist.notFound')}
+        description={decided ? t('add.itemDecidedDescription') : t('wishlist.notFoundDescription')}
+        // A decided item is not missing; it is finished, and retrying reads the
+        // same answer back.
+        onRetry={decided ? undefined : refetch}
+      />
     );
   }
 

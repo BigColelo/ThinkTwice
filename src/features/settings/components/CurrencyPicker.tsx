@@ -5,6 +5,7 @@ import { View } from 'react-native';
 import { Card } from '@/components/ui/Card';
 import { ListRow, RowDivider } from '@/components/ui/ListRow';
 import { SectionHeader } from '@/components/ui/SectionHeader';
+import { Spacer } from '@/components/ui/Spacer';
 import {
   CURRENCIES,
   CURRENCY_REGIONS,
@@ -100,7 +101,7 @@ export function CurrencyPicker({
     <>
       {sections.map((section, sectionIndex) => (
         <View key={section.id}>
-          {sectionIndex > 0 ? <View style={{ height: theme.spacing.xl }} /> : null}
+          {sectionIndex > 0 ? <Spacer size="xl" /> : null}
           <SectionHeader title={section.heading} />
           <Card padding={theme.spacing.md}>
             {section.options.map((currency, index) => (

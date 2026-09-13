@@ -1,15 +1,17 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import React, { useMemo, useState } from 'react';
+import React, { useMemo } from 'react';
 import { Controller, useForm } from 'react-hook-form';
-import { Modal, Pressable, ScrollView, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { View } from 'react-native';
 
 import { AppText } from '@/components/ui/AppText';
+import { BottomSheet } from '@/components/ui/BottomSheet';
 import { Button } from '@/components/ui/Button';
 import { ChipSelect } from '@/components/ui/ChipSelect';
 import { DateField } from '@/components/ui/DateField';
 import { MoneyField } from '@/components/ui/MoneyField';
 import { TextField } from '@/components/ui/TextField';
+import { EXPENSE_TYPES } from '@/constants/enums';
+import { useAsyncAction } from '@/features/forms/useAsyncAction';
 import { useT } from '@/i18n';
 import { useTheme } from '@/theme';
 import type { PurchaseExpense } from '@/types/domain';
@@ -17,7 +19,6 @@ import { todayIsoDate } from '@/utils/dates';
 
 import {
   buildPurchaseExpenseSchema,
-  EXPENSE_TYPES,
   type PurchaseExpenseFormInput,
   type PurchaseExpenseFormValues,
 } from '../schemas/purchaseSchema';
@@ -52,11 +53,11 @@ export function ExpenseSheet({
 }): React.ReactElement {
   const theme = useTheme();
   const t = useT();
-  const insets = useSafeAreaInsets();
 
-  const [isSaving, setIsSaving] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
-  const [saveError, setSaveError] = useState<string | null>(null);
+  // One per action, so the two buttons spin independently and each failure says
+  // which of them failed.
+  const save = useAsyncAction();
+  const removal = useAsyncAction();
 
   // Rebuilt when the language changes: the messages it carries are copy.
   const schema = useMemo(() => buildPurchaseExpenseSchema(t), [t]);
@@ -78,190 +79,132 @@ export function ExpenseSheet({
     },
   });
 
-  const isBusy = isSaving || isDeleting;
+  const isBusy = save.isRunning || removal.isRunning;
+  const actionError = save.error ?? removal.error;
 
   const close = (): void => {
     reset();
-    setSaveError(null);
+    save.reset();
+    removal.reset();
     onClose();
   };
 
   const submit = handleSubmit(async (values) => {
-    setIsSaving(true);
-    setSaveError(null);
-    try {
-      await onSubmit(values);
-    } catch {
-      setSaveError(t('purchases.expenses.saveError'));
-    } finally {
-      setIsSaving(false);
-    }
+    await save.run(() => onSubmit(values), {
+      errorMessage: t('purchases.expenses.saveError'),
+    });
   });
 
   const remove = async (): Promise<void> => {
     if (!onDelete) return;
-    setIsDeleting(true);
-    setSaveError(null);
-    try {
-      await onDelete();
-    } catch {
-      setSaveError(t('purchases.expenses.removeError'));
-    } finally {
-      setIsDeleting(false);
-    }
+    await removal.run(onDelete, { errorMessage: t('purchases.expenses.removeError') });
   };
 
   return (
-    <Modal
-      visible={visible}
-      animationType="slide"
-      transparent
-      onRequestClose={close}
-      accessibilityViewIsModal
-    >
-      <View style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: theme.colors.scrim }}>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={t('common.close')}
+    <BottomSheet visible={visible} onClose={close}>
+      {/* The heading names the thing, the button names the action — saying
+                "Add expense" twice would leave the button doing no work. */}
+      <AppText variant="title" accessibilityRole="header">
+        {expense ? t('purchases.expenses.editTitle') : t('purchases.expenses.newTitle')}
+      </AppText>
+      <AppText variant="caption" color="secondary">
+        {t('purchases.expenses.sheetDescription')}
+      </AppText>
+
+      <Controller
+        control={control}
+        name="name"
+        render={({ field, fieldState }) => (
+          <TextField
+            label={t('purchases.expenses.nameLabel')}
+            required
+            placeholder={t('purchases.expenses.namePlaceholder')}
+            value={field.value}
+            onChangeText={field.onChange}
+            onBlur={field.onBlur}
+            error={fieldState.error?.message}
+            autoCapitalize="sentences"
+          />
+        )}
+      />
+
+      <Controller
+        control={control}
+        name="amountCents"
+        render={({ field, fieldState }) => (
+          <MoneyField
+            label={t('purchases.expenses.amountLabel')}
+            required
+            valueCents={field.value}
+            onChangeCents={field.onChange}
+            error={fieldState.error?.message}
+          />
+        )}
+      />
+
+      <Controller
+        control={control}
+        name="expenseType"
+        render={({ field, fieldState }) => (
+          <ChipSelect
+            label={t('purchases.expenses.typeLabel')}
+            options={EXPENSE_TYPES.map((value) => ({
+              value,
+              label: t(`purchases.expenses.type.${value}`),
+            }))}
+            value={field.value}
+            onChange={(value) => field.onChange(value)}
+            error={fieldState.error?.message}
+          />
+        )}
+      />
+
+      <Controller
+        control={control}
+        name="date"
+        render={({ field, fieldState }) => (
+          <DateField
+            label={t('purchases.expenses.dateLabel')}
+            value={field.value}
+            onChange={field.onChange}
+            error={fieldState.error?.message}
+          />
+        )}
+      />
+
+      {actionError ? (
+        <AppText variant="caption" color="danger" accessibilityRole="alert">
+          {actionError}
+        </AppText>
+      ) : null}
+
+      <View style={{ flexDirection: 'row', gap: theme.spacing.sm }}>
+        <Button
+          label={t('common.cancel')}
+          variant="secondary"
           onPress={close}
           style={{ flex: 1 }}
+          disabled={isBusy}
         />
-
-        <View
-          style={{
-            backgroundColor: theme.colors.background,
-            borderTopLeftRadius: theme.radius.xxl,
-            borderTopRightRadius: theme.radius.xxl,
-            paddingTop: theme.spacing.md,
-            paddingBottom: insets.bottom + theme.spacing.md,
-            maxHeight: '90%',
-          }}
-        >
-          <View
-            // Grabber, purely visual — the close affordances are the scrim and Cancel.
-            style={{
-              alignSelf: 'center',
-              width: 36,
-              height: 4,
-              borderRadius: theme.radius.full,
-              backgroundColor: theme.colors.borderStrong,
-              marginBottom: theme.spacing.md,
-            }}
-          />
-
-          <ScrollView
-            contentContainerStyle={{
-              paddingHorizontal: theme.screenPadding,
-              gap: theme.spacing.md,
-            }}
-            keyboardShouldPersistTaps="handled"
-          >
-            {/* The heading names the thing, the button names the action — saying
-                "Add expense" twice would leave the button doing no work. */}
-            <AppText variant="title" accessibilityRole="header">
-              {expense ? t('purchases.expenses.editTitle') : t('purchases.expenses.newTitle')}
-            </AppText>
-            <AppText variant="caption" color="secondary">
-              {t('purchases.expenses.sheetDescription')}
-            </AppText>
-
-            <Controller
-              control={control}
-              name="name"
-              render={({ field, fieldState }) => (
-                <TextField
-                  label={t('purchases.expenses.nameLabel')}
-                  required
-                  placeholder={t('purchases.expenses.namePlaceholder')}
-                  value={field.value}
-                  onChangeText={field.onChange}
-                  onBlur={field.onBlur}
-                  error={fieldState.error?.message}
-                  autoCapitalize="sentences"
-                />
-              )}
-            />
-
-            <Controller
-              control={control}
-              name="amountCents"
-              render={({ field, fieldState }) => (
-                <MoneyField
-                  label={t('purchases.expenses.amountLabel')}
-                  required
-                  valueCents={field.value}
-                  onChangeCents={field.onChange}
-                  error={fieldState.error?.message}
-                />
-              )}
-            />
-
-            <Controller
-              control={control}
-              name="expenseType"
-              render={({ field, fieldState }) => (
-                <ChipSelect
-                  label={t('purchases.expenses.typeLabel')}
-                  options={EXPENSE_TYPES.map((value) => ({
-                    value,
-                    label: t(`purchases.expenses.type.${value}`),
-                  }))}
-                  value={field.value}
-                  onChange={(value) => field.onChange(value)}
-                  error={fieldState.error?.message}
-                />
-              )}
-            />
-
-            <Controller
-              control={control}
-              name="date"
-              render={({ field, fieldState }) => (
-                <DateField
-                  label={t('purchases.expenses.dateLabel')}
-                  value={field.value}
-                  onChange={field.onChange}
-                  error={fieldState.error?.message}
-                />
-              )}
-            />
-
-            {saveError ? (
-              <AppText variant="caption" color="danger" accessibilityRole="alert">
-                {saveError}
-              </AppText>
-            ) : null}
-
-            <View style={{ flexDirection: 'row', gap: theme.spacing.sm }}>
-              <Button
-                label={t('common.cancel')}
-                variant="secondary"
-                onPress={close}
-                style={{ flex: 1 }}
-                disabled={isBusy}
-              />
-              <Button
-                label={expense ? t('purchases.expenses.saveChanges') : t('purchases.expenses.add')}
-                onPress={submit}
-                loading={isSaving}
-                disabled={isBusy}
-                style={{ flex: 1 }}
-              />
-            </View>
-
-            {onDelete ? (
-              <Button
-                label={t('purchases.expenses.remove')}
-                variant="destructive"
-                size="md"
-                onPress={remove}
-                loading={isDeleting}
-                disabled={isBusy}
-              />
-            ) : null}
-          </ScrollView>
-        </View>
+        <Button
+          label={expense ? t('purchases.expenses.saveChanges') : t('purchases.expenses.add')}
+          onPress={submit}
+          loading={save.isRunning}
+          disabled={isBusy}
+          style={{ flex: 1 }}
+        />
       </View>
-    </Modal>
+
+      {onDelete ? (
+        <Button
+          label={t('purchases.expenses.remove')}
+          variant="destructive"
+          size="md"
+          onPress={remove}
+          loading={removal.isRunning}
+          disabled={isBusy}
+        />
+      ) : null}
+    </BottomSheet>
   );
 }

@@ -35,7 +35,7 @@ export function PurchaseImpactCard({ impact }: { impact: PurchaseImpact }): Reac
           />
           <View style={{ flex: 1 }}>
             <AppText variant="subheading">{t('impact.unavailableTitle')}</AppText>
-            <AppText variant="caption" color="secondary" style={{ marginTop: 2 }}>
+            <AppText variant="caption" color="secondary" style={{ marginTop: theme.spacing.xxxs }}>
               {t('impact.unavailableDescription')}
             </AppText>
           </View>

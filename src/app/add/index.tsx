@@ -8,8 +8,10 @@ import { MoneyValue } from '@/components/ui/MoneyValue';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { SectionHeader } from '@/components/ui/SectionHeader';
+import { Spacer } from '@/components/ui/Spacer';
 import { Thumbnail } from '@/components/ui/Thumbnail';
 import { getPurchaseCategory } from '@/constants/categories';
+import { AddChoiceCard } from '@/features/add/components/AddChoiceCard';
 import { useAppRouter } from '@/features/navigation/useAppRouter';
 import { useGoBack } from '@/features/navigation/useGoBack';
 import { useRecentPurchases } from '@/features/purchases/hooks/usePurchases';
@@ -65,14 +67,14 @@ export default function AddItemScreen(): React.ReactElement {
         </AppText>
 
         <View style={{ gap: theme.spacing.sm }}>
-          <ChoiceCard
+          <AddChoiceCard
             icon={Heart}
             title={t('add.wantToBuy')}
             description={t('add.wantToBuyDescription')}
             highlighted
             onPress={() => router.push('/add/wishlist')}
           />
-          <ChoiceCard
+          <AddChoiceCard
             icon={Package}
             title={t('add.alreadyOwn')}
             description={t('add.alreadyOwnDescription')}
@@ -82,7 +84,7 @@ export default function AddItemScreen(): React.ReactElement {
 
         {recent.length > 0 ? (
           <>
-            <View style={{ height: theme.spacing.xl }} />
+            <Spacer size="xl" />
             <SectionHeader title={t('add.recent')} />
             <View style={{ gap: theme.spacing.xs }}>
               {recent.map((entry) => {
@@ -132,57 +134,5 @@ export default function AddItemScreen(): React.ReactElement {
         ) : null}
       </Screen>
     </>
-  );
-}
-
-function ChoiceCard({
-  icon: Icon,
-  title,
-  description,
-  onPress,
-  highlighted = false,
-}: {
-  icon: typeof Heart;
-  title: string;
-  description: string;
-  onPress: () => void;
-  highlighted?: boolean;
-}): React.ReactElement {
-  const theme = useTheme();
-
-  return (
-    <PressableCard
-      variant={highlighted ? 'accent' : 'surface'}
-      onPress={onPress}
-      padding={theme.spacing.md}
-      accessibilityLabel={title}
-      accessibilityHint={description}
-    >
-      <View style={{ flexDirection: 'row', gap: theme.spacing.sm }}>
-        <View
-          style={{
-            width: 40,
-            height: 40,
-            borderRadius: theme.radius.md,
-            alignItems: 'center',
-            justifyContent: 'center',
-            backgroundColor: highlighted ? theme.colors.surface : theme.colors.surfaceMuted,
-          }}
-        >
-          <Icon
-            size={theme.sizes.icon.lg}
-            color={highlighted ? theme.colors.accent.base : theme.colors.text.secondary}
-            strokeWidth={theme.sizes.iconStrokeWidth}
-          />
-        </View>
-
-        <View style={{ flex: 1 }}>
-          <AppText variant="subheading">{title}</AppText>
-          <AppText variant="caption" color="secondary" style={{ marginTop: 2 }}>
-            {description}
-          </AppText>
-        </View>
-      </View>
-    </PressableCard>
   );
 }
