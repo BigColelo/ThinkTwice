@@ -211,6 +211,8 @@ export const it = {
     unavailableTitle: 'Impatto economico non disponibile',
     unavailableDescription:
       'Inserisci il tuo reddito netto mensile nella schermata Denaro per vedere come si colloca questo prezzo.',
+    noPriceTitle: 'Ancora nessun prezzo',
+    noPriceDescription: 'Inserisci un prezzo per vedere come si colloca rispetto al tuo mese.',
     noAvailableMoney:
       'Le tue spese ricorrenti assorbono al momento tutto il reddito mensile, quindi non c’è un importo disponibile con cui confrontare questo prezzo.',
   },
@@ -230,6 +232,7 @@ export const it = {
       about_a_month: 'Circa un mese del tuo disponibile.',
       over_a_month: 'Più di un mese del tuo disponibile.',
       price_only: 'In base al prezzo, dato che non hai ancora inserito un reddito.',
+      no_price: 'Seguirà il prezzo appena lo inserisci.',
     },
     complete: 'Periodo di riflessione concluso',
     underAnHour: 'Manca meno di un’ora',

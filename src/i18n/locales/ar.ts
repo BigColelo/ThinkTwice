@@ -236,6 +236,8 @@ export const ar = {
     monthsOfAvailable: 'أشهر من المال المتاح',
     unavailableTitle: 'الأثر المالي غير متاح',
     unavailableDescription: 'أدخل دخلك الشهري الصافي في شاشة المال لترى موضع هذا السعر منه.',
+    noPriceTitle: 'لا يوجد سعر بعد',
+    noPriceDescription: 'أدخل سعرًا لترى موضعه من شهرك.',
     noAvailableMoney:
       'تستهلك نفقاتك المتكرّرة حاليًا كامل دخلك الشهري، فلا يوجد مبلغ متاح تُقارن به هذا السعر.',
   },
@@ -255,6 +257,7 @@ export const ar = {
       about_a_month: 'نحو شهر من المبلغ المتاح لك.',
       over_a_month: 'أكثر من شهر من المبلغ المتاح لك.',
       price_only: 'بناءً على السعر، إذ لم تُدخل دخلًا بعد.',
+      no_price: 'سيتبع السعر فور إدخاله.',
     },
     complete: 'انتهت مدة التفكير',
     underAnHour: 'بقي أقل من ساعة',

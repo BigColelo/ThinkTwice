@@ -1,10 +1,10 @@
 import type { TFunction } from 'i18next';
 import React, { createContext, useContext, useMemo } from 'react';
 
-import type { LanguagePreference } from '@/types/domain';
+import type { LanguageCode, LanguagePreference } from '@/types/domain';
 
 import { applyLanguage, i18n } from './instance';
-import { resolveLanguage } from './languages';
+import { DEFAULT_LANGUAGE, resolveLanguage } from './languages';
 
 /**
  * Applies a language to everything below it.
@@ -34,6 +34,11 @@ import { resolveLanguage } from './languages';
 
 const TranslationContext = createContext<TFunction | null>(null);
 
+// Defaults to the app's default language rather than failing, unlike `useT`:
+// `AppText` reads it to set text, and a component rendered on its own in a test
+// still has to draw.
+const LanguageContext = createContext<LanguageCode>(DEFAULT_LANGUAGE);
+
 export function I18nProvider({
   language,
   children,
@@ -50,7 +55,11 @@ export function I18nProvider({
   // picks another one — which is what it was mounted to do.
   const t = useMemo(() => i18n.getFixedT(resolved), [resolved]);
 
-  return <TranslationContext.Provider value={t}>{children}</TranslationContext.Provider>;
+  return (
+    <LanguageContext.Provider value={resolved}>
+      <TranslationContext.Provider value={t}>{children}</TranslationContext.Provider>
+    </LanguageContext.Provider>
+  );
 }
 
 /**
@@ -65,4 +74,12 @@ export function useT(): TFunction {
     throw new Error('useT must be used inside an <I18nProvider>.');
   }
   return t;
+}
+
+/**
+ * The language the nearest provider resolved to — for the rare component that
+ * has to set text differently by language rather than just translate it.
+ */
+export function useLanguage(): LanguageCode {
+  return useContext(LanguageContext);
 }

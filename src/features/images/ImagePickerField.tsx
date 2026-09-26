@@ -9,7 +9,7 @@ import { Thumbnail } from '@/components/ui/Thumbnail';
 import { useT } from '@/i18n';
 import { useTheme } from '@/theme';
 
-import { deleteItemImage, pickItemImage } from './itemImages';
+import { pickItemImage } from './itemImages';
 
 /**
  * Optional photo for an item.
@@ -17,6 +17,13 @@ import { deleteItemImage, pickItemImage } from './itemImages';
  * Every failure mode is reported in place — a denied permission, a picker that
  * could not read the file — because a photo is a nice-to-have and must never
  * block saving the item it belongs to.
+ *
+ * Replacing or removing a photo here only changes the form. The stored file is
+ * deleted by the service once the item is actually saved, and only if nothing
+ * else still shows it. Deleting it on the tap, as this field once did, broke the
+ * photo of an edit that was then cancelled — the record still pointed at a file
+ * that was gone — and, on a purchase that came from the wishlist, broke the
+ * wishlist item's photo too, since the two share one file.
  */
 
 export type ImagePickerFieldProps = {
@@ -43,8 +50,6 @@ export function ImagePickerField({
 
     switch (result.status) {
       case 'picked':
-        // Replacing an image removes the one the app previously stored.
-        if (value) void deleteItemImage(value);
         onChange(result.uri);
         break;
       case 'permission_denied':
@@ -61,7 +66,6 @@ export function ImagePickerField({
   };
 
   const remove = (): void => {
-    if (value) void deleteItemImage(value);
     onChange(null);
     setMessage(null);
   };

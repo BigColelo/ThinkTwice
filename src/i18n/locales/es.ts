@@ -208,6 +208,8 @@ export const es = {
     unavailableTitle: 'Impacto económico no disponible',
     unavailableDescription:
       'Introduce tus ingresos netos mensuales en la pantalla Dinero para ver cómo se sitúa este precio.',
+    noPriceTitle: 'Aún no hay precio',
+    noPriceDescription: 'Introduce un precio para ver cómo se sitúa respecto a tu mes.',
     noAvailableMoney:
       'Tus gastos recurrentes absorben ahora mismo todos tus ingresos mensuales, así que no hay un importe disponible con el que comparar este precio.',
   },
@@ -227,6 +229,7 @@ export const es = {
       about_a_month: 'Alrededor de un mes de tu disponible.',
       over_a_month: 'Más de un mes de tu disponible.',
       price_only: 'Según el precio, ya que aún no has indicado ingresos.',
+      no_price: 'Se ajustará al precio en cuanto lo introduzcas.',
     },
     complete: 'Periodo de reflexión terminado',
     underAnHour: 'Queda menos de una hora',

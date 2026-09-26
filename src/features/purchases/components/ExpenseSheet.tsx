@@ -8,10 +8,12 @@ import { BottomSheet } from '@/components/ui/BottomSheet';
 import { Button } from '@/components/ui/Button';
 import { ChipSelect } from '@/components/ui/ChipSelect';
 import { DateField } from '@/components/ui/DateField';
+import { InlineError } from '@/components/ui/InlineError';
 import { MoneyField } from '@/components/ui/MoneyField';
 import { TextField } from '@/components/ui/TextField';
 import { EXPENSE_TYPES } from '@/constants/enums';
 import { useAsyncAction } from '@/features/forms/useAsyncAction';
+import { useResetOnOpen } from '@/features/forms/useResetOnOpen';
 import { useT } from '@/i18n';
 import { useTheme } from '@/theme';
 import type { PurchaseExpense } from '@/types/domain';
@@ -62,6 +64,15 @@ export function ExpenseSheet({
   // Rebuilt when the language changes: the messages it carries are copy.
   const schema = useMemo(() => buildPurchaseExpenseSchema(t), [t]);
 
+  const initialValues = (): PurchaseExpenseFormInput => ({
+    name: expense?.name ?? '',
+    // Empty rather than zero: the amount is the user's to enter, and a leading
+    // zero cannot be typed over.
+    amountCents: expense?.amountCents ?? null,
+    expenseType: expense?.expenseType ?? 'accessory',
+    date: expense?.date ?? todayIsoDate(),
+  });
+
   const { control, handleSubmit, reset } = useForm<
     PurchaseExpenseFormInput,
     unknown,
@@ -69,15 +80,12 @@ export function ExpenseSheet({
   >({
     resolver: zodResolver(schema),
     mode: 'onTouched',
-    defaultValues: {
-      name: expense?.name ?? '',
-      // Empty rather than zero: the amount is the user's to enter, and a leading
-      // zero cannot be typed over.
-      amountCents: expense?.amountCents ?? null,
-      expenseType: expense?.expenseType ?? 'accessory',
-      date: expense?.date ?? todayIsoDate(),
-    },
+    defaultValues: initialValues(),
   });
+
+  // After an expense is added the caller closes the sheet without remounting it,
+  // so the next "Add expense" would otherwise open on the one just saved.
+  useResetOnOpen(visible, reset, initialValues);
 
   const isBusy = save.isRunning || removal.isRunning;
   const actionError = save.error ?? removal.error;
@@ -172,11 +180,7 @@ export function ExpenseSheet({
         )}
       />
 
-      {actionError ? (
-        <AppText variant="caption" color="danger" accessibilityRole="alert">
-          {actionError}
-        </AppText>
-      ) : null}
+      <InlineError message={actionError} />
 
       <View style={{ flexDirection: 'row', gap: theme.spacing.sm }}>
         <Button

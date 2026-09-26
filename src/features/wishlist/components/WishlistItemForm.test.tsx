@@ -67,6 +67,25 @@ describe('WishlistItemForm, adding', () => {
     expect(screen.queryByDisplayValue('0')).toBeNull();
   });
 
+  it('sizes nothing until a price is typed, then sizes that price', async () => {
+    // An empty price used to be measured as zero: "Low financial impact", and a
+    // one-day period justified as "small compared to" the month.
+    await renderWithProviders(
+      <WishlistItemForm finances={FINANCES} submitLabel="Start thinking" onSubmit={jest.fn()} />,
+    );
+
+    expect(screen.getByText('No price yet')).toBeTruthy();
+    expect(screen.queryByText('Low financial impact')).toBeNull();
+    expect(screen.getByText(/It will follow the price once you enter one\./)).toBeTruthy();
+    expect(screen.queryByText(/Small compared to/)).toBeNull();
+
+    await fireEvent.changeText(screen.getByLabelText('Price'), '20');
+
+    expect(screen.queryByText('No price yet')).toBeNull();
+    expect(screen.getByText('Low financial impact')).toBeTruthy();
+    expect(screen.getByText(/Small compared to your monthly available amount\./)).toBeTruthy();
+  });
+
   it('refuses to save without a name and a price', async () => {
     const onSubmit = jest.fn(async (_values: CreateWishlistItemInput) => undefined);
     await renderWithProviders(

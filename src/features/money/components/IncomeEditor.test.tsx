@@ -126,7 +126,6 @@ describe('IncomeEditor, when settings change underneath it', () => {
       settings: { ...FALLBACK_SETTINGS, monthlyNetIncomeCents: income },
       isLoading: false,
       updateSettings: async () => undefined,
-      reloadSettings: async () => undefined,
     };
 
     return (

@@ -7,6 +7,7 @@ import { AppText } from '@/components/ui/AppText';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { ChipSelect } from '@/components/ui/ChipSelect';
+import { InlineError } from '@/components/ui/InlineError';
 import { MoneyField } from '@/components/ui/MoneyField';
 import { MoneyValue } from '@/components/ui/MoneyValue';
 import { Screen } from '@/components/ui/Screen';
@@ -243,11 +244,7 @@ export function CommitmentForm({
           </Card>
         ) : null}
 
-        {(save.error ?? remove.error) ? (
-          <AppText variant="caption" color="danger" accessibilityRole="alert">
-            {save.error ?? remove.error}
-          </AppText>
-        ) : null}
+        <InlineError message={save.error ?? remove.error} />
 
         {onDelete ? (
           <Button

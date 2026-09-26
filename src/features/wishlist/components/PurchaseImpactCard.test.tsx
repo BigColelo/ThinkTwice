@@ -30,6 +30,17 @@ describe('PurchaseImpactCard', () => {
     expect(screen.getByText('High financial impact')).toBeTruthy();
   });
 
+  it('asks for a price instead of sizing one that was never entered', async () => {
+    await renderWithProviders(
+      <PurchaseImpactCard impact={calculatePurchaseImpact(null, FINANCES)} />,
+    );
+
+    expect(screen.getByText('No price yet')).toBeTruthy();
+    expect(screen.getByText('Enter a price to see how it compares to your month.')).toBeTruthy();
+    expect(screen.queryByText(/financial impact$/)).toBeNull();
+    expect(screen.queryByText('0%')).toBeNull();
+  });
+
   it('never tells the user whether they can afford something', async () => {
     await renderWithProviders(
       <PurchaseImpactCard impact={calculatePurchaseImpact(179_900, FINANCES)} />,

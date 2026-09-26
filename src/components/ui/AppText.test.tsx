@@ -1,7 +1,8 @@
 import { screen } from '@testing-library/react-native';
+import { StyleSheet } from 'react-native';
 
 import { renderWithProviders } from '@/test/renderWithProviders';
-import { maxFontSizeMultiplier } from '@/theme/typography';
+import { maxFontSizeMultiplier, typography } from '@/theme/typography';
 
 import { AppText } from './AppText';
 
@@ -46,5 +47,21 @@ describe('AppText', () => {
       expect({ role, multiplier }).toEqual({ role, multiplier: expect.any(Number) });
       expect(multiplier).toBeGreaterThanOrEqual(1);
     }
+  });
+
+  it("keeps the role's tracking in a script whose letters stand apart", async () => {
+    await renderWithProviders(<AppText variant="heading">Settings</AppText>, { language: 'en' });
+
+    const style = StyleSheet.flatten(screen.getByText('Settings').props.style);
+    expect(style.letterSpacing).toBe(typography.heading.letterSpacing);
+  });
+
+  it('never letter-spaces Arabic, whose letters join', async () => {
+    // Tracking pulls a joined word apart, and on Android it made a one-line title
+    // measure narrower than it draws: "الإعدادات" was cut to "الإعدادا…".
+    await renderWithProviders(<AppText variant="heading">الإعدادات</AppText>, { language: 'ar' });
+
+    const style = StyleSheet.flatten(screen.getByText('الإعدادات').props.style);
+    expect(style.letterSpacing).toBe(0);
   });
 });

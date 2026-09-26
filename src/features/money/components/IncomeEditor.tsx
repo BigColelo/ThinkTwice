@@ -4,6 +4,7 @@ import { View } from 'react-native';
 import { AppText } from '@/components/ui/AppText';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
+import { InlineError } from '@/components/ui/InlineError';
 import { MoneyField } from '@/components/ui/MoneyField';
 import { useAsyncAction } from '@/features/forms/useAsyncAction';
 import { buildMonthlyIncomeSchema } from '@/features/money/schemas/commitmentSchema';
@@ -112,11 +113,7 @@ export function IncomeEditor(): React.ReactElement {
           error={fieldErrors.savings}
         />
 
-        {save.error ? (
-          <AppText variant="caption" color="danger" accessibilityRole="alert">
-            {save.error}
-          </AppText>
-        ) : null}
+        <InlineError message={save.error} />
 
         {hasChanges ? (
           <Button

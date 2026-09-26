@@ -1,23 +1,14 @@
 import { useLocalSearchParams } from 'expo-router';
-import { Calendar, Pencil, Repeat, Trash2 } from 'lucide-react-native';
+import { Pencil, Trash2 } from 'lucide-react-native';
 import React, { useMemo, useState } from 'react';
-import { View } from 'react-native';
 
-import { AppText } from '@/components/ui/AppText';
 import { Button } from '@/components/ui/Button';
-import { Card } from '@/components/ui/Card';
-import { Chip } from '@/components/ui/Chip';
-import { ItemImage } from '@/components/ui/ItemImage';
-import { RowDivider } from '@/components/ui/ListRow';
-import { MoneyValue } from '@/components/ui/MoneyValue';
+import { InlineError } from '@/components/ui/InlineError';
 import { LoadingScreen, MissingRecordScreen } from '@/components/ui/RecordScreens';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { SectionHeader } from '@/components/ui/SectionHeader';
 import { Spacer } from '@/components/ui/Spacer';
-import { MetricCell, MetricDivider } from '@/components/ui/StatCard';
-import { getPurchaseCategory } from '@/constants/categories';
-import { usageFrequencyShortLabel } from '@/constants/usagePresets';
 import { useRepositories } from '@/db/DatabaseProvider';
 import {
   calculateCooldownState,
@@ -26,13 +17,18 @@ import {
   isDecided,
 } from '@/domain';
 import { useConfirm } from '@/features/dialogs/useConfirm';
+import { useAsyncAction } from '@/features/forms/useAsyncAction';
 import { useMonthlyFinances } from '@/features/money/hooks/useMonthlyFinances';
 import { useAppRouter } from '@/features/navigation/useAppRouter';
 import { useDeleteAndLeave } from '@/features/navigation/useDeleteAndLeave';
 import { useGoBack } from '@/features/navigation/useGoBack';
 import { ConfirmPurchaseSheet } from '@/features/wishlist/components/ConfirmPurchaseSheet';
-import { CooldownCard } from '@/features/wishlist/components/CooldownCard';
+import { DecisionBar } from '@/features/wishlist/components/DecisionBar';
+import { ExpectedUsageCard } from '@/features/wishlist/components/ExpectedUsageCard';
 import { PurchaseImpactCard } from '@/features/wishlist/components/PurchaseImpactCard';
+import { WishlistItemIdentity } from '@/features/wishlist/components/WishlistItemIdentity';
+import { WishlistItemStatus } from '@/features/wishlist/components/WishlistItemStatus';
+import { WishlistNotesCard } from '@/features/wishlist/components/WishlistNotesCard';
 import { wishlistDeleteConfirmation } from '@/features/wishlist/deleteConfirmation';
 import { useWishlistItem } from '@/features/wishlist/hooks/useWishlist';
 import {
@@ -41,9 +37,7 @@ import {
   dismissWishlistItem,
   type ConvertToPurchaseOptions,
 } from '@/features/wishlist/services/wishlistActions';
-import { formatMonthsAsDuration, useT } from '@/i18n';
-import { useTheme } from '@/theme';
-import { formatNumber } from '@/utils/currency';
+import { useT } from '@/i18n';
 
 /**
  * The reflection screen — the heart of ThinkTwice.
@@ -53,7 +47,6 @@ import { formatNumber } from '@/utils/currency';
  * for either one.
  */
 export default function WishlistDetailScreen(): React.ReactElement {
-  const theme = useTheme();
   const t = useT();
   const router = useAppRouter();
   const repositories = useRepositories();
@@ -68,25 +61,16 @@ export default function WishlistDetailScreen(): React.ReactElement {
   const { finances } = useMonthlyFinances();
 
   const [isConfirmingPurchase, setIsConfirmingPurchase] = useState(false);
-  const [isDismissing, setIsDismissing] = useState(false);
-  const [actionError, setActionError] = useState<string | null>(null);
+  // One per action. Starting either drops the other's message, so the line above
+  // the delete button always speaks about the last thing the user tried.
+  const dismissal = useAsyncAction();
+  const deletion = useAsyncAction();
 
   const cooldown = useMemo(() => (item ? calculateCooldownState(item) : null), [item]);
   const impact = useMemo(
     () => (item ? calculatePurchaseImpact(item.priceCents, finances) : null),
     [item, finances],
   );
-
-  // The same pair the form previewed while this item was being added, computed
-  // the same way — an item's own screen must not disagree with the estimate the
-  // decision was made on.
-  const estimate = item
-    ? calculateUsageEstimate(item.priceCents, {
-        frequency: item.expectedUsageFrequency,
-        customUsesPerMonth: item.customUsesPerMonth,
-        expectedOwnershipMonths: item.expectedOwnershipMonths,
-      })
-    : null;
 
   // The sheet collects the two facts the wishlist item cannot know — what was
   // paid and when — and surfaces its own failure, so this only navigates.
@@ -108,15 +92,12 @@ export default function WishlistDetailScreen(): React.ReactElement {
     });
     if (!confirmed) return;
 
-    setIsDismissing(true);
-    setActionError(null);
-    try {
-      await dismissWishlistItem(repositories, item.id);
-      goBack();
-    } catch {
-      setActionError(t('wishlist.dismissError'));
-      setIsDismissing(false);
-    }
+    deletion.reset();
+    const dismissed = await dismissal.run(() => dismissWishlistItem(repositories, item.id), {
+      errorMessage: t('wishlist.dismissError'),
+      stayBusyOnSuccess: true,
+    });
+    if (dismissed) goBack();
   };
 
   const handleDelete = async (): Promise<void> => {
@@ -125,12 +106,10 @@ export default function WishlistDetailScreen(): React.ReactElement {
     const confirmed = await confirm(wishlistDeleteConfirmation(t, item.status));
     if (!confirmed) return;
 
-    setActionError(null);
-    try {
-      await remove(() => deleteWishlistItem(repositories, item));
-    } catch {
-      setActionError(t('wishlist.deleteError'));
-    }
+    dismissal.reset();
+    await deletion.run(() => remove(() => deleteWishlistItem(repositories, item)), {
+      errorMessage: t('wishlist.deleteError'),
+    });
   };
 
   if (isLoading) return <LoadingScreen onBack={goBack} />;
@@ -146,8 +125,16 @@ export default function WishlistDetailScreen(): React.ReactElement {
     );
   }
 
-  const category = getPurchaseCategory(item.categoryId);
   const decided = isDecided(item.status);
+
+  // The same pair the form previewed while this item was being added, computed
+  // the same way — an item's own screen must not disagree with the estimate the
+  // decision was made on.
+  const estimate = calculateUsageEstimate(item.priceCents, {
+    frequency: item.expectedUsageFrequency,
+    customUsesPerMonth: item.customUsesPerMonth,
+    expectedOwnershipMonths: item.expectedOwnershipMonths,
+  });
 
   return (
     <>
@@ -171,50 +158,16 @@ export default function WishlistDetailScreen(): React.ReactElement {
         scroll
         footer={
           decided ? undefined : (
-            <View style={{ flexDirection: 'row', gap: theme.spacing.sm }}>
-              <Button
-                label={t('wishlist.noLongerWantIt')}
-                variant="secondary"
-                onPress={handleDismissed}
-                loading={isDismissing}
-                style={{ flex: 1 }}
-              />
-              <Button
-                label={t('wishlist.iBoughtIt')}
-                onPress={() => setIsConfirmingPurchase(true)}
-                disabled={isDismissing}
-                style={{ flex: 1 }}
-              />
-            </View>
+            <DecisionBar
+              onDismiss={handleDismissed}
+              onBought={() => setIsConfirmingPurchase(true)}
+              isDismissing={dismissal.isRunning}
+            />
           )
         }
       >
-        <ItemImage uri={item.imageUri} height={220} style={{ marginBottom: theme.spacing.md }} />
-
-        <AppText variant="title">{item.name}</AppText>
-        <MoneyValue
-          cents={item.priceCents}
-          variant="metric"
-          style={{ marginTop: theme.spacing.xxs }}
-        />
-        <View style={{ flexDirection: 'row', marginTop: theme.spacing.xs }}>
-          <Chip label={t(category.labelKey)} icon={category.icon} tint={category.tint} />
-        </View>
-
-        {decided ? (
-          <View style={{ marginTop: theme.spacing.md }}>
-            <Chip
-              label={
-                item.status === 'purchased' ? t('wishlist.boughtIt') : t('wishlist.dismissedIt')
-              }
-              tone={item.status === 'purchased' ? 'positive' : 'neutral'}
-            />
-          </View>
-        ) : cooldown ? (
-          <View style={{ marginTop: theme.spacing.md }}>
-            <CooldownCard state={cooldown} cooldownDays={item.cooldownDays} />
-          </View>
-        ) : null}
+        <WishlistItemIdentity item={item} />
+        <WishlistItemStatus item={item} cooldown={cooldown} />
 
         <Spacer size="xl" />
         <SectionHeader title={t('impact.sectionTitle')} />
@@ -222,75 +175,17 @@ export default function WishlistDetailScreen(): React.ReactElement {
 
         <Spacer size="xl" />
         <SectionHeader title={t('wishlist.expectedUsageTitle')} />
-
-        <Card padding={theme.spacing.md}>
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: theme.spacing.xs }}>
-            <Chip
-              icon={Repeat}
-              label={usageFrequencyShortLabel(
-                t,
-                item.expectedUsageFrequency,
-                item.customUsesPerMonth,
-              )}
-            />
-            <Chip icon={Calendar} label={formatMonthsAsDuration(t, item.expectedOwnershipMonths)} />
-          </View>
-
-          <RowDivider spacing="md" />
-
-          <View style={{ flexDirection: 'row', alignItems: 'stretch' }}>
-            <MetricCell
-              label={t('wishlist.estimatedUses')}
-              value={
-                estimate?.estimatedUses == null
-                  ? t('common.noValue')
-                  : formatNumber(estimate.estimatedUses)
-              }
-            />
-            <MetricDivider />
-            <MetricCell
-              label={t('wishlist.estimatedCostPerUse')}
-              value={
-                estimate?.costPerUseCents == null ? (
-                  <AppText variant="metricSmall" color="tertiary">
-                    {t('common.noValue')}
-                  </AppText>
-                ) : (
-                  <MoneyValue
-                    cents={estimate.costPerUseCents}
-                    variant="metricSmall"
-                    decimals="always"
-                    adjustsFontSizeToFit
-                    numberOfLines={1}
-                  />
-                )
-              }
-            />
-          </View>
-        </Card>
+        <ExpectedUsageCard item={item} estimate={estimate} />
 
         {item.notes ? (
           <>
             <Spacer size="xl" />
             <SectionHeader title={t('wishlist.whyYouWantIt')} />
-            <Card padding={theme.spacing.md}>
-              <AppText variant="body" color="secondary">
-                {item.notes}
-              </AppText>
-            </Card>
+            <WishlistNotesCard notes={item.notes} />
           </>
         ) : null}
 
-        {actionError ? (
-          <AppText
-            variant="caption"
-            color="danger"
-            accessibilityRole="alert"
-            style={{ marginTop: theme.spacing.md }}
-          >
-            {actionError}
-          </AppText>
-        ) : null}
+        <InlineError message={dismissal.error ?? deletion.error} spaceAbove="md" />
 
         <Spacer size="xl" />
         <Button

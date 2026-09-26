@@ -208,6 +208,8 @@ export const fr = {
     unavailableTitle: 'Impact financier non disponible',
     unavailableDescription:
       'Renseigne ton revenu net mensuel dans l’écran Argent pour voir comment ce prix se situe.',
+    noPriceTitle: 'Pas encore de prix',
+    noPriceDescription: 'Saisis un prix pour voir comment il se situe par rapport à ton mois.',
     noAvailableMoney:
       'Tes dépenses récurrentes absorbent actuellement tout ton revenu mensuel : il n’y a donc pas de montant disponible auquel comparer ce prix.',
   },
@@ -227,6 +229,7 @@ export const fr = {
       about_a_month: 'Environ un mois de ton disponible.',
       over_a_month: 'Plus d’un mois de ton disponible.',
       price_only: 'D’après le prix, puisqu’aucun revenu n’est encore renseigné.',
+      no_price: 'Il suivra le prix dès que tu en saisiras un.',
     },
     complete: 'Temps de réflexion terminé',
     underAnHour: 'Moins d’une heure restante',

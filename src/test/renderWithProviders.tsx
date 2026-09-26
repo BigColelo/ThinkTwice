@@ -49,7 +49,6 @@ export function renderWithProviders(
     settings: { ...FALLBACK_SETTINGS, onboardingCompleted: true, ...settings },
     isLoading: false,
     updateSettings: updateSettings ?? (async () => undefined),
-    reloadSettings: async () => undefined,
   };
 
   function Wrapper({ children }: { children: React.ReactNode }): React.ReactElement {

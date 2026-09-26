@@ -3,9 +3,9 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Controller, useForm, useWatch } from 'react-hook-form';
 import { View } from 'react-native';
 
-import { AppText } from '@/components/ui/AppText';
 import { Button } from '@/components/ui/Button';
 import { ChipSelect } from '@/components/ui/ChipSelect';
+import { InlineError } from '@/components/ui/InlineError';
 import { MoneyField } from '@/components/ui/MoneyField';
 import { Screen } from '@/components/ui/Screen';
 import { SectionHeader } from '@/components/ui/SectionHeader';
@@ -108,7 +108,9 @@ export function WishlistItemForm({
 
   const values = useWatch({ control });
 
-  const priceCents = values.priceCents ?? 0;
+  // `null` until a price is typed — the impact and the suggested period both say
+  // so, rather than describing a price of zero.
+  const priceCents = values.priceCents ?? null;
   const impact = useMemo(
     () => calculatePurchaseImpact(priceCents, finances),
     [priceCents, finances],
@@ -305,16 +307,7 @@ export function WishlistItemForm({
         )}
       />
 
-      {save.error ? (
-        <AppText
-          variant="caption"
-          color="danger"
-          accessibilityRole="alert"
-          style={{ marginTop: theme.spacing.md }}
-        >
-          {save.error}
-        </AppText>
-      ) : null}
+      <InlineError message={save.error} spaceAbove="md" />
     </Screen>
   );
 }

@@ -66,7 +66,8 @@ export type InsightsSummary = {
   /**
    * Mean real cost per use across items that have at least one recorded use.
    * Items with no usage are excluded rather than counted as infinitely
-   * expensive, which would make the average meaningless.
+   * expensive, which would make the average meaningless; an item worth more
+   * than it cost counts as zero rather than as a negative cost. Never below zero.
    */
   averageCostPerUseCents: number | null;
   /** How many purchases contributed to the average. Shown so the figure is honest. */
@@ -148,7 +149,12 @@ export function calculateInsights(input: InsightsInput, now: Date = new Date()):
     if (costPerUse == null) continue;
 
     itemsWithUsage += 1;
-    costPerUseSum += costPerUse;
+    // An item whose resale estimate is above what was spent on it has a negative
+    // cost per use. In the average it counts as having cost nothing per use: a
+    // surplus on one item is not a discount on the others, and an average cost
+    // below zero describes nothing a user has paid. The highlights below keep the
+    // real figure, which is the one its own screen and the sorted list show.
+    costPerUseSum += Math.max(costPerUse, 0);
 
     const highlight: ValueHighlight = {
       purchaseId: purchase.id,

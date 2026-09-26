@@ -54,7 +54,7 @@ export function PurchaseCard({
           size={theme.sizes.thumbnail.md}
         />
 
-        <View style={{ flex: 1, gap: 2 }}>
+        <View style={{ flex: 1, gap: theme.spacing.xxxs }}>
           <AppText variant="bodyStrong" numberOfLines={1}>
             {purchase.name}
           </AppText>

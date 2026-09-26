@@ -31,12 +31,23 @@ export function ThinkTwiceMark({ size = 96 }: { size?: number }): React.ReactEle
   );
 }
 
-/** The wordmark: "Think" in the text colour, "Twice" in the accent. */
+/**
+ * The wordmark: "Think" in the text colour, "Twice" in the accent.
+ *
+ * Two pieces of text in a row, so the row is pinned left to right: a mirrored
+ * layout would otherwise lay them out as "TwiceThink". A name is not translated
+ * or mirrored, in Arabic any more than anywhere else. The row hugs its text, so
+ * the name still sits where a line starts — on the right, under Arabic.
+ */
 export function ThinkTwiceWordmark(): React.ReactElement {
   const theme = useTheme();
 
   return (
-    <View accessible accessibilityLabel="ThinkTwice" style={{ flexDirection: 'row' }}>
+    <View
+      accessible
+      accessibilityLabel="ThinkTwice"
+      style={{ flexDirection: 'row', direction: 'ltr', alignSelf: 'flex-start' }}
+    >
       <AppText variant="title">Think</AppText>
       <AppText variant="title" style={{ color: theme.colors.accent.base }}>
         Twice

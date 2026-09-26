@@ -1,6 +1,5 @@
 import { Settings, ShoppingBag } from 'lucide-react-native';
 import React, { useCallback, useState } from 'react';
-import { FlatList } from 'react-native';
 
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Screen } from '@/components/ui/Screen';
@@ -8,11 +7,9 @@ import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { ErrorState, LoadingState } from '@/components/ui/StateViews';
 import { PurchaseSort } from '@/db/repositories';
 import { useAppRouter } from '@/features/navigation/useAppRouter';
-import { PurchaseCard } from '@/features/purchases/components/PurchaseCard';
-import { PurchaseSortBar } from '@/features/purchases/components/PurchaseSortBar';
+import { PurchaseList } from '@/features/purchases/components/PurchaseList';
 import { usePurchases } from '@/features/purchases/hooks/usePurchases';
 import { useT } from '@/i18n';
-import { useTheme } from '@/theme';
 import { PurchaseWithStats } from '@/types/domain';
 
 /**
@@ -20,22 +17,19 @@ import { PurchaseWithStats } from '@/types/domain';
  * a single query regardless of length, and the rows render through `FlatList`.
  */
 export default function PurchasesScreen(): React.ReactElement {
-  const theme = useTheme();
   const t = useT();
   const router = useAppRouter();
   const [sort, setSort] = useState<PurchaseSort>('recent');
 
   const { data, isLoading, error, refetch, isRefreshing } = usePurchases(sort);
 
-  const renderItem = useCallback(
-    ({ item }: { item: PurchaseWithStats }) => (
-      <PurchaseCard purchase={item} onPress={() => router.push(`/purchase/${item.id}`)} />
-    ),
+  // Stable, so the list's rows are not all re-created on every render.
+  const openPurchase = useCallback(
+    (purchase: PurchaseWithStats) => router.push(`/purchase/${purchase.id}`),
     [router],
   );
 
   const purchases = data ?? [];
-  const hasPurchases = purchases.length > 0;
 
   return (
     <>
@@ -56,7 +50,7 @@ export default function PurchasesScreen(): React.ReactElement {
         <Screen>
           <LoadingState />
         </Screen>
-      ) : !hasPurchases ? (
+      ) : purchases.length === 0 ? (
         <Screen scroll edgeBottom={false}>
           <EmptyState
             icon={ShoppingBag}
@@ -69,22 +63,13 @@ export default function PurchasesScreen(): React.ReactElement {
           />
         </Screen>
       ) : (
-        <FlatList
-          data={purchases}
-          keyExtractor={(item) => item.id}
-          renderItem={renderItem}
-          refreshing={isRefreshing}
+        <PurchaseList
+          purchases={purchases}
+          sort={sort}
+          onSortChange={setSort}
+          onSelect={openPurchase}
+          isRefreshing={isRefreshing}
           onRefresh={refetch}
-          style={{ flex: 1, backgroundColor: theme.colors.background }}
-          contentContainerStyle={{
-            paddingHorizontal: theme.screenPadding,
-            paddingBottom: theme.spacing.xl,
-            gap: theme.spacing.xs,
-          }}
-          ListHeaderComponent={
-            <PurchaseSortBar sort={sort} onChange={setSort} count={purchases.length} />
-          }
-          showsVerticalScrollIndicator={false}
         />
       )}
     </>

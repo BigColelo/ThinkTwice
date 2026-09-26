@@ -56,7 +56,7 @@ export function CooldownCard({
           />
         </ProgressRing>
 
-        <View style={{ flex: 1, gap: 2 }}>
+        <View style={{ flex: 1, gap: theme.spacing.xxxs }}>
           <AppText variant="subheading" color={isComplete ? 'positive' : 'accent'}>
             {cooldownRemainingText(t, remaining)}
           </AppText>

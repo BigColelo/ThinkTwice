@@ -17,6 +17,31 @@ import { ConfirmPurchaseSheet } from './ConfirmPurchaseSheet';
 const ITEM = { name: 'Camera', priceCents: 179_900 };
 
 describe('ConfirmPurchaseSheet', () => {
+  it('opens on the price the item has now, not the one it had when the screen appeared', async () => {
+    // The item's screen, and the sheet on it, stay mounted while the item is
+    // edited; the sheet is only hidden in between.
+    const { rerender } = await renderWithProviders(
+      <ConfirmPurchaseSheet
+        item={ITEM}
+        visible={false}
+        onClose={jest.fn()}
+        onConfirm={jest.fn()}
+      />,
+    );
+
+    await rerender(
+      <ConfirmPurchaseSheet
+        item={{ ...ITEM, priceCents: 149_900 }}
+        visible
+        onClose={jest.fn()}
+        onConfirm={jest.fn()}
+      />,
+    );
+
+    expect(screen.getByDisplayValue('1499')).toBeTruthy();
+    expect(screen.queryByDisplayValue('1799')).toBeNull();
+  });
+
   it('prefills what was paid with the price under consideration', async () => {
     await renderWithProviders(
       <ConfirmPurchaseSheet item={ITEM} visible onClose={jest.fn()} onConfirm={jest.fn()} />,

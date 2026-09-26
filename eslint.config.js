@@ -24,6 +24,57 @@ const RESTRICTED_CONFIRM = {
     "Use `useConfirm()` from '@/features/dialogs/useConfirm': it supplies the Cancel label in the screen's language.",
 };
 
+// A route is a default export and nothing else: it reads its parameters,
+// composes feature components and decides what an action means. Anything it
+// drew itself could never be tested — Expo Router ships every `.tsx` under
+// `src/app` as a screen, test files included — so markup, text and layout live
+// in `src/features/<area>/components`, and these keep them from drifting back.
+const ROUTE_MARKUP_MESSAGE =
+  'A route composes feature components. Markup of its own belongs in src/features/<area>/components, where it can be tested.';
+
+const RESTRICTED_ROUTE_MARKUP = [
+  { name: 'react-native', message: ROUTE_MARKUP_MESSAGE },
+  { name: '@/components/ui/AppText', message: ROUTE_MARKUP_MESSAGE },
+  { name: '@/theme', importNames: ['useTheme', 'useThemedStyles'], message: ROUTE_MARKUP_MESSAGE },
+];
+
+const ROUTE_EXPORT_MESSAGE =
+  'A route file holds its default export and nothing else. Move this into src/features/<area>, where it can be tested.';
+
+const ROUTE_HOLDS_ITS_DEFAULT_EXPORT_ONLY = [
+  { selector: 'Program > FunctionDeclaration', message: ROUTE_EXPORT_MESSAGE },
+  { selector: 'Program > ClassDeclaration', message: ROUTE_EXPORT_MESSAGE },
+  {
+    selector:
+      'Program > VariableDeclaration > VariableDeclarator[init.type=/^(ArrowFunctionExpression|FunctionExpression)$/]',
+    message: ROUTE_EXPORT_MESSAGE,
+  },
+  {
+    selector: 'Program > ExportNamedDeclaration > :matches(FunctionDeclaration, ClassDeclaration)',
+    message: ROUTE_EXPORT_MESSAGE,
+  },
+  {
+    selector:
+      'Program > ExportNamedDeclaration > VariableDeclaration > VariableDeclarator[init.type=/^(ArrowFunctionExpression|FunctionExpression)$/]',
+    message: ROUTE_EXPORT_MESSAGE,
+  },
+];
+
+// Reads go through a feature hook and writes through a service — the service
+// is what names the entities a write touched, and that is the only thing that
+// refreshes the other open screens. A repository reached from a screen or a
+// component skips it, and the failure is silent.
+const REPOSITORY_MESSAGE =
+  'Screens and components never touch a repository: read through a feature hook, write through a service.';
+
+const NO_DIRECT_REPOSITORY_ACCESS = [
+  { selector: "MemberExpression[object.name='repositories']", message: REPOSITORY_MESSAGE },
+  {
+    selector: "VariableDeclarator[id.type='ObjectPattern'][init.callee.name='useRepositories']",
+    message: REPOSITORY_MESSAGE,
+  },
+];
+
 module.exports = [
   ...expoConfig,
   prettierConfig,
@@ -64,6 +115,29 @@ module.exports = [
     files: ['src/**/*.ts', 'src/**/*.tsx'],
     rules: {
       'no-restricted-imports': ['error', { paths: [RESTRICTED_ROUTER, RESTRICTED_CONFIRM] }],
+    },
+  },
+  {
+    files: ['src/app/**/*.tsx'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        { paths: [RESTRICTED_ROUTER, RESTRICTED_CONFIRM, ...RESTRICTED_ROUTE_MARKUP] },
+      ],
+      'no-restricted-syntax': [
+        'error',
+        ...ROUTE_HOLDS_ITS_DEFAULT_EXPORT_ONLY,
+        ...NO_DIRECT_REPOSITORY_ACCESS,
+      ],
+    },
+  },
+  {
+    files: ['src/features/**/*.tsx', 'src/components/**/*.tsx'],
+    // The settings provider is the one query that lives in context rather than
+    // in a hook, so it reads its own row; the tests build fake repositories.
+    ignores: ['**/*.test.tsx', 'src/features/settings/SettingsProvider.tsx'],
+    rules: {
+      'no-restricted-syntax': ['error', ...NO_DIRECT_REPOSITORY_ACCESS],
     },
   },
   {

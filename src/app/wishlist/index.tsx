@@ -1,19 +1,17 @@
 import { Clock } from 'lucide-react-native';
 import React from 'react';
-import { View } from 'react-native';
 
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
-import { SectionHeader } from '@/components/ui/SectionHeader';
 import { Spacer } from '@/components/ui/Spacer';
 import { ErrorState, LoadingState } from '@/components/ui/StateViews';
 import { useAppRouter } from '@/features/navigation/useAppRouter';
 import { useGoBack } from '@/features/navigation/useGoBack';
-import { WishlistCard } from '@/features/wishlist/components/WishlistCard';
+import { WishlistGroup } from '@/features/wishlist/components/WishlistGroup';
 import { useWishlist } from '@/features/wishlist/hooks/useWishlist';
 import { useT } from '@/i18n';
-import { useTheme } from '@/theme';
+import type { WishlistItem } from '@/types/domain';
 
 /**
  * Everything the user is currently considering, grouped by whether the
@@ -21,13 +19,13 @@ import { useTheme } from '@/theme';
  * they are the ones asking for something.
  */
 export default function WishlistScreen(): React.ReactElement {
-  const theme = useTheme();
   const t = useT();
   const router = useAppRouter();
   const { thinking, readyToDecide, isLoading, error, refetch } = useWishlist();
   const goBack = useGoBack();
 
   const isEmpty = thinking.length === 0 && readyToDecide.length === 0;
+  const open = (item: WishlistItem): void => router.push(`/wishlist/${item.id}`);
 
   return (
     <>
@@ -49,36 +47,22 @@ export default function WishlistScreen(): React.ReactElement {
           <>
             {readyToDecide.length > 0 ? (
               <>
-                <SectionHeader
+                <WishlistGroup
                   title={t('wishlistList.readyTitle')}
                   subtitle={t('wishlistList.readySubtitle')}
+                  items={readyToDecide}
+                  onSelect={open}
                 />
-                <View style={{ gap: theme.spacing.xs }}>
-                  {readyToDecide.map((item) => (
-                    <WishlistCard
-                      key={item.id}
-                      item={item}
-                      onPress={() => router.push(`/wishlist/${item.id}`)}
-                    />
-                  ))}
-                </View>
                 <Spacer size="xl" />
               </>
             ) : null}
 
             {thinking.length > 0 ? (
-              <>
-                <SectionHeader title={t('wishlistList.thinkingTitle')} />
-                <View style={{ gap: theme.spacing.xs }}>
-                  {thinking.map((item) => (
-                    <WishlistCard
-                      key={item.id}
-                      item={item}
-                      onPress={() => router.push(`/wishlist/${item.id}`)}
-                    />
-                  ))}
-                </View>
-              </>
+              <WishlistGroup
+                title={t('wishlistList.thinkingTitle')}
+                items={thinking}
+                onSelect={open}
+              />
             ) : null}
           </>
         )}

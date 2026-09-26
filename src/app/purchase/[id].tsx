@@ -1,25 +1,23 @@
 import { useLocalSearchParams } from 'expo-router';
-import { Calendar, Pencil, Plus, Repeat, Trash2 } from 'lucide-react-native';
+import { Pencil, Plus, Trash2 } from 'lucide-react-native';
 import React, { useCallback, useState } from 'react';
-import { View } from 'react-native';
 
-import { AppText } from '@/components/ui/AppText';
 import { Button } from '@/components/ui/Button';
-import { Card } from '@/components/ui/Card';
-import { Chip } from '@/components/ui/Chip';
+import { InlineError } from '@/components/ui/InlineError';
 import { LoadingScreen, MissingRecordScreen } from '@/components/ui/RecordScreens';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { SectionHeader } from '@/components/ui/SectionHeader';
 import { Spacer } from '@/components/ui/Spacer';
-import { usageFrequencyShortLabel } from '@/constants/usagePresets';
 import { useRepositories } from '@/db/DatabaseProvider';
 import { useConfirm } from '@/features/dialogs/useConfirm';
+import { useAsyncAction } from '@/features/forms/useAsyncAction';
 import { useAppRouter } from '@/features/navigation/useAppRouter';
 import { useDeleteAndLeave } from '@/features/navigation/useDeleteAndLeave';
 import { useGoBack } from '@/features/navigation/useGoBack';
 import { ExpenseSheet } from '@/features/purchases/components/ExpenseSheet';
 import { ExpensesSection } from '@/features/purchases/components/ExpensesSection';
+import { PurchaseExpectationCard } from '@/features/purchases/components/PurchaseExpectationCard';
 import { PurchaseIdentity } from '@/features/purchases/components/PurchaseIdentity';
 import { RealCostBreakdown } from '@/features/purchases/components/RealCostBreakdown';
 import { RecentUsesSection } from '@/features/purchases/components/RecentUsesSection';
@@ -35,10 +33,8 @@ import {
   setResaleValue,
   updatePurchaseExpense,
 } from '@/features/purchases/services/purchaseActions';
-import { formatDuration, formatMonthsAsDuration, useT } from '@/i18n';
-import { useTheme } from '@/theme';
+import { formatDuration, useT } from '@/i18n';
 import { Cents, PurchaseExpense, UsageEvent } from '@/types/domain';
-import { formatNumber } from '@/utils/currency';
 
 /**
  * What an owned item has actually cost, and the one-tap action that keeps that
@@ -49,7 +45,6 @@ import { formatNumber } from '@/utils/currency';
  * opening or closing the expense sheet does not re-render the lists underneath.
  */
 export default function PurchaseDetailScreen(): React.ReactElement {
-  const theme = useTheme();
   const t = useT();
   const router = useAppRouter();
   const repositories = useRepositories();
@@ -59,7 +54,7 @@ export default function PurchaseDetailScreen(): React.ReactElement {
   const { data: liveData, isLoading, error, refetch } = usePurchaseDetail(id);
   // `null` while closed; an empty object while adding; the expense while correcting.
   const [expenseSheet, setExpenseSheet] = useState<{ expense?: PurchaseExpense } | null>(null);
-  const [actionError, setActionError] = useState<string | null>(null);
+  const deletion = useAsyncAction();
   // Opened from a link with no history behind it, "back" means the list this
   // purchase belongs to.
   const goBack = useGoBack('/purchases');
@@ -117,12 +112,9 @@ export default function PurchaseDetailScreen(): React.ReactElement {
     });
     if (!confirmed) return;
 
-    setActionError(null);
-    try {
-      await remove(() => deletePurchase(repositories, data.purchase));
-    } catch {
-      setActionError(t('purchases.deleteError'));
-    }
+    await deletion.run(() => remove(() => deletePurchase(repositories, data.purchase)), {
+      errorMessage: t('purchases.deleteError'),
+    });
   };
 
   if (isLoading) return <LoadingScreen onBack={goBack} />;
@@ -206,47 +198,11 @@ export default function PurchaseDetailScreen(): React.ReactElement {
               title={t('purchases.expectationTitle')}
               subtitle={t('purchases.expectationSubtitle')}
             />
-            <Card padding={theme.spacing.md}>
-              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: theme.spacing.xs }}>
-                {purchase.expectedUsageFrequency != null ? (
-                  <Chip
-                    icon={Repeat}
-                    label={usageFrequencyShortLabel(
-                      t,
-                      purchase.expectedUsageFrequency,
-                      purchase.customUsesPerMonth,
-                    )}
-                  />
-                ) : null}
-                {metrics.usesPerMonth != null ? (
-                  <Chip
-                    label={t('purchases.actualRate', {
-                      rate: formatNumber(metrics.usesPerMonth, 1),
-                    })}
-                    tone="accent"
-                  />
-                ) : null}
-                {purchase.expectedOwnershipMonths != null ? (
-                  <Chip
-                    icon={Calendar}
-                    label={formatMonthsAsDuration(t, purchase.expectedOwnershipMonths)}
-                  />
-                ) : null}
-              </View>
-            </Card>
+            <PurchaseExpectationCard purchase={purchase} usesPerMonth={metrics.usesPerMonth} />
           </>
         ) : null}
 
-        {actionError ? (
-          <AppText
-            variant="caption"
-            color="danger"
-            accessibilityRole="alert"
-            style={{ marginTop: theme.spacing.md }}
-          >
-            {actionError}
-          </AppText>
-        ) : null}
+        <InlineError message={deletion.error} spaceAbove="md" />
 
         <Spacer size="xl" />
         <Button
@@ -259,9 +215,8 @@ export default function PurchaseDetailScreen(): React.ReactElement {
       </Screen>
 
       <ExpenseSheet
-        // Remounted per expense, so opening it for another one starts prefilled
-        // with that one rather than with whatever was open before.
-        key={editingExpense?.id ?? 'new'}
+        // The sheet rebuilds its fields each time it opens, so the same instance
+        // serves adding one expense after another and correcting any of them.
         expense={editingExpense}
         visible={expenseSheet != null}
         onClose={closeExpenseSheet}

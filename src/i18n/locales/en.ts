@@ -235,6 +235,8 @@ export const en = {
     unavailableTitle: 'Financial impact unavailable',
     unavailableDescription:
       'Add your monthly net income on the Money screen to see how this price compares.',
+    noPriceTitle: 'No price yet',
+    noPriceDescription: 'Enter a price to see how it compares to your month.',
     noAvailableMoney:
       'Your recurring commitments currently use all of your monthly income, so there is no available amount to compare this price against.',
   },
@@ -254,6 +256,7 @@ export const en = {
       about_a_month: 'Around a month of your available amount.',
       over_a_month: 'More than a month of your available amount.',
       price_only: 'Based on the price, since no income is set yet.',
+      no_price: 'It will follow the price once you enter one.',
     },
     complete: 'Reflection period complete',
     underAnHour: 'Less than an hour remaining',

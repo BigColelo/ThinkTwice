@@ -5,6 +5,7 @@ import { useT } from '@/i18n';
 import { useTheme } from '@/theme';
 
 import { AppText } from './AppText';
+import { InlineError } from './InlineError';
 
 /**
  * Label, control, hint and inline error — the shape every field in the app uses.
@@ -49,9 +50,7 @@ export function FormField({
       {children}
 
       {error ? (
-        <AppText variant="caption" color="danger" accessibilityRole="alert">
-          {error}
-        </AppText>
+        <InlineError message={error} />
       ) : hint ? (
         <AppText variant="caption" color="tertiary">
           {hint}

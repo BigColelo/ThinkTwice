@@ -103,6 +103,31 @@ describe('calculateInsights', () => {
     expect(summary.averageCostPerUseCents).toBeCloseTo(150, 6);
   });
 
+  it('counts an item worth more than it cost as costing nothing, never as a discount', () => {
+    // Resale estimated above price plus expenses makes the real cost negative.
+    // Averaged as is, it pulled the figure below zero: a negative cost per use.
+    const summary = calculateInsights(
+      input({
+        purchases: [
+          purchase({ id: 'a', purchasePriceCents: 10_000, totalUses: 50 }), // 200 c/use
+          purchase({
+            id: 'b',
+            purchasePriceCents: 10_000,
+            currentResaleValueCents: 30_000,
+            totalUses: 10,
+          }), // −2,000 c/use
+        ],
+      }),
+      NOW,
+    );
+
+    expect(summary.itemsWithUsage).toBe(2);
+    expect(summary.averageCostPerUseCents).toBeCloseTo(100, 6);
+    // The highlight keeps the real figure, as the item's own screen does.
+    expect(summary.bestValue?.purchaseId).toBe('b');
+    expect(summary.bestValue?.costPerUseCents).toBeCloseTo(-2_000, 6);
+  });
+
   it('identifies the lowest and highest cost per use', () => {
     const summary = calculateInsights(
       input({

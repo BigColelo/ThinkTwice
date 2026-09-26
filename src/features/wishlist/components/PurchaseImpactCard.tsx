@@ -24,7 +24,10 @@ export function PurchaseImpactCard({ impact }: { impact: PurchaseImpact }): Reac
   const theme = useTheme();
   const t = useT();
 
-  if (impact.unavailableReason === 'no_income') {
+  // Two states with nothing to measure: no income to divide by, or no price yet.
+  // Neither is shown as a figure — a zero would read as a result.
+  if (impact.unavailableReason === 'no_income' || impact.unavailableReason === 'no_price') {
+    const noPrice = impact.unavailableReason === 'no_price';
     return (
       <Card padding={theme.spacing.md}>
         <View style={{ flexDirection: 'row', gap: theme.spacing.sm }}>
@@ -34,9 +37,11 @@ export function PurchaseImpactCard({ impact }: { impact: PurchaseImpact }): Reac
             strokeWidth={theme.sizes.iconStrokeWidth}
           />
           <View style={{ flex: 1 }}>
-            <AppText variant="subheading">{t('impact.unavailableTitle')}</AppText>
+            <AppText variant="subheading">
+              {noPrice ? t('impact.noPriceTitle') : t('impact.unavailableTitle')}
+            </AppText>
             <AppText variant="caption" color="secondary" style={{ marginTop: theme.spacing.xxxs }}>
-              {t('impact.unavailableDescription')}
+              {noPrice ? t('impact.noPriceDescription') : t('impact.unavailableDescription')}
             </AppText>
           </View>
         </View>

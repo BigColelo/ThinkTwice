@@ -115,7 +115,9 @@ export type CooldownRationale =
   /** More than one month of it. */
   | 'over_a_month'
   /** No income is set, so the period comes from the price alone. */
-  | 'price_only';
+  | 'price_only'
+  /** No price has been entered yet, so the default period stands until one is. */
+  | 'no_price';
 
 export type CooldownSuggestion = {
   days: number;
@@ -173,9 +175,14 @@ const SUGGESTION_BY_PRICE: readonly { belowCents: Cents; days: number }[] = [
  * cost → longer default period.
  */
 export function suggestCooldownDays(
-  priceCents: Cents,
+  priceCents: Cents | null,
   finances: MonthlyFinances | null,
 ): CooldownSuggestion {
+  // Without a price there is nothing to size the period by. Treating it as zero
+  // suggested the shortest period and called the price "small", before the
+  // user had typed one.
+  if (priceCents == null) return { days: DEFAULT_COOLDOWN_DAYS, rationale: 'no_price' };
+
   const price = Number.isFinite(priceCents) ? Math.max(priceCents, 0) : 0;
 
   const available = finances?.availableAfterCommitmentsCents ?? 0;

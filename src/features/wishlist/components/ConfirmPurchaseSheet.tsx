@@ -7,8 +7,10 @@ import { AppText } from '@/components/ui/AppText';
 import { BottomSheet } from '@/components/ui/BottomSheet';
 import { Button } from '@/components/ui/Button';
 import { DateField } from '@/components/ui/DateField';
+import { InlineError } from '@/components/ui/InlineError';
 import { MoneyField } from '@/components/ui/MoneyField';
 import { useAsyncAction } from '@/features/forms/useAsyncAction';
+import { useResetOnOpen } from '@/features/forms/useResetOnOpen';
 import {
   buildConfirmedPurchaseSchema,
   type ConfirmedPurchaseFormInput,
@@ -53,6 +55,11 @@ export function ConfirmPurchaseSheet({
   // Rebuilt when the language changes: the messages it carries are copy.
   const schema = useMemo(() => buildConfirmedPurchaseSchema(t), [t]);
 
+  const initialValues = (): ConfirmedPurchaseFormInput => ({
+    purchaseDate: todayIsoDate(),
+    purchasePriceCents: item.priceCents,
+  });
+
   const { control, handleSubmit, reset } = useForm<
     ConfirmedPurchaseFormInput,
     unknown,
@@ -60,11 +67,13 @@ export function ConfirmPurchaseSheet({
   >({
     resolver: zodResolver(schema),
     mode: 'onTouched',
-    defaultValues: {
-      purchaseDate: todayIsoDate(),
-      purchasePriceCents: item.priceCents,
-    },
+    defaultValues: initialValues(),
   });
+
+  // The item's screen, and this sheet with it, stays mounted while the item is
+  // edited, so the price has to be read again when the sheet opens — not taken
+  // from whatever the item cost when the screen first appeared.
+  useResetOnOpen(visible, reset, initialValues);
 
   const close = (): void => {
     reset();
@@ -122,11 +131,7 @@ export function ConfirmPurchaseSheet({
         )}
       />
 
-      {confirmPurchase.error ? (
-        <AppText variant="caption" color="danger" accessibilityRole="alert">
-          {confirmPurchase.error}
-        </AppText>
-      ) : null}
+      <InlineError message={confirmPurchase.error} />
 
       <View style={{ flexDirection: 'row', gap: theme.spacing.sm }}>
         <Button

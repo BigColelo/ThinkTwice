@@ -199,6 +199,8 @@ export const de = {
     unavailableTitle: 'Finanzielle Auswirkung nicht verfügbar',
     unavailableDescription:
       'Trage dein monatliches Nettoeinkommen im Bereich Geld ein, um zu sehen, wie sich dieser Preis dazu verhält.',
+    noPriceTitle: 'Noch kein Preis',
+    noPriceDescription: 'Gib einen Preis ein, um zu sehen, wie er sich zu deinem Monat verhält.',
     noAvailableMoney:
       'Deine laufenden Ausgaben binden derzeit dein gesamtes Monatseinkommen, es gibt also keinen verfügbaren Betrag, mit dem sich dieser Preis vergleichen ließe.',
   },
@@ -218,6 +220,7 @@ export const de = {
       about_a_month: 'Etwa ein Monat deines verfügbaren Betrags.',
       over_a_month: 'Mehr als ein Monat deines verfügbaren Betrags.',
       price_only: 'Auf Basis des Preises, da noch kein Einkommen hinterlegt ist.',
+      no_price: 'Er richtet sich nach dem Preis, sobald du einen eingibst.',
     },
     complete: 'Bedenkzeit abgeschlossen',
     underAnHour: 'Weniger als eine Stunde übrig',

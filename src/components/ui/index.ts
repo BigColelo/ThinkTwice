@@ -9,6 +9,7 @@ export { EmptyState, type EmptyStateProps } from './EmptyState';
 export { FormField, type FormFieldProps } from './FormField';
 export { IconButton, type IconButtonProps, type IconButtonVariant } from './IconButton';
 export { IconTile, type IconTileProps } from './IconTile';
+export { InlineError } from './InlineError';
 export { ListRow, RowDivider, type ListRowProps } from './ListRow';
 export { MoneyField, type MoneyFieldProps } from './MoneyField';
 export { CostPerUse, MoneyValue, type MoneyValueProps } from './MoneyValue';

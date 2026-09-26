@@ -1,6 +1,7 @@
 import React from 'react';
 import { Text, type StyleProp, type TextProps, type TextStyle } from 'react-native';
 
+import { useLanguage, writesInConnectedScript } from '@/i18n';
 import { useTheme, type TypographyRole } from '@/theme';
 
 /**
@@ -8,7 +9,9 @@ import { useTheme, type TypographyRole } from '@/theme';
  *
  * It binds a typographic role to a semantic colour and caps OS font scaling per
  * role, so a large-text setting enlarges body copy generously while keeping
- * side-by-side metric rows from collapsing.
+ * side-by-side metric rows from collapsing. In a language whose script joins
+ * its letters the role's tracking is dropped, for the reason given at
+ * `writesInConnectedScript`.
  */
 
 export type TextColor =
@@ -40,6 +43,7 @@ export function AppText({
   ...rest
 }: AppTextProps): React.ReactElement {
   const theme = useTheme();
+  const untracked = writesInConnectedScript(useLanguage());
 
   return (
     <Text
@@ -48,6 +52,7 @@ export function AppText({
       {...rest}
       style={[
         theme.typography[variant],
+        untracked ? UNTRACKED : null,
         { color: resolveColor(theme.colors, color) },
         align ? { textAlign: align } : null,
         style,
@@ -57,6 +62,8 @@ export function AppText({
     </Text>
   );
 }
+
+const UNTRACKED: TextStyle = { letterSpacing: 0 };
 
 function resolveColor(colors: ReturnType<typeof useTheme>['colors'], color: TextColor): string {
   switch (color) {

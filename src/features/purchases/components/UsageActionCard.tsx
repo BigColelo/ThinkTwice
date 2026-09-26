@@ -6,6 +6,7 @@ import { Platform, View } from 'react-native';
 import { AppText } from '@/components/ui/AppText';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
+import { InlineError } from '@/components/ui/InlineError';
 import { MoneyValue } from '@/components/ui/MoneyValue';
 import { MetricCell, MetricDivider } from '@/components/ui/StatCard';
 import { useRepositories } from '@/db/DatabaseProvider';
@@ -116,16 +117,7 @@ export function UsageActionCard({
         ) : null}
       </View>
 
-      {actionError ? (
-        <AppText
-          variant="caption"
-          color="danger"
-          accessibilityRole="alert"
-          style={{ marginTop: theme.spacing.xs }}
-        >
-          {actionError}
-        </AppText>
-      ) : null}
+      <InlineError message={actionError} spaceAbove="xs" />
 
       {lastUsedAt && !canUndo ? (
         <AppText

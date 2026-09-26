@@ -119,11 +119,15 @@ Repositories (src/db)          the only place that contains SQL
 SQLite
 ```
 
-Two rules make this hold:
+Three rules make this hold:
 
-1. **No SQL outside `src/db/repositories`.** Screens and hooks call repository methods.
+1. **No SQL outside `src/db/repositories`.** Feature hooks read through repository methods and
+   services write through them; screens do neither.
 2. **No business logic in JSX.** A screen receives a typed result from a domain function; it never
    computes `price / (income - commitments)` inline.
+3. **A route composes feature components and nothing else.** Markup, text and layout live in
+   `src/features/<area>/components`, where they can be tested — Expo Router would ship a test file
+   under `src/app` as a screen. ESLint enforces it.
 
 That boundary is also what makes cloud sync possible later without rewriting screens — although V1
 deliberately does not build any of it.

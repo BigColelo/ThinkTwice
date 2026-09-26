@@ -19,7 +19,7 @@ Repositories (src/db)          the only place SQL exists
 SQLite (expo-sqlite)
 ```
 
-Two invariants hold this together:
+Three invariants hold this together:
 
 **No SQL outside `src/db/repositories`.** A screen that needed a new query gets a new repository
 method. This is what would make a future sync layer a change in one directory rather than in every
@@ -50,6 +50,13 @@ a real screen — which means a component living in a route cannot be tested at 
 two with real logic in them, the commitment form and the income editor, were the only untested
 forms in the app.
 
+The rule covers inline markup as much as named components: a row of text laid out inside a route
+is as untestable as a component declared in one. So every route composes feature components and
+nothing else — the root layout included, which only puts the providers, the gate, the chrome and
+the navigator in order — and `eslint.config.js` keeps it that way. A file under `src/app` cannot
+import `react-native`, `AppText` or `useTheme`, cannot declare a function or class beside its
+default export, and cannot reach into a repository.
+
 **A render error loses one screen, not the app.** `AppErrorBoundary` (`src/features/errors`) sits
 directly below the bootstrap theme and language providers in the root layout and above the
 database. Anything that throws while rendering — a screen, a provider, the navigator — lands on a
@@ -57,6 +64,12 @@ crash screen in the device's language, with the message and a retry that re-moun
 it, database included. Without it a production build shows React Native's own red screen and offers
 no way back. It sits _below_ the bootstrap providers on purpose: the crash screen is themed and
 translated exactly as the database gate is, without carrying a copy of either.
+
+**No first frame in the wrong theme or language.** Two gates stand between launch and the first
+screen: `DatabaseGate` until storage is open, `SettingsGate` until the settings row is read. The
+native splash stays up through both. It used to be released as soon as the database opened, and
+the app then drew itself with the fallback settings — the device's theme and language — for the
+moment the read took, before repainting in the user's.
 
 ---
 
@@ -189,6 +202,9 @@ purchase; `impactLevelLabel` is unit tested to contain none of "afford", "good",
 **Unavailable states are explicit.** `PurchaseImpact.unavailableReason` distinguishes:
 
 - `no_income` — no income configured. Every figure is `null`, and the card explains how to fix it.
+- `no_price` — no price typed yet. Every figure is `null` and the card asks for one; measured as
+  zero, an empty field used to come out as a "low" impact. `suggestCooldownDays` makes the same
+  distinction and keeps the default period until there is a price to size it by.
 - `no_available_money` — income is known but commitments consume it all. The income percentage is
   still shown because it is still meaningful; the available-money figures are `null` with a
   sentence saying why.
@@ -213,6 +229,10 @@ not been consumed. Two edge cases are handled explicitly rather than clamped:
   yet". Zero-usage items are also excluded from the insights average, because counting them as
   infinitely expensive would make the average meaningless. The Insights screen states how many
   items were excluded, so the figure stays honest.
+- **A negative cost in the insights average** — an item worth more than it cost counts as zero per
+  use there. Averaged as is, it pulled the figure below zero, which describes nothing a user has
+  paid; a surplus on one item is not a discount on the others. The lowest-cost highlight keeps the
+  real, negative figure, which is what the item's own screen and the sorted list show.
 
 Expenses are aggregated by type for the breakdown, so it stays short whether there is one receipt or
 twenty.
@@ -246,7 +266,21 @@ directions, rather than pretending to be the cheapest or the most expensive.
 repository directly would skip the invalidation below, and the failure is silent: the write lands,
 and every other open screen keeps showing what was true a moment ago. The commitment form was the
 last screen doing its own writes; `commitmentActions` and `dataActions` finished the pattern the
-wishlist and purchase services had already set.
+wishlist and purchase services had already set, and `reminderActions` took the reminder switch and
+the language change out of the two settings screens that still read the open wishlist themselves.
+Lint now rejects `repositories.x` in routes and in every component under `src/features` and
+`src/components`, the settings provider excepted: they hand `useRepositories()` to a service and do
+nothing else with it.
+
+**Settings follow the same bus.** They are the one entity held in context rather than queried per
+screen, because nearly everything needs the currency and the theme depends on them — but
+`SettingsProvider` re-reads the row on every `invalidate('settings')`, exactly as a query would.
+`updateSettings` still applies the saved row at once, so a control never paints its old position
+for a frame; everything else that writes settings — the reset, the development seed, the reminders
+switch — goes through a service and names the entity. Before, each of those had to remember to
+reload the provider by hand, and resetting the data then navigated to onboarding itself; now the
+reset only clears the onboarding flag, and the redirect that handles a first launch handles this
+one too.
 
 **Reads invalidate rather than cache.** `src/db/dataRevisions.ts` is a small pub/sub: a write names
 the entities it touched, and every `useDatabaseQuery` watching those entities refetches. This is
@@ -376,7 +410,13 @@ platform rather than because it might be missing: the web flips on the spot via 
 while native records the flag in `I18nManager` and only lays out mirrored on the next launch. Yoga
 resolves `flexDirection: 'row'` against that flag, so the layout mirrors itself; what does not are
 physical offsets, which is why the codebase uses `marginStart` over `marginLeft` and `align="auto"`
-over `align="left"`.
+over `align="left"`. Text that must not mirror — the wordmark, which is two pieces of text in a row
+— pins `direction: 'ltr'`, or it reads "TwiceThink".
+
+**Arabic is never letter-spaced.** Its letters join, and tracking pulls a word apart — wrong on its
+own, and on Android it also made a one-line title measure narrower than it draws, so "الإعدادات" was
+cut to "الإعدادا…". `AppText` reads the provider's language (`useLanguage`) and drops a role's
+tracking for any language `writesInConnectedScript` names.
 
 **Reminder copy is frozen by the operating system** at the moment it is scheduled, and a reflection
 period can run for ninety days. A language change therefore re-schedules every pending reminder — the

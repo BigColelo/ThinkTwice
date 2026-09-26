@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 
-import { AppText } from '@/components/ui/AppText';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
+import { InlineError } from '@/components/ui/InlineError';
 import { MoneyField } from '@/components/ui/MoneyField';
 import { useAsyncAction } from '@/features/forms/useAsyncAction';
 import { useT } from '@/i18n';
@@ -55,16 +55,7 @@ export function ResaleValueEditor({
         onChangeCents={setDraft}
       />
 
-      {save.error ? (
-        <AppText
-          variant="caption"
-          color="danger"
-          accessibilityRole="alert"
-          style={{ marginTop: theme.spacing.xs }}
-        >
-          {save.error}
-        </AppText>
-      ) : null}
+      <InlineError message={save.error} spaceAbove="xs" />
 
       {hasChanges ? (
         <Button

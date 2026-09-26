@@ -1,6 +1,7 @@
 import type { MonthlyFinances } from '@/domain/money/calculations';
 
 import {
+  DEFAULT_COOLDOWN_DAYS,
   calculateCooldownEnd,
   calculateCooldownState,
   cooldownRemaining,
@@ -192,6 +193,15 @@ describe('suggestCooldownDays', () => {
     isIncomeConfigured: true,
     commitmentsExceedIncome: false,
   };
+
+  it('keeps the default period, and says why, until a price is entered', () => {
+    // Read as zero, an empty price suggested a single day and called it small.
+    expect(suggestCooldownDays(null, finances)).toEqual({
+      days: DEFAULT_COOLDOWN_DAYS,
+      rationale: 'no_price',
+    });
+    expect(suggestCooldownDays(null, null).rationale).toBe('no_price');
+  });
 
   it('suggests a longer period as the price grows relative to available money', () => {
     const suggestions = [

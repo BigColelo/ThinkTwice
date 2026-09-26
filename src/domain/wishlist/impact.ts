@@ -24,7 +24,7 @@ export type PurchaseImpact = {
    * Why the level could not be determined — drives the copy in the UI.
    * `null` when a level was determined.
    */
-  unavailableReason: 'no_income' | 'no_available_money' | null;
+  unavailableReason: 'no_income' | 'no_price' | 'no_available_money' | null;
 };
 
 /**
@@ -40,11 +40,16 @@ export type PurchaseImpact = {
 export const IMPACT_LOW_MAX_RATIO = 0.25;
 export const IMPACT_MODERATE_MAX_RATIO = 1;
 
+/**
+ * `priceCents` is `null` while the user has not typed one. That is not a price
+ * of nothing: measured as zero it came out as a "low" impact on a form the user
+ * had not filled in yet, which is a conclusion drawn from no figure at all.
+ */
 export function calculatePurchaseImpact(
-  priceCents: Cents,
+  priceCents: Cents | null,
   finances: MonthlyFinances,
 ): PurchaseImpact {
-  const price = Number.isFinite(priceCents) ? priceCents : 0;
+  const price = priceCents != null && Number.isFinite(priceCents) ? priceCents : 0;
 
   const incomeRatio =
     finances.isIncomeConfigured && finances.netIncomeCents > 0
@@ -64,6 +69,16 @@ export function calculatePurchaseImpact(
       monthsOfAvailableMoney: null,
       level: 'unknown',
       unavailableReason: 'no_income',
+    };
+  }
+
+  if (priceCents == null) {
+    return {
+      incomeRatio: null,
+      availableRatio: null,
+      monthsOfAvailableMoney: null,
+      level: 'unknown',
+      unavailableReason: 'no_price',
     };
   }
 

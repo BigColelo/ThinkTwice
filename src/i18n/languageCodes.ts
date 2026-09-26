@@ -56,6 +56,20 @@ export const LANGUAGE_NATIVE_NAMES: Record<LanguageCode, string> = {
   ar: 'العربية',
 };
 
+/**
+ * Languages written in a script whose letters join to their neighbours.
+ *
+ * Text in them is never letter-spaced. Tracking pulls the joined letters of a
+ * word apart, which is simply wrong typography — and on Android it also makes a
+ * single-line label measure narrower than it draws, so its last letter is cut
+ * off behind an ellipsis: the Settings title rendered as "الإعدادا…".
+ */
+const CONNECTED_SCRIPT_LANGUAGES: readonly LanguageCode[] = ['ar'];
+
+export function writesInConnectedScript(language: LanguageCode): boolean {
+  return CONNECTED_SCRIPT_LANGUAGES.includes(language);
+}
+
 export function isSupportedLanguage(value: unknown): value is LanguageCode {
   return typeof value === 'string' && (SUPPORTED_LANGUAGES as readonly string[]).includes(value);
 }

@@ -20,6 +20,7 @@ export {
   LANGUAGE_NATIVE_NAMES,
   LANGUAGE_PREFERENCES,
   SUPPORTED_LANGUAGES,
+  writesInConnectedScript,
 } from './languageCodes';
 
 /**

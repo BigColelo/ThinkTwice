@@ -1,70 +1,25 @@
-import React, { useState } from 'react';
+import React from 'react';
 
-import { AppText } from '@/components/ui/AppText';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { useGoBack } from '@/features/navigation/useGoBack';
-import { CurrencyPicker } from '@/features/settings/components/CurrencyPicker';
-import { useSettings } from '@/features/settings/SettingsProvider';
-import { resolveLanguage, useT } from '@/i18n';
-import { useTheme } from '@/theme';
-import type { CurrencyCode } from '@/types/domain';
+import { CurrencySelection } from '@/features/settings/components/CurrencySelection';
+import { useT } from '@/i18n';
 
 /**
- * The currency picker.
- *
- * There is no "System default" here, unlike the language screen. Amounts are
- * stored as entered and never converted, so following the device would silently
- * relabel every figure already in the database the first time the user travels.
- * The choice has to be one they made on purpose, and the caption under the list
- * says why.
- *
- * The screen owns the write; the list is a feature component so it can be tested
- * without a database.
+ * The currency picker. The list, the write and the caption explaining why the
+ * choice is never made for the user all live in `CurrencySelection`.
  */
 export default function CurrencyScreen(): React.ReactElement {
-  const theme = useTheme();
   const t = useT();
   const goBack = useGoBack('/settings');
-  const { settings, updateSettings } = useSettings();
-  const [saveError, setSaveError] = useState<string | null>(null);
-
-  const select = async (code: CurrencyCode): Promise<void> => {
-    if (code === settings.currencyCode) return;
-
-    setSaveError(null);
-    try {
-      await updateSettings({ currencyCode: code });
-    } catch {
-      setSaveError(t('settings.saveError'));
-    }
-  };
 
   return (
     <>
       <ScreenHeader title={t('settings.currency.title')} onBack={goBack} />
 
       <Screen scroll>
-        <CurrencyPicker
-          value={settings.currencyCode}
-          language={resolveLanguage(settings.language)}
-          onSelect={(code) => void select(code)}
-        />
-
-        {saveError ? (
-          <AppText
-            variant="caption"
-            color="danger"
-            accessibilityRole="alert"
-            style={{ marginTop: theme.spacing.sm }}
-          >
-            {saveError}
-          </AppText>
-        ) : null}
-
-        <AppText variant="caption" color="tertiary" style={{ marginTop: theme.spacing.sm }}>
-          {t('settings.currency.notConverted')}
-        </AppText>
+        <CurrencySelection />
       </Screen>
     </>
   );

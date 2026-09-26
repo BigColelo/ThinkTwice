@@ -1,4 +1,6 @@
-import { screen, fireEvent } from '@testing-library/react-native';
+import { screen, fireEvent, waitFor } from '@testing-library/react-native';
+import React, { useState } from 'react';
+import { Pressable, Text } from 'react-native';
 
 import { renderWithProviders } from '@/test/renderWithProviders';
 import type { PurchaseExpense } from '@/types/domain';
@@ -64,6 +66,53 @@ describe('ExpenseSheet, adding', () => {
       expenseType: 'accessory',
       date: todayIsoDate(),
     });
+  });
+});
+
+/**
+ * The purchase screen keeps one sheet mounted and only hides it: after an
+ * expense is added it closes the sheet without remounting it, exactly as here.
+ */
+function AddingTwice({ onSubmit }: { onSubmit: jest.Mock }): React.ReactElement {
+  const [visible, setVisible] = useState(true);
+
+  return (
+    <>
+      <Pressable testID="reopen" onPress={() => setVisible(true)}>
+        <Text>Add expense again</Text>
+      </Pressable>
+      <ExpenseSheet
+        visible={visible}
+        onClose={() => setVisible(false)}
+        onSubmit={async (values) => {
+          await onSubmit(values);
+          setVisible(false);
+        }}
+      />
+    </>
+  );
+}
+
+describe('ExpenseSheet, adding one after another', () => {
+  it('opens empty again instead of on the expense just added', async () => {
+    // Opening on the last one meant a second tap on "Add expense" saved it twice.
+    const onSubmit = jest.fn(async () => undefined);
+    await renderWithProviders(<AddingTwice onSubmit={onSubmit} />);
+
+    await fireEvent.changeText(screen.getByLabelText('What was it?'), 'Extra battery');
+    await fireEvent.changeText(screen.getByLabelText('Amount'), '49.90');
+    await fireEvent.press(screen.getByText('Add expense'));
+    expect(onSubmit).toHaveBeenCalledTimes(1);
+    // Closed by the caller once the write resolved, without being remounted.
+    await waitFor(() => expect(screen.queryByText('New expense')).toBeNull());
+
+    await fireEvent.press(screen.getByTestId('reopen'));
+
+    expect(screen.getByLabelText('What was it?').props.value).toBe('');
+    expect(screen.queryByDisplayValue('49.90')).toBeNull();
+    // Saving now is refused for a missing name rather than repeating the last one.
+    await fireEvent.press(screen.getByText('Add expense'));
+    expect(onSubmit).toHaveBeenCalledTimes(1);
   });
 });
 

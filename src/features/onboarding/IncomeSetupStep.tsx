@@ -1,11 +1,14 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { View } from 'react-native';
 
 import { AppText } from '@/components/ui/AppText';
 import { Button } from '@/components/ui/Button';
+import { InlineError } from '@/components/ui/InlineError';
 import { MoneyField } from '@/components/ui/MoneyField';
 import { Screen } from '@/components/ui/Screen';
+import type { SettingsUpdate } from '@/db/repositories';
 import { useAsyncAction } from '@/features/forms/useAsyncAction';
+import { buildMonthlyIncomeSchema } from '@/features/money/schemas/commitmentSchema';
 import { useAppRouter } from '@/features/navigation/useAppRouter';
 import { useSettings } from '@/features/settings/SettingsProvider';
 import { useT } from '@/i18n';
@@ -15,6 +18,11 @@ import type { Cents } from '@/types/domain';
 /**
  * The optional setup step. Income is what unlocks the impact figures, so it is
  * asked for once here — and can be skipped without consequence.
+ *
+ * The figure is checked by the same schema as the Money screen's editor. The
+ * field parses a pasted minus sign and any number of digits, so without it a
+ * negative or absurd income could be stored on the first screen of the app and
+ * quietly distort every percentage after it.
  */
 export function IncomeSetupStep({ onBack }: { onBack: () => void }): React.ReactElement {
   const theme = useTheme();
@@ -23,18 +31,32 @@ export function IncomeSetupStep({ onBack }: { onBack: () => void }): React.React
   const { updateSettings } = useSettings();
 
   const [incomeCents, setIncomeCents] = useState<Cents | null>(null);
+  const [incomeError, setIncomeError] = useState<string | undefined>(undefined);
   const save = useAsyncAction();
 
+  // Rebuilt when the language changes: the messages it carries are copy.
+  const schema = useMemo(() => buildMonthlyIncomeSchema(t), [t]);
+
   const finish = async (withIncome: boolean): Promise<void> => {
-    const saved = await save.run(
-      () =>
-        updateSettings({
-          onboardingCompleted: true,
-          ...(withIncome && incomeCents != null ? { monthlyNetIncomeCents: incomeCents } : {}),
-        }),
+    const update: SettingsUpdate = { onboardingCompleted: true };
+
+    if (withIncome && incomeCents != null) {
+      const parsed = schema.safeParse({
+        monthlyNetIncomeCents: incomeCents,
+        monthlySavingsTargetCents: null,
+      });
+      if (!parsed.success) {
+        setIncomeError(parsed.error.issues[0]?.message);
+        return;
+      }
+      update.monthlyNetIncomeCents = parsed.data.monthlyNetIncomeCents;
+    }
+
+    const saved = await save.run(() => updateSettings(update), {
+      errorMessage: t('onboarding.saveError'),
       // Finishing leaves onboarding for the app itself.
-      { errorMessage: t('onboarding.saveError'), stayBusyOnSuccess: true },
-    );
+      stayBusyOnSuccess: true,
+    });
 
     if (saved) router.replace('/');
   };
@@ -53,14 +75,14 @@ export function IncomeSetupStep({ onBack }: { onBack: () => void }): React.React
           label={t('onboarding.incomeLabel')}
           hint={t('onboarding.incomeHint')}
           valueCents={incomeCents}
-          onChangeCents={setIncomeCents}
+          onChangeCents={(cents) => {
+            setIncomeCents(cents);
+            setIncomeError(undefined);
+          }}
+          error={incomeError}
         />
 
-        {save.error ? (
-          <AppText variant="caption" color="danger" accessibilityRole="alert">
-            {save.error}
-          </AppText>
-        ) : null}
+        <InlineError message={save.error} />
 
         <Button
           label={t('onboarding.continue')}

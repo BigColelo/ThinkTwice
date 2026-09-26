@@ -3,10 +3,10 @@ import React, { useMemo } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { View } from 'react-native';
 
-import { AppText } from '@/components/ui/AppText';
 import { Button } from '@/components/ui/Button';
 import { ChipSelect } from '@/components/ui/ChipSelect';
 import { DateField } from '@/components/ui/DateField';
+import { InlineError } from '@/components/ui/InlineError';
 import { MoneyField } from '@/components/ui/MoneyField';
 import { Screen } from '@/components/ui/Screen';
 import { SectionHeader } from '@/components/ui/SectionHeader';
@@ -224,16 +224,7 @@ export function OwnedPurchaseForm({
         />
       </View>
 
-      {save.error ? (
-        <AppText
-          variant="caption"
-          color="danger"
-          accessibilityRole="alert"
-          style={{ marginTop: theme.spacing.md }}
-        >
-          {save.error}
-        </AppText>
-      ) : null}
+      <InlineError message={save.error} spaceAbove="md" />
     </Screen>
   );
 }

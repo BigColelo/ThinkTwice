@@ -19,10 +19,11 @@ import type { CurrencyCode, LanguageCode } from '@/types/domain';
 /**
  * The currencies the app offers, grouped, as a list of radios.
  *
- * Only the list lives here — the screen at `/settings/currency` is a header,
- * this component and a caption. Keeping it out of `src/app` is what makes it
- * testable: a `*.test.tsx` under the routes directory would be matched by Expo
- * Router's route context and shipped as a real screen.
+ * Only the list lives here: `CurrencySelection` adds the write and the caption
+ * around it, and the screen at `/settings/currency` is a header and that. Keeping
+ * it out of `src/app` is what makes it testable: a `*.test.tsx` under the routes
+ * directory would be matched by Expo Router's route context and shipped as a
+ * real screen.
  *
  * Each row is named in the reading language with its ISO code underneath. The
  * code is the supporting line rather than a decoration because it is the label

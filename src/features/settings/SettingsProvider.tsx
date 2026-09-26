@@ -1,7 +1,15 @@
-import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import React, {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 
 import { useRepositories } from '@/db/DatabaseProvider';
-import { invalidate } from '@/db/dataRevisions';
+import { invalidate, useDataRevision } from '@/db/dataRevisions';
 import type { SettingsUpdate } from '@/db/repositories';
 import type { AppSettings } from '@/types/domain';
 
@@ -11,6 +19,12 @@ import type { AppSettings } from '@/types/domain';
  *
  * Updates write through to SQLite and then update the in-memory copy, so the
  * database stays the source of truth and the UI never drifts from it.
+ *
+ * The copy also follows the invalidation bus, like every query in the app: a
+ * write that names `settings` re-reads the row. That is what keeps it right
+ * after the writes that do not come through `updateSettings` — resetting all
+ * data, the development seed, turning reminders on — which used to have to
+ * remember to call a reload of their own, and each of which could forget to.
  */
 
 export const FALLBACK_SETTINGS: AppSettings = {
@@ -30,7 +44,6 @@ export type SettingsContextValue = {
   /** True until the first read from the database resolves. */
   isLoading: boolean;
   updateSettings: (update: SettingsUpdate) => Promise<void>;
-  reloadSettings: () => Promise<void>;
 };
 
 /**
@@ -41,15 +54,14 @@ export const SettingsContext = createContext<SettingsContextValue | null>(null);
 
 export function SettingsProvider({ children }: { children: React.ReactNode }): React.ReactElement {
   const repositories = useRepositories();
+  const revision = useDataRevision(['settings']);
   const [settings, setSettings] = useState<AppSettings>(FALLBACK_SETTINGS);
   const [isLoading, setIsLoading] = useState(true);
-
-  const reloadSettings = useCallback(async () => {
-    const loaded = await repositories.settings.get();
-    setSettings(loaded);
-  }, [repositories]);
+  const hasLoadedRef = useRef(false);
 
   useEffect(() => {
+    // Each revision starts a read and cancels the one before it, so a slow
+    // earlier read can never land on top of a newer one.
     let cancelled = false;
 
     const load = async (): Promise<void> => {
@@ -59,9 +71,15 @@ export function SettingsProvider({ children }: { children: React.ReactNode }): R
       } catch {
         // Fall back to defaults: the app stays usable and Settings can be
         // re-saved, rather than the whole tree failing over a preferences read.
-        if (!cancelled) setSettings(FALLBACK_SETTINGS);
+        // A re-read that fails keeps what is on screen instead — it came from
+        // this same database a moment ago, and defaults would send a user who
+        // finished onboarding back into it.
+        if (!cancelled && !hasLoadedRef.current) setSettings(FALLBACK_SETTINGS);
       } finally {
-        if (!cancelled) setIsLoading(false);
+        if (!cancelled) {
+          hasLoadedRef.current = true;
+          setIsLoading(false);
+        }
       }
     };
 
@@ -69,11 +87,13 @@ export function SettingsProvider({ children }: { children: React.ReactNode }): R
     return () => {
       cancelled = true;
     };
-  }, [repositories]);
+  }, [repositories, revision]);
 
   const updateSettings = useCallback(
     async (update: SettingsUpdate) => {
       const saved = await repositories.settings.update(update);
+      // Applied now rather than when the re-read below lands, so a control the
+      // user has just moved never paints its old position for a frame.
       setSettings(saved);
       invalidate('settings');
     },
@@ -81,8 +101,8 @@ export function SettingsProvider({ children }: { children: React.ReactNode }): R
   );
 
   const value = useMemo(
-    () => ({ settings, isLoading, updateSettings, reloadSettings }),
-    [settings, isLoading, updateSettings, reloadSettings],
+    () => ({ settings, isLoading, updateSettings }),
+    [settings, isLoading, updateSettings],
   );
 
   return <SettingsContext.Provider value={value}>{children}</SettingsContext.Provider>;

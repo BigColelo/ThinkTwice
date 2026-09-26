@@ -1,11 +1,12 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { View } from 'react-native';
 
-import { AppText } from '@/components/ui/AppText';
 import { Card } from '@/components/ui/Card';
+import { InlineError } from '@/components/ui/InlineError';
 import { ListRow, RowDivider } from '@/components/ui/ListRow';
 import { SectionHeader } from '@/components/ui/SectionHeader';
 import { useConfirm } from '@/features/dialogs/useConfirm';
+import { useAsyncAction } from '@/features/forms/useAsyncAction';
 import { useT } from '@/i18n';
 import { useTheme } from '@/theme';
 import type { UsageEvent } from '@/types/domain';
@@ -35,7 +36,7 @@ export const RecentUsesSection = React.memo(function RecentUsesSection({
   const theme = useTheme();
   const t = useT();
   const confirm = useConfirm();
-  const [removeError, setRemoveError] = useState<string | null>(null);
+  const removal = useAsyncAction();
 
   if (uses.length === 0) return null;
 
@@ -48,12 +49,9 @@ export const RecentUsesSection = React.memo(function RecentUsesSection({
     });
     if (!confirmed) return;
 
-    setRemoveError(null);
-    try {
-      await onRemove(use);
-    } catch {
-      setRemoveError(t('purchases.recentUses.removeError'));
-    }
+    await removal.run(() => onRemove(use), {
+      errorMessage: t('purchases.recentUses.removeError'),
+    });
   };
 
   return (
@@ -80,16 +78,7 @@ export const RecentUsesSection = React.memo(function RecentUsesSection({
         ))}
       </Card>
 
-      {removeError ? (
-        <AppText
-          variant="caption"
-          color="danger"
-          accessibilityRole="alert"
-          style={{ marginTop: theme.spacing.xs }}
-        >
-          {removeError}
-        </AppText>
-      ) : null}
+      <InlineError message={removal.error} spaceAbove="xs" />
     </>
   );
 });

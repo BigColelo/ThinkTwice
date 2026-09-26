@@ -1,5 +1,5 @@
 export { formatDuration, formatMonthsAsDuration } from './format';
-export { I18nProvider, useT } from './I18nProvider';
+export { I18nProvider, useLanguage, useT } from './I18nProvider';
 export { activeLanguage, applyLanguage, i18n, t, type TranslationKey } from './instance';
 export {
   DEFAULT_LANGUAGE,
@@ -10,5 +10,6 @@ export {
   isSupportedLanguage,
   resolveDeviceLanguage,
   resolveLanguage,
+  writesInConnectedScript,
 } from './languages';
 export { applyLayoutDirection, currentLayoutIsRtl, isRtlLanguage } from './rtl';

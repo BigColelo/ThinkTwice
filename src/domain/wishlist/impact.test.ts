@@ -29,6 +29,34 @@ describe('calculatePurchaseImpact', () => {
     expect(impact.unavailableReason).toBeNull();
   });
 
+  it('draws no conclusion from a price that has not been entered', () => {
+    // Read as zero, an empty price field came out as a "low" impact.
+    const impact = calculatePurchaseImpact(null, finances());
+
+    expect(impact).toEqual({
+      incomeRatio: null,
+      availableRatio: null,
+      monthsOfAvailableMoney: null,
+      level: 'unknown',
+      unavailableReason: 'no_price',
+    });
+  });
+
+  it('asks for the income first when neither it nor a price is there', () => {
+    // A price alone would not make the figures computable; the income would.
+    const impact = calculatePurchaseImpact(
+      null,
+      finances({ isIncomeConfigured: false, netIncomeCents: 0 }),
+    );
+
+    expect(impact.unavailableReason).toBe('no_income');
+  });
+
+  it('still measures a genuine price of zero', () => {
+    // Zero typed on purpose is a figure — a gift, a freebie — and it is small.
+    expect(calculatePurchaseImpact(0, finances()).level).toBe('low');
+  });
+
   it('reports every figure as unavailable when no income is configured', () => {
     const impact = calculatePurchaseImpact(
       179_900,

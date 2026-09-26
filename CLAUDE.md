@@ -32,7 +32,7 @@ npx jest -t 'cost per use'
 npx jest --coverage      # collected from src/domain, src/utils, src/db only
 ```
 
-`npm run verify` is green as a baseline (68 suites / 703 tests) — treat a failure as caused by the
+`npm run verify` is green as a baseline (99 suites / 830 tests) — treat a failure as caused by the
 current change.
 
 ## Architecture
@@ -49,10 +49,11 @@ Repositories               src/db/repositories — the only place SQL exists
 SQLite (expo-sqlite)
 ```
 
-Two invariants hold this together and are worth more than any local convenience:
+Three invariants hold this together and are worth more than any local convenience:
 
 1. **No SQL outside `src/db/repositories`.** A screen that needs a new query gets a new repository
-   method.
+   method. The only other SQL is the schema in `src/db/migrations` and the connection pragmas in
+   `src/db/database.ts`, neither of which a screen can reach.
 2. **No business logic in JSX.** A screen calls a domain function and renders the typed result; it
    never computes `price / (income - commitments)` inline. Domain results use `null` for every
    figure that cannot be computed, so `NaN`/`Infinity` are eliminated at the boundary rather than
@@ -61,8 +62,11 @@ Two invariants hold this together and are worth more than any local convenience:
    parameters, wires the pieces and decides what an action means. Anything with markup of its own
    belongs in `src/features/<area>/components`, because a `*.test.tsx` under `src/app` would be
    picked up by Expo Router as a real route — so a component that lives there cannot be tested at
-   all. That is how the commitment form, the income editor and the Home summary card went unTested
-   while holding real logic.
+   all. That is how the commitment form, the income editor and the Home summary card went untested
+   while holding real logic. `eslint.config.js` enforces it: a route cannot import `react-native`,
+   `AppText` or `useTheme`, cannot declare a function or class beside its default export, and —
+   like every feature component — cannot touch a repository. Even the root layout only puts
+   feature components in order.
 
 Domain functions return data, not sentences. The few string helpers there (`impactLevelLabel`,
 `formatCooldownRemaining`) are short neutral labels; explanatory copy belongs in the UI layer.
@@ -71,14 +75,24 @@ Domain functions return data, not sentences. The few string helpers there (`impa
 
 Reads go through `useDatabaseQuery(entities, run, deps)` (`src/db/useDatabaseQuery.ts`), which owns
 loading flags, stale-response guarding and refetching. Writes go through a feature service —
-`wishlistActions`, `purchaseActions`, `commitmentActions`, `dataActions` — and **must** call
+`wishlistActions`, `purchaseActions`, `commitmentActions`, `dataActions`, `reminderActions` — and **must** call
 `invalidate(...entities)` from `src/db/dataRevisions.ts` for every entity they touched: that is the
 only thing that refreshes open screens. Entities are the fixed union
 `settings | commitments | wishlist | purchases | usage | expenses`.
 
 **A screen never calls a repository to write.** Reading one directly is the same mistake with a
 quieter failure: it skips the invalidation, so every other open screen keeps showing what was true
-a moment ago with nothing to suggest otherwise.
+a moment ago with nothing to suggest otherwise. Lint rejects `repositories.x` in routes and in every
+component under `src/features` and `src/components` — `SettingsProvider`, the one query held in
+context, excepted; they pass `useRepositories()` to a service and nothing else.
+
+**Settings are the one entity held in context, and they follow the bus too.** `SettingsProvider`
+re-reads the row on every `invalidate('settings')`, exactly like a query. A component changing a
+preference calls `updateSettings`, which applies the saved row at once and then invalidates; a
+service that writes settings as part of a larger operation (the reset, the reminders switch, the
+development seed) writes through the repository and names `settings`. There is no manual reload
+any more: each of those writes used to need one, and one that forgot would have left the theme, the
+language and the income on Home showing what the database no longer said.
 
 A component that runs one of those writes does it through `useAsyncAction()`
 (`src/features/forms/useAsyncAction.ts`), which owns the busy flag and the failure message and
@@ -97,13 +111,21 @@ whole database rather than one entity, which today means "reset all local data".
 
 `src/app/_layout.tsx` gates the whole app: SafeArea → bootstrap `ThemeProvider` and `I18nProvider`
 → `AppErrorBoundary` (the crash screen, with retry) → `DatabaseProvider` → `DatabaseGate`
-(loading/error UI) → `SettingsProvider` → `ThemeProvider mode={settings.themeMode}` → `Stack`. Everything below can assume storage is open and settings are loaded, which is why
-`useRepositories()` throws rather than returning `null`.
+(`src/features/startup`, loading/error UI) → `SettingsProvider` → `SettingsGate` (renders nothing
+until the settings row is read) → `PreferencesProvider` (the stored theme and language) →
+`AppChrome` (the status-bar accent) → `RootStack`. Everything below can assume storage is open and
+settings are loaded, which is why `useRepositories()` throws rather than returning `null`. The
+native splash is released by `SettingsGate` once the settings are read, and by `DatabaseGate` only
+when it has an error to show — releasing it when the database opened painted a first frame in the
+device's theme and language instead of the user's.
 
 Routes live in **`src/app`**, not `app/`. A new screen must also be registered as a
-`<Stack.Screen>` in `AppChrome` to get its presentation/animation, and typed routes
-(`experiments.typedRoutes`) regenerate `.expo/types` while the dev server runs. First-run redirect
-to `/onboarding` is a redirect, not a separate navigator, so every route stays URL-addressable.
+`<Stack.Screen>` in `RootStack` (`src/features/navigation/RootStack.tsx`) to get its
+presentation/animation, and typed routes (`experiments.typedRoutes`) regenerate `.expo/types` while
+the dev server runs. First-run redirect to `/onboarding` is a redirect, not a separate navigator,
+so every route stays URL-addressable. It is also the only way into onboarding from inside the app:
+resetting all data clears the flag and lets `useOnboardingRedirect` navigate, because navigating
+from the reset as well would race the settings re-read and bounce off Home.
 
 Because every route is URL-addressable, any screen can be the first history entry (deep link, web
 URL, tapped reminder). Never call `router.back()` directly in a screen — use `useGoBack(fallback)`
@@ -148,7 +170,9 @@ These are enforced by tests; breaking one is a regression even if it typechecks.
   `NaN`. An empty `MoneyField` is `null`, never `0` — a form holds `null` until an amount is typed
   (`requiredAmount` in `src/features/forms` turns that into the field's required message), because a
   prefilled zero is a figure the user never entered and cannot be typed over: `0,01` is a valid
-  amount, so the leading zero survives the next keystroke as `05`.
+  amount, so the leading zero survives the next keystroke as `05`. The domain keeps the same
+  distinction: `calculatePurchaseImpact` and `suggestCooldownDays` take `null` for a price not typed
+  yet and report `no_price`, rather than sizing a price of zero.
   **The currency is always its ISO code, never a symbol** (`currencyDisplay: 'code'`): there is no
   complete symbol set to render — ICU writes CHF as `CHF`, USD as `US$` outside `en-US` and most
   Arab-state currencies as their code in every locale but `ar` — so half a screen in symbols and half
@@ -216,7 +240,11 @@ fr | es | ar`; `LANGUAGE_LOCALES` maps each to the full tag `Intl` formats with.
   `pluralize` helper any more, deliberately.
 - **RTL.** `src/i18n/rtl.ts` is a platform adapter: `I18nManager` on native, the document `dir` on
   web. Native needs a restart, and the language screen says so. Use `marginStart`/`paddingStart`
-  rather than `marginLeft`/`paddingLeft`, and `align="auto"` rather than `"left"`.
+  rather than `marginLeft`/`paddingLeft`, and `align="auto"` rather than `"left"`. Something that
+  must not mirror — the wordmark, two texts in a row — pins `direction: 'ltr'`.
+- **Arabic is never letter-spaced.** `AppText` drops a role's tracking when `useLanguage()` is a
+  connected script (`writesInConnectedScript`): tracking pulls joined letters apart, and on Android it
+  made one-line titles measure narrower than they draw, so "الإعدادات" was cut to "الإعدادا…".
 - **Notification copy is frozen by the OS at schedule time**, so a language change re-schedules every
   pending reminder through `rescheduleAllCooldownReminders`.
 - Adding a key means adding it to all six catalogues; `catalogues.test.ts` checks coverage,
@@ -254,7 +282,13 @@ pattern.
   that switches language must switch it back.
 - Component tests use `renderWithProviders` from `@/test/renderWithProviders` — **await it** — which
   supplies theme, settings, language and safe-area context but _no database_. Pass `settings` to vary
-  currency or income, and `language` to exercise a translation or a right-to-left layout.
+  currency or income, `updateSettings` to observe a preference being written, and `language` to
+  exercise a translation or a right-to-left layout. A component that hands `useRepositories()` to a
+  service mocks `@/db/DatabaseProvider` with `useRepositories: () => ({})` and mocks the service.
+- `jest.setup.ts` imports `@/i18n` before any test file's `jest.mock` is registered, so a module
+  inside `src/i18n` (the RTL adapter, say) cannot be mocked through the `@/i18n` barrel. Drive the
+  real one and control what it reads — `jest.replaceProperty(I18nManager, 'isRTL', true)` — as
+  `LanguageSelection.test.tsx` does.
   `fireEvent.press` / `.scroll` are async too in RNTL 14: not awaiting them asserts before React has
   flushed, which surfaces as "overlapping act() calls" rather than a clear failure.
 - Never put a `*.test.tsx` under `src/app` — and therefore never put a component there either. Expo Router's route context (`_ctx.*.js`) matches every
@@ -291,7 +325,9 @@ pattern.
 - **No UI framework and no chart library.** `src/components/ui` is the in-repo design system on top
   of React Native primitives and `StyleSheet`; `src/components/charts` is hand-built on
   `react-native-svg`. Reach for what is already there before writing markup: `Spacer` for the gap
-  between two sections, `RowDivider` for the hairline between two rows, `BottomSheet` for a sheet,
+  between two sections, `RowDivider` for the hairline between two rows, `InlineError` for a failure
+  said next to the control that failed, `BottomSheet` for a sheet (with `useResetOnOpen` for the form
+  inside it — a hidden sheet stays mounted, and without it reopened on what it last held),
   `LoadingScreen` / `MissingRecordScreen` for a detail route that is still reading or found nothing.
 - App icons are generated from geometry (`npm run icons`); do not commit imported artwork.
 - Sample data (`src/db/devSeed.ts`) is guarded by `__DEV__` and reachable only from an explicit
