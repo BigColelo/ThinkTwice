@@ -118,7 +118,9 @@ export function formatMoney(cents: Cents, options: FormatMoneyOptions = {}): str
 }
 
 /**
- * Compact form for dense chart labels: `EUR 4.8K`, `EUR 1.2M`.
+ * Compact form for dense chart labels: `EUR 48K`, `EUR 1.2M`. The abbreviations
+ * are ICU locale data, so their spelling follows the runtime (newer ICU writes
+ * `1.2m` in en-GB).
  * Falls back to the standard format below 10 000 minor units of the major unit.
  */
 export function formatMoneyCompact(cents: Cents, options: FormatMoneyOptions = {}): string {

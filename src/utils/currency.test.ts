@@ -76,7 +76,10 @@ describe('formatMoneyCompact', () => {
   });
 
   it('compacts large amounts', () => {
-    expect(formatMoneyCompact(1_200_000_00)).toContain('M');
+    // The abbreviation is ICU locale data and changes between releases: en-GB
+    // writes `1.2M` on older ICU and `1.2m` on newer ones. Assert the
+    // compaction and where the code sits, not the letter's case.
+    expect(formatMoneyCompact(1_200_000_00)).toMatch(/^EUR\s1\.2m$/i);
   });
 });
 
